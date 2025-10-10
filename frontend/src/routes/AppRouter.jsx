@@ -12,10 +12,12 @@ export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* <Route path="/" element={<Navigate to="/login" />} /> */}
+        <Route path="/" element={<Navigate to="/dashboard" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/students" element={<Students />} />
+        {/* <Route path="/students" element={<Students />} /> */}
+        <Route path="/students" element={<Students />}/>
         <Route path="/courses" element={<Courses />} />
         <Route path="/grades" element={<Grades />} />
         <Route path="/attendance" element={<Attendance />} />
