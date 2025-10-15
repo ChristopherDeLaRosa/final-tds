@@ -7,13 +7,19 @@ export const StyledSelect = styled.select`
   border-radius: ${theme.borderRadius.md};
   font-size: ${theme.fontSize.sm};
   outline: none;
-  background: ${theme.colors.white};
+  background: ${theme.colors.bgDark};
+  color: ${theme.colors.text};
   cursor: pointer;
   width: 100%;
   transition: all 0.2s ease;
   
   &:focus {
-    border-color: ${theme.colors.primary};
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: ${theme.colors.accent};
+    box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
+  }
+
+  option {
+    background: ${theme.colors.bgDark};
+    color: ${theme.colors.text};
   }
 `;

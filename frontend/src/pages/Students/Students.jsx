@@ -1,9 +1,151 @@
 import { useState } from 'react';
-import {DataTable} from '../../components';
-import {theme} from '../../styles';
+import { DataTable } from '../../components';
+import { theme } from '../../styles';
+import styled from 'styled-components';
+
+const PageContainer = styled.div`
+  padding: ${theme.spacing.xl};
+  background: ${theme.colors.bg};
+  min-height: 100vh;
+`;
+
+const Header = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: ${theme.spacing.xl};
+  gap: ${theme.spacing.lg};
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const HeaderContent = styled.div``;
+
+const Title = styled.h1`
+  color: ${theme.colors.text};
+  font-Size: ${theme.fontSize.xxl};
+  font-weight: 600;
+  margin: 0 0 ${theme.spacing.sm} 0;
+`;
+
+const Subtitle = styled.p`
+  color: ${theme.colors.textMuted};
+  font-size: ${theme.fontSize.sm};
+  margin: 0;
+`;
+
+const AddButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.md} ${theme.spacing.xl};
+  background: ${theme.colors.accent};
+  color: ${theme.colors.text};
+  border: none;
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSize.sm};
+  font-weight: 600;
+  cursor: pointer;
+  transition: ${theme.transition};
+  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+  white-space: nowrap;
+
+  &:hover {
+    background: ${theme.colors.accentHover};
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 140, 255, 0.4);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const StatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: ${theme.spacing.lg};
+  margin-bottom: ${theme.spacing.xl};
+`;
+
+const StatCard = styled.div`
+  background: ${theme.colors.bgDark};
+  padding: ${theme.spacing.xl};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border};
+  border-left: 4px solid ${props => props.accentColor || theme.colors.accent};
+  transition: ${theme.transition};
+  
+  &:hover {
+    background: ${theme.colors.bgHover};
+    transform: translateY(-2px);
+    box-shadow: ${theme.shadows.lg};
+  }
+`;
+
+const StatLabel = styled.p`
+  margin: 0 0 ${theme.spacing.sm} 0;
+  font-size: ${theme.fontSize.sm};
+  color: ${theme.colors.textMuted};
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+`;
+
+const StatValue = styled.p`
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: ${theme.colors.text};
+`;
+
+const TableCard = styled.div`
+  background: ${theme.colors.bgDark};
+  border-radius: ${theme.borderRadius.lg};
+  border: 1px solid ${theme.colors.border};
+  overflow: hidden;
+  box-shadow: ${theme.shadows.lg};
+`;
+
+const Badge = styled.span`
+  display: inline-block;
+  font-weight: 600;
+  padding: ${theme.spacing.xs} ${theme.spacing.md};
+  border-radius: ${theme.borderRadius.md};
+  font-size: ${theme.fontSize.xs};
+  background-color: ${props => props.bgColor};
+  color: ${props => props.textColor};
+  border: 1px solid ${props => props.borderColor};
+  white-space: nowrap;
+`;
+
+const GradeText = styled.span`
+  font-weight: 600;
+  color: ${theme.colors.text};
+`;
+
+const SectionBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-weight: 700;
+  border-radius: 50%;
+  background: rgba(79, 140, 255, 0.15);
+  color: ${theme.colors.accent};
+  border: 2px solid rgba(79, 140, 255, 0.3);
+`;
 
 export default function Students() {
-  // Estado para los estudiantes
   const [estudiantes, setEstudiantes] = useState([
     { id: 1, nombre: 'Carlos Pérez', email: 'cperez@colegio.edu', nivel: 'Bachillerato', grado: '1ro', edad: 15, seccion: 'A' },
     { id: 2, nombre: 'María González', email: 'mgonzalez@colegio.edu', nivel: 'Básica', grado: '8vo', edad: 13, seccion: 'B' },
@@ -28,46 +170,26 @@ export default function Students() {
       title: 'Nivel',
       width: '130px',
       render: (value) => (
-        <span style={{
-          fontWeight: '600',
-          padding: '4px 12px',
-          borderRadius: '12px',
-          backgroundColor: value === 'Bachillerato' ? '#dbeafe' : '#fef3c7',
-          color: value === 'Bachillerato' ? '#1e40af' : '#92400e'
-        }}>
+        <Badge
+          bgColor={value === 'Bachillerato' ? 'rgba(79, 140, 255, 0.15)' : 'rgba(251, 191, 36, 0.15)'}
+          textColor={value === 'Bachillerato' ? theme.colors.accent : '#fbbf24'}
+          borderColor={value === 'Bachillerato' ? 'rgba(79, 140, 255, 0.3)' : 'rgba(251, 191, 36, 0.3)'}
+        >
           {value}
-        </span>
+        </Badge>
       )
     },
     { 
       key: 'grado', 
       title: 'Grado',
       width: '80px',
-      render: (value) => (
-        <span style={{ fontWeight: '600' }}>
-          {value}
-        </span>
-      )
+      render: (value) => <GradeText>{value}</GradeText>
     },
     { 
       key: 'seccion', 
       title: 'Sección',
       width: '90px',
-      render: (value) => (
-        <span style={{
-          display: 'inline-block',
-          width: '32px',
-          height: '32px',
-          lineHeight: '32px',
-          textAlign: 'center',
-          fontWeight: '700',
-          borderRadius: '50%',
-          backgroundColor: '#e0e7ff',
-          color: '#4338ca'
-        }}>
-          {value}
-        </span>
-      )
+      render: (value) => <SectionBadge>{value}</SectionBadge>
     },
     { key: 'edad', title: 'Edad', width: '70px' }
   ];
@@ -94,13 +216,11 @@ export default function Students() {
     ]
   };
 
-  // Función para editar estudiante
   const handleEdit = (estudiante) => {
     console.log('Editar estudiante:', estudiante);
     alert(`Editando: ${estudiante.nombre}\nGrado: ${estudiante.grado} - Sección: ${estudiante.seccion}\n\nEn una aplicación real, aquí abrirías un modal o formulario de edición.`);
   };
 
-  // Función para eliminar estudiante
   const handleDelete = (estudiante) => {
     if (window.confirm(`¿Estás seguro de eliminar al estudiante ${estudiante.nombre}?\n\nGrado: ${estudiante.grado} - Sección: ${estudiante.seccion}`)) {
       setEstudiantes(estudiantes.filter(est => est.id !== estudiante.id));
@@ -109,7 +229,6 @@ export default function Students() {
     }
   };
 
-  // Función para agregar nuevo estudiante
   const handleAddStudent = () => {
     const newId = Math.max(...estudiantes.map(e => e.id)) + 1;
     const newStudent = {
@@ -125,174 +244,53 @@ export default function Students() {
     alert('Nuevo estudiante agregado. En una aplicación real, mostrarías un formulario.');
   };
 
-  // Estadísticas
   const totalBasica = estudiantes.filter(e => e.nivel === 'Básica').length;
   const totalBachillerato = estudiantes.filter(e => e.nivel === 'Bachillerato').length;
 
   return (
-    <div style={{
-      padding: theme.spacing.xl,
-      background: theme.colors.background,
-      minHeight: '100vh'
-    }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: theme.spacing.xl
-      }}>
-        <div>
-          <h1 style={{
-            color: theme.colors.text,
-            fontSize: theme.fontSize.xl,
-            fontWeight: '600',
-            margin: 0,
-            marginBottom: '8px'
-          }}>
-            Gestión de Estudiantes
-          </h1>
-          <p style={{
-            color: '#64748b',
-            fontSize: '14px',
-            margin: 0
-          }}>
-            Sistema de registro escolar - Básica y Bachillerato
-          </p>
-        </div>
+    <PageContainer>
+      <Header>
+        <HeaderContent>
+          <Title>Gestión de Estudiantes</Title>
+          <Subtitle>Sistema de registro escolar - Básica y Bachillerato</Subtitle>
+        </HeaderContent>
         
-        <button
-          onClick={handleAddStudent}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: theme.colors.primary,
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.backgroundColor = '#2563eb';
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.4)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.backgroundColor = theme.colors.primary;
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.3)';
-          }}
-        >
-          {/* no puse icono aqui porque es un ejemplo */}
-          + Agregar Estudiante
-        </button>
-      </div>
+        <AddButton onClick={handleAddStudent}>
+          <span style={{ fontSize: '18px' }}>+</span>
+          Agregar Estudiante
+        </AddButton>
+      </Header>
 
-      {/* Tarjetas de estadísticas */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: theme.spacing.md,
-        marginBottom: theme.spacing.xl
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          padding: theme.spacing.lg,
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          borderLeft: '4px solid #3b82f6'
-        }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#64748b',
-            marginBottom: '8px'
-          }}>
-            Total Estudiantes
-          </p>
-          <p style={{
-            margin: 0,
-            fontSize: '32px',
-            fontWeight: '700',
-            color: theme.colors.text
-          }}>
-            {estudiantes.length}
-          </p>
-        </div>
+      <StatsGrid>
+        <StatCard accentColor={theme.colors.accent}>
+          <StatLabel>Total Estudiantes</StatLabel>
+          <StatValue>{estudiantes.length}</StatValue>
+        </StatCard>
 
-        <div style={{
-          backgroundColor: 'white',
-          padding: theme.spacing.lg,
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          borderLeft: '4px solid #f59e0b'
-        }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#64748b',
-            marginBottom: '8px'
-          }}>
-            Nivel Básica
-          </p>
-          <p style={{
-            margin: 0,
-            fontSize: '32px',
-            fontWeight: '700',
-            color: theme.colors.text
-          }}>
-            {totalBasica}
-          </p>
-        </div>
+        <StatCard accentColor="#fbbf24">
+          <StatLabel>Nivel Básica</StatLabel>
+          <StatValue>{totalBasica}</StatValue>
+        </StatCard>
 
-        <div style={{
-          backgroundColor: 'white',
-          padding: theme.spacing.lg,
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-          borderLeft: '4px solid #06b6d4'
-        }}>
-          <p style={{
-            margin: 0,
-            fontSize: '14px',
-            color: '#64748b',
-            marginBottom: '8px'
-          }}>
-            Bachillerato
-          </p>
-          <p style={{
-            margin: 0,
-            fontSize: '32px',
-            fontWeight: '700',
-            color: theme.colors.text
-          }}>
-            {totalBachillerato}
-          </p>
-        </div>
-      </div>
+        <StatCard accentColor="#06b6d4">
+          <StatLabel>Bachillerato</StatLabel>
+          <StatValue>{totalBachillerato}</StatValue>
+        </StatCard>
+      </StatsGrid>
 
-      {/* Tabla de estudiantes */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '12px',
-        padding: theme.spacing.lg,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
-      }}>
+      <TableCard>
         <DataTable
           data={estudiantes}
           columns={columns}
           searchFields={['nombre', 'email']}
           filterOptions={filterOptions}
-          // initialItemsPerPage={10}
           onEdit={handleEdit}
           onDelete={handleDelete}
           showActions={true}
           emptyMessage="No hay estudiantes registrados"
           loadingMessage="Cargando estudiantes..."
         />
-      </div>
-    </div>
+      </TableCard>
+    </PageContainer>
   );
-};
+}
