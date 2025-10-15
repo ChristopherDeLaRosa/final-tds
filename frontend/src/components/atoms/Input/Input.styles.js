@@ -8,17 +8,19 @@ export const InputWrapper = styled.div`
 
 export const StyledInput = styled.input`
   padding: ${theme.spacing.sm} ${theme.spacing.md};
-  padding-left: 2.5rem; /* espacio para el ícono */
+  padding-left: 2.5rem;
   border: 1px solid ${theme.colors.border};
   border-radius: ${theme.borderRadius.md};
   font-size: ${theme.fontSize.sm};
+  background: ${theme.colors.bgDark};
+  color: ${theme.colors.text};
   outline: none;
   transition: all 0.2s ease;
   width: 100%;
 
   &:focus {
-    border-color: ${theme.colors.primary};
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: ${theme.colors.accent};
+    box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
   }
 
   &::placeholder {
@@ -32,7 +34,7 @@ export const IconWrapper = styled.div`
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: ${theme.colors.textMuted}; /* mismo color que el placeholder */
+  color: ${theme.colors.textMuted};
   display: flex;
   align-items: center;
   justify-content: center;

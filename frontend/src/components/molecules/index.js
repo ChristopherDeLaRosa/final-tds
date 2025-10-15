@@ -1,3 +1,10 @@
-export { default as SearchField } from './SearchField';
+// export * from './FilterSelect';
 export { default as FilterSelect } from './FilterSelect';
+export { default as NavItem } from './NavItem/NavItem';
+// export * from './PaginationButtons';
 export { default as PaginationButtons } from './PaginationButtons';
+// export * from './SearchField';
+export { default as SearchField } from './SearchField';
+export { default as SearchInput } from './SearchInput/SearchInput';
+export { default as SectionHeader } from './SectionHeader/SectionHeader';
+export * from './index';

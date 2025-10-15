@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyledSelect } from './Select.styles';
 
 const Select = ({ children, ...props }) => {

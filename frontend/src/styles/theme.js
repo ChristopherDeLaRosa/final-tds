@@ -13,8 +13,16 @@ export const theme = {
     border: '#ddd',
     borderLight: '#eee',
     text: '#333',
-    textMuted: '#666',
-    background: '#f5f5f5'
+    // textMuted: '#666',
+    background: '#f5f5f5',
+    bg: '#0f1115',
+    bgDark: '#0c0e12',
+    bgHover: '#151923',
+    border: '#1f2430',
+    text: '#e6e9ef',
+    textMuted: '#8b92a8',
+    accent: '#4f8cff',
+    accentHover: '#669fff'
   },
   spacing: {
     xs: '4px',
@@ -40,6 +48,10 @@ export const theme = {
     sm: '14px',
     md: '16px',
     lg: '18px',
-    xl: '20px'
-  }
+    xl: '20px',
+    xxl: '30px'
+  },
+  radius: '8px',
+  shadow: '0 2px 8px rgba(0,0,0,0.3)',
+  transition: 'all 0.2s ease'
 };
