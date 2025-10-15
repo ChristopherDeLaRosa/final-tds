@@ -135,11 +135,11 @@ const Resizer = styled.div`
 
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/attendance', label: 'Attendance', icon: CalendarCheck },
-  { path: '/courses', label: 'Courses', icon: BookOpen },
-  { path: '/grades', label: 'Grades', icon: GraduationCap },
+  { path: '/attendance', label: 'Asistencia', icon: CalendarCheck },
+  { path: '/courses', label: 'Cursos', icon: BookOpen },
+  { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
   // { path: '/payments', label: 'Payments', icon: CreditCard },
-  { path: '/students', label: 'Students', icon: Users },
+  { path: '/students', label: 'Estudiantes', icon: Users },
   // { path: '/login', label: 'Login', icon: LogIn }
 ];
 
