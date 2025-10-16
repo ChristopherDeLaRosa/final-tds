@@ -1,0 +1,100 @@
+## Archivos de compilación ##
+bin/
+obj/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+out/
+*.exe
+*.dll
+*.pdb
+*.cache
+*.log
+*.vspscc
+*.user
+*.suo
+*.dbmdl
+*.jfm
+*.vspx
+*.vsp
+
+## Archivos de configuración de IDE ##
+.vs/
+.vscode/
+.idea/
+
+## Configuración de usuario de Visual Studio ##
+*.userosscache
+*.userprefs
+*.rsuser
+
+## Archivos de dependencias ##
+packages/
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## Archivos generados por herramientas ##
+_TestResults/
+TestResults/
+coverage/
+coverage.cobertura.xml
+*.coverage
+*.coveragexml
+
+## Archivos temporales ##
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+## Archivos del sistema ##
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+## Publicaciones y despliegues ##
+publish/
+wwwroot/lib/
+node_modules/
+dist/
+build/
+bundle/
+AppPackages/
+*.publish.xml
+*.pubxml
+*.pubxml.user
+_PublishedWebsites/
+
+## Certificados y llaves ##
+*.pfx
+*.snk
+*.key
+*.cer
+
+## Archivos secretos y de entorno ##
+.env
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+## Archivos de Docker ##
+docker-compose.override.yml
+.docker/
+
+## Archivos de herramientas externas ##
+*.ncrunchsolution
+*.ncrunchproject
+_ReSharper*/
+*.DotSettings.user
+
+## Archivos de migraciones generadas ##
+# Migrations/
+
+## Archivos temporales de Rider ##
+.idea/
+*.iml
