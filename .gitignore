@@ -1,19 +1,88 @@
-# Node / React
+##############################
+# Monorepo: Frontend + .NET #
+##############################
+
+# ========== Frontend (Node/React) ==========
 node_modules/
 dist/
-.vscode/
-.env
-
-# Logs
+build/
+.cache/
+.next/
+out/
+coverage/
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+.eslintcache
 
-# SQL Server
+
+# ========== Backend (.NET / ASP.NET Core) ==========
+# Compilación / artefactos
+bin/
+obj/
+out/
+artifacts/
+publish/
+
+# IDEs
+.vscode/
+.vs/
+.idea/
+*.suo
+*.user
+*.sln.docstates
+_ReSharper*/
+*.DotSettings.user
+
+# Pruebas / cobertura
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/NuGet.Config
+.nuget/packages/
+
+# Perfiles de publicación
+**/*.pubxml
+**/*.publishsettings
+Properties/PublishProfiles/
+
+# Config locales
+appsettings.*.local.json
+appsettings.Local.json
+appsettings.Development.local.json
+secrets.json
+secrets/
+
+# Entornos (frontend y backend)
+.env
+.env.*
+
+# ========== SQL Server ==========
 *.mdf
 *.ldf
 *.bak
 *.trn
 data/mssql/log/
 
-# Otros
+# ========== SO / Misceláneos ==========
 .DS_Store
 Thumbs.db
+$tf/
+*.svclog
+*.scc
+
+# ========== Docker ==========
+# Descomenta si quieres ignorar overrides locales
+# docker-compose.override.yml
+
+
