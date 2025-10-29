@@ -73,6 +73,47 @@ builder.Services.AddCors(options =>
 
 // Configuración de Swagger
 builder.Services.AddEndpointsApiExplorer();
+//builder.Services.AddSwaggerGen(options =>
+//{
+//    options.SwaggerDoc("v1", new OpenApiInfo
+//    {
+//        Title = "EduCore API",
+//        Version = "v1",
+//        Description = "API para gestión académica - Sistema EduCore",
+//        Contact = new OpenApiContact
+//        {
+//            Name = "EduCore Team",
+//            Email = "support@educore.com"
+//        }
+//    });
+
+//    // Configuración de seguridad JWT en Swagger
+//    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+//    {
+//        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
+//        Name = "Authorization",
+//        In = ParameterLocation.Header,
+//        Type = SecuritySchemeType.ApiKey,
+//        Scheme = "Bearer"
+//    });
+
+
+//    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+//    {
+//        {
+//            new OpenApiSecurityScheme
+//            {
+//                Reference = new OpenApiReference
+//                {
+//                    Type = ReferenceType.SecurityScheme,
+//                    Id = "Bearer"
+//                }
+//            },
+//            Array.Empty<string>()
+//        }
+//    });
+//});
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -80,21 +121,16 @@ builder.Services.AddSwaggerGen(options =>
         Title = "EduCore API",
         Version = "v1",
         Description = "API para gestión académica - Sistema EduCore",
-        Contact = new OpenApiContact
-        {
-            Name = "EduCore Team",
-            Email = "support@educore.com"
-        }
+        Contact = new OpenApiContact { Name = "EduCore Team", Email = "support@educore.com" }
     });
 
-    // Configuración de seguridad JWT en Swagger
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    // >>> Esquema HTTP Bearer (JWT) — NO tendrás que escribir la palabra "Bearer"
+    options.AddSecurityDefinition("JWT", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Pegar el token JWT (sin 'Bearer ')."
     });
 
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
@@ -105,13 +141,14 @@ builder.Services.AddSwaggerGen(options =>
                 Reference = new OpenApiReference
                 {
                     Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
+                    Id = "JWT"
                 }
             },
             Array.Empty<string>()
         }
     });
 });
+
 
 // Configuración de logging
 builder.Logging.ClearProviders();
@@ -127,7 +164,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "EduCore API v1");
-        c.RoutePrefix = string.Empty; // Swagger en la raíz
+        //c.RoutePrefix = string.Empty; // Swagger en la raíz
+        c.RoutePrefix = "swagger";
     });
 }
 
