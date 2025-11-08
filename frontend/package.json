@@ -20,6 +20,8 @@
     "react-router-dom": "^7.9.3",
     "recharts": "^3.2.1",
     "styled-components": "^6.1.19",
+    "sweetalert2": "^11.26.3",
+    "sweetalert2-react-content": "^5.1.0",
     "yup": "^1.7.1"
   },
   "devDependencies": {
