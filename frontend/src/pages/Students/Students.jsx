@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DataTable } from '../../components';
 import { theme } from '../../styles';
 import styled from 'styled-components';
+import StudentModal from '../../components/organisms/StudentModal';
+import estudianteService from '../../api/estudianteService';
 
 const PageContainer = styled.div`
   padding: ${theme.spacing.xl};
@@ -61,6 +63,12 @@ const AddButton = styled.button`
 
   &:active {
     transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
   
   @media (max-width: 768px) {
@@ -127,170 +135,264 @@ const Badge = styled.span`
   white-space: nowrap;
 `;
 
-const GradeText = styled.span`
-  font-weight: 600;
-  color: ${theme.colors.text};
+const LoadingOverlay = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: ${theme.spacing.xxl};
+  color: ${theme.colors.textMuted};
+  font-size: ${theme.fontSize.lg};
 `;
 
-const SectionBadge = styled.span`
-  display: inline-flex;
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-left: 4px solid #ef4444;
+  color: #ef4444;
+  padding: ${theme.spacing.lg};
+  border-radius: ${theme.borderRadius.md};
+  margin-bottom: ${theme.spacing.xl};
+  display: flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  font-weight: 700;
-  border-radius: 50%;
-  background: rgba(79, 140, 255, 0.15);
+  gap: ${theme.spacing.md};
+  
+  &::before {
+    content: '⚠';
+    font-size: 24px;
+  }
+`;
+
+const MatriculaBadge = styled.span`
+  display: inline-block;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(79, 140, 255, 0.1);
   color: ${theme.colors.accent};
-  border: 2px solid rgba(79, 140, 255, 0.3);
+  border: 1px solid rgba(79, 140, 255, 0.3);
+  font-size: 12px;
 `;
 
 export default function Students() {
-  const [estudiantes, setEstudiantes] = useState([
-    { id: 1, nombre: 'Carlos Pérez', email: 'cperez@colegio.edu', nivel: 'Bachillerato', grado: '1ro', edad: 15, seccion: 'A' },
-    { id: 2, nombre: 'María González', email: 'mgonzalez@colegio.edu', nivel: 'Básica', grado: '8vo', edad: 13, seccion: 'B' },
-    { id: 3, nombre: 'Juan Martínez', email: 'jmartinez@colegio.edu', nivel: 'Bachillerato', grado: '2do', edad: 16, seccion: 'A' },
-    { id: 4, nombre: 'Ana Rodríguez', email: 'arodriguez@colegio.edu', nivel: 'Básica', grado: '7mo', edad: 12, seccion: 'C' },
-    { id: 5, nombre: 'Pedro Sánchez', email: 'psanchez@colegio.edu', nivel: 'Bachillerato', grado: '3ro', edad: 17, seccion: 'B' },
-    { id: 6, nombre: 'Laura Fernández', email: 'lfernandez@colegio.edu', nivel: 'Básica', grado: '6to', edad: 11, seccion: 'A' },
-    { id: 7, nombre: 'Diego López', email: 'dlopez@colegio.edu', nivel: 'Bachillerato', grado: '4to', edad: 18, seccion: 'A' },
-    { id: 8, nombre: 'Sofía Ramírez', email: 'sramirez@colegio.edu', nivel: 'Básica', grado: '5to', edad: 10, seccion: 'B' },
-    { id: 9, nombre: 'Miguel Torres', email: 'mtorres@colegio.edu', nivel: 'Bachillerato', grado: '2do', edad: 16, seccion: 'C' },
-    { id: 10, nombre: 'Valentina Cruz', email: 'vcruz@colegio.edu', nivel: 'Básica', grado: '8vo', edad: 13, seccion: 'A' },
-    { id: 11, nombre: 'Roberto Díaz', email: 'rdiaz@colegio.edu', nivel: 'Básica', grado: '7mo', edad: 12, seccion: 'B' },
-    { id: 12, nombre: 'Isabella Mora', email: 'imora@colegio.edu', nivel: 'Bachillerato', grado: '1ro', edad: 15, seccion: 'B' },
-  ]);
+  // Estados
+  const [estudiantes, setEstudiantes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedEstudiante, setSelectedEstudiante] = useState(null);
 
-  const columns = [
-    { key: 'id', title: 'ID', width: '60px' },
-    { key: 'nombre', title: 'Nombre Completo' },
-    { key: 'email', title: 'Correo Electrónico' },
-    {
-      key: 'nivel',
-      title: 'Nivel',
-      width: '130px',
-      render: (value) => (
-        <Badge
-          bgColor={value === 'Bachillerato' ? 'rgba(79, 140, 255, 0.15)' : 'rgba(251, 191, 36, 0.15)'}
-          textColor={value === 'Bachillerato' ? theme.colors.accent : '#fbbf24'}
-          borderColor={value === 'Bachillerato' ? 'rgba(79, 140, 255, 0.3)' : 'rgba(251, 191, 36, 0.3)'}
-        >
-          {value}
-        </Badge>
-      )
-    },
-    { 
-      key: 'grado', 
-      title: 'Grado',
-      width: '80px',
-      render: (value) => <GradeText>{value}</GradeText>
-    },
-    { 
-      key: 'seccion', 
-      title: 'Sección',
-      width: '90px',
-      render: (value) => <SectionBadge>{value}</SectionBadge>
-    },
-    { key: 'edad', title: 'Edad', width: '70px' }
-  ];
+  // Cargar estudiantes al montar el componente
+  useEffect(() => {
+    fetchEstudiantes();
+  }, []);
 
-  const filterOptions = {
-    nivel: [
-      { value: 'Básica', label: 'Básica' },
-      { value: 'Bachillerato', label: 'Bachillerato' }
-    ],
-    grado: [
-      { value: '5to', label: '5to Grado' },
-      { value: '6to', label: '6to Grado' },
-      { value: '7mo', label: '7mo Grado' },
-      { value: '8vo', label: '8vo Grado' },
-      { value: '1ro', label: '1ro Bachillerato' },
-      { value: '2do', label: '2do Bachillerato' },
-      { value: '3ro', label: '3ro Bachillerato' },
-      { value: '4to', label: '4to Bachillerato' }
-    ],
-    seccion: [
-      { value: 'A', label: 'Sección A' },
-      { value: 'B', label: 'Sección B' },
-      { value: 'C', label: 'Sección C' }
-    ]
-  };
-
-  const handleEdit = (estudiante) => {
-    console.log('Editar estudiante:', estudiante);
-    alert(`Editando: ${estudiante.nombre}\nGrado: ${estudiante.grado} - Sección: ${estudiante.seccion}\n\nEn una aplicación real, aquí abrirías un modal o formulario de edición.`);
-  };
-
-  const handleDelete = (estudiante) => {
-    if (window.confirm(`¿Estás seguro de eliminar al estudiante ${estudiante.nombre}?\n\nGrado: ${estudiante.grado} - Sección: ${estudiante.seccion}`)) {
-      setEstudiantes(estudiantes.filter(est => est.id !== estudiante.id));
-      console.log('Estudiante eliminado:', estudiante);
-      alert(`Estudiante ${estudiante.nombre} eliminado exitosamente`);
+  // Función para obtener estudiantes de la API
+  const fetchEstudiantes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await estudianteService.getAll();
+      console.log('Estudiantes cargados:', data);
+      setEstudiantes(data);
+    } catch (err) {
+      setError('Error al cargar los estudiantes. Por favor, verifica tu conexión e intenta de nuevo.');
+      console.error('Error fetching estudiantes:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAddStudent = () => {
-    const newId = Math.max(...estudiantes.map(e => e.id)) + 1;
-    const newStudent = {
-      id: newId,
-      nombre: 'Nuevo Estudiante',
-      email: `estudiante${newId}@colegio.edu`,
-      nivel: 'Básica',
-      grado: '5to',
-      edad: 10,
-      seccion: 'A'
-    };
-    setEstudiantes([...estudiantes, newStudent]);
-    alert('Nuevo estudiante agregado. En una aplicación real, mostrarías un formulario.');
+  // Función para formatear fecha
+  const formatearFecha = (fecha) => {
+    if (!fecha) return 'N/A';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-DO', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
   };
 
-  const totalBasica = estudiantes.filter(e => e.nivel === 'Básica').length;
-  const totalBachillerato = estudiantes.filter(e => e.nivel === 'Bachillerato').length;
+  // Definición de columnas para la tabla (usando campos reales de la API)
+  const columns = [
+    { 
+      key: 'id', 
+      title: 'ID', 
+      width: '60px' 
+    },
+    { 
+      key: 'matricula', 
+      title: 'Matrícula',
+      width: '120px',
+      render: (value) => <MatriculaBadge>{value}</MatriculaBadge>
+    },
+    { 
+      key: 'nombreCompleto', 
+      title: 'Nombre Completo'
+    },
+    { 
+      key: 'email', 
+      title: 'Correo Electrónico' 
+    },
+    { 
+      key: 'telefono', 
+      title: 'Teléfono',
+      width: '130px' 
+    },
+    {
+      key: 'activo',
+      title: 'Estado',
+      width: '100px',
+      render: (value) => (
+        <Badge
+          bgColor={value ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}
+          textColor={value ? '#10b981' : '#ef4444'}
+          borderColor={value ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
+        >
+          {value ? 'Activo' : 'Inactivo'}
+        </Badge>
+      )
+    },
+  ];
+
+  // Handler para editar estudiante
+  const handleEdit = (estudiante) => {
+    console.log('Editar estudiante:', estudiante);
+    setSelectedEstudiante(estudiante);
+    setIsModalOpen(true);
+  };
+
+  // Handler para eliminar estudiante
+  const handleDelete = async (estudiante) => {
+    const nombreCompleto = estudiante.nombreCompleto || `${estudiante.nombres} ${estudiante.apellidos}`;
+    
+    if (window.confirm(`¿Estás seguro de eliminar al estudiante ${nombreCompleto}?\n\nEsta acción no se puede deshacer.`)) {
+      try {
+        await estudianteService.delete(estudiante.id);
+        
+        // Actualizar lista local eliminando el estudiante
+        setEstudiantes(estudiantes.filter(est => est.id !== estudiante.id));
+        
+        alert(`✓ Estudiante ${nombreCompleto} eliminado exitosamente`);
+      } catch (err) {
+        alert('✗ Error al eliminar el estudiante. Por favor, intenta de nuevo.');
+        console.error('Error deleting estudiante:', err);
+      }
+    }
+  };
+
+  // Handler para abrir modal de crear estudiante
+  const handleAddStudent = () => {
+    setSelectedEstudiante(null);
+    setIsModalOpen(true);
+  };
+
+  // Handler para cerrar modal
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setSelectedEstudiante(null);
+  };
+
+  // Handler para cuando se guarda exitosamente (crear o editar)
+  const handleModalSuccess = () => {
+    fetchEstudiantes(); // Recargar la lista de estudiantes
+  };
+
+  // Calcular estadísticas
+  const totalEstudiantes = estudiantes.length;
+  const estudiantesActivos = estudiantes.filter(e => e.activo).length;
+  const estudiantesInactivos = estudiantes.filter(e => !e.activo).length;
+
+  // Mostrar loading mientras carga
+  if (loading) {
+    return (
+      <PageContainer>
+        <LoadingOverlay>
+          <div>Cargando estudiantes...</div>
+        </LoadingOverlay>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer>
+      {/* Mensaje de error si existe */}
+      {error && (
+        <ErrorMessage>
+          <div>
+            <strong>Error:</strong> {error}
+            <div style={{ marginTop: '8px' }}>
+              <button 
+                onClick={fetchEstudiantes}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #ef4444',
+                  color: '#ef4444',
+                  padding: '4px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </ErrorMessage>
+      )}
+
+      {/* Header */}
       <Header>
         <HeaderContent>
           <Title>Gestión de Estudiantes</Title>
-          <Subtitle>Sistema de registro escolar - Básica y Bachillerato</Subtitle>
+          <Subtitle>Sistema de registro escolar - EduCore</Subtitle>
         </HeaderContent>
         
-        <AddButton onClick={handleAddStudent}>
+        <AddButton onClick={handleAddStudent} disabled={loading}>
           <span style={{ fontSize: '18px' }}>+</span>
           Agregar Estudiante
         </AddButton>
       </Header>
 
+      {/* Tarjetas de estadísticas */}
       <StatsGrid>
         <StatCard accentColor={theme.colors.accent}>
           <StatLabel>Total Estudiantes</StatLabel>
-          <StatValue>{estudiantes.length}</StatValue>
+          <StatValue>{totalEstudiantes}</StatValue>
         </StatCard>
 
-        <StatCard accentColor="#fbbf24">
-          <StatLabel>Nivel Básica</StatLabel>
-          <StatValue>{totalBasica}</StatValue>
+        <StatCard accentColor="#10b981">
+          <StatLabel>Estudiantes Activos</StatLabel>
+          <StatValue>{estudiantesActivos}</StatValue>
         </StatCard>
 
-        <StatCard accentColor="#06b6d4">
-          <StatLabel>Bachillerato</StatLabel>
-          <StatValue>{totalBachillerato}</StatValue>
+        <StatCard accentColor="#ef4444">
+          <StatLabel>Estudiantes Inactivos</StatLabel>
+          <StatValue>{estudiantesInactivos}</StatValue>
         </StatCard>
       </StatsGrid>
 
+      {/* Tabla de estudiantes */}
       <TableCard>
         <DataTable
           data={estudiantes}
           columns={columns}
-          searchFields={['nombre', 'email']}
-          filterOptions={filterOptions}
+          searchFields={['nombreCompleto', 'nombres', 'apellidos', 'email', 'matricula', 'telefono']}
           onEdit={handleEdit}
           onDelete={handleDelete}
           showActions={true}
-          emptyMessage="No hay estudiantes registrados"
+          emptyMessage="No hay estudiantes registrados. ¡Agrega el primero!"
           loadingMessage="Cargando estudiantes..."
         />
       </TableCard>
+
+      {/* Modal de crear/editar estudiante */}
+      <StudentModal
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        estudiante={selectedEstudiante}
+        onSuccess={handleModalSuccess}
+      />
     </PageContainer>
   );
 }
