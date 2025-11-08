@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft,
   ChevronRight,
@@ -16,7 +17,7 @@ import { SearchInput } from '../../molecules/SearchInput/SearchInput';
 import { NavItem } from '../../molecules/NavItem/NavItem';
 import { SectionHeader } from '../../molecules/SectionHeader/SectionHeader';
 import { theme } from '../../../styles/theme';
-
+import authService from '../../../services/authService';
 
 const SidebarWrapper = styled.aside`
   background: ${theme.colors.bgDark};
@@ -53,6 +54,20 @@ const AppName = styled.span`
 const UserInfo = styled.div`
   font-size: 12px;
   color: ${theme.colors.textMuted};
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const UserName = styled.span`
+  font-weight: 500;
+  color: ${theme.colors.text};
+`;
+
+const UserRole = styled.span`
+  font-size: 11px;
+  color: ${theme.colors.textMuted};
+  text-transform: capitalize;
 `;
 
 const SidebarContent = styled.nav`
@@ -106,6 +121,12 @@ const LogoutButton = styled.button`
 
   &:hover {
     background: ${theme.colors.bgHover};
+    color: #ef4444;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   ${props => props.$collapsed && `
@@ -138,18 +159,19 @@ const menuItems = [
   { path: '/attendance', label: 'Asistencia', icon: CalendarCheck },
   { path: '/courses', label: 'Cursos', icon: BookOpen },
   { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
-  // { path: '/payments', label: 'Payments', icon: CreditCard },
   { path: '/students', label: 'Estudiantes', icon: Users },
-  // { path: '/login', label: 'Login', icon: LogIn }
 ];
 
 export const Sidebar = () => {
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => storage.get('sidebarCollapsed', false));
   const [width, setWidth] = useState(() => storage.get('sidebarWidth', 280));
   const [searchQuery, setSearchQuery] = useState('');
   const [isResizing, setIsResizing] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const sidebarRef = useRef(null);
+  const user = authService.getCurrentUser();
 
   useEffect(() => {
     storage.set('sidebarCollapsed', collapsed);
@@ -164,9 +186,23 @@ export const Sidebar = () => {
     setIsResizing(true);
   };
 
-  const handleLogout = () => {
-    // Tu lógica de cierre de sesión aquí
-    console.log('Cerrando sesión...');
+  const handleLogout = async () => {
+    const confirmLogout = window.confirm('¿Estás seguro de que deseas cerrar sesión?');
+    
+    if (!confirmLogout) return;
+
+    setIsLoggingOut(true);
+    
+    try {
+      await authService.logout();
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+      // Forzar logout aunque falle
+      navigate('/login', { replace: true });
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   useEffect(() => {
@@ -197,6 +233,16 @@ export const Sidebar = () => {
     item.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Función para obtener el rol en español
+  const getRoleLabel = (role) => {
+    const roleMap = {
+      'Admin': 'Administrador',
+      'Docente': 'Docente',
+      'Estudiante': 'Estudiante'
+    };
+    return roleMap[role] || role;
+  };
+
   return (
     <SidebarWrapper 
       ref={sidebarRef} 
@@ -204,12 +250,15 @@ export const Sidebar = () => {
       $width={width}
       aria-label="Primary navigation"
     >
-      {/* HEADER CON NOMBRE DE LA APLICACIÓN */}
+      {/* HEADER CON NOMBRE DE LA APLICACIÓN Y USUARIO */}
       <SidebarHeader>
         {!collapsed ? (
           <AppTitle>
             <AppName>EduCore</AppName>
-            <UserInfo>Admin Usuario</UserInfo>
+            <UserInfo>
+              <UserName>{user?.nombreUsuario || 'Usuario'}</UserName>
+              <UserRole>{getRoleLabel(user?.rol)}</UserRole>
+            </UserInfo>
           </AppTitle>
         ) : (
           <AppName>EC</AppName>
@@ -227,15 +276,14 @@ export const Sidebar = () => {
           <SearchInput
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search menu..."
+            placeholder="Buscar..."
           />
         </div>
       )}
 
       <SidebarContent>
         <NavigationSection>
-          <SectionHeader collapsed={collapsed}>Main Menu</SectionHeader>
-          {/* TUS ITEMS ORIGINALES SE MANTIENEN */}
+          <SectionHeader collapsed={collapsed}>Menú Principal</SectionHeader>
           {filteredItems.map(item => (
             <NavItem
               key={item.path}
@@ -252,10 +300,11 @@ export const Sidebar = () => {
           <LogoutButton 
             onClick={handleLogout}
             $collapsed={collapsed}
-            title={collapsed ? "Logout" : ""}
+            disabled={isLoggingOut}
+            title={collapsed ? "Cerrar Sesión" : ""}
           >
             <LogOut size={20} />
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span>{isLoggingOut ? 'Cerrando...' : 'Cerrar Sesión'}</span>}
           </LogoutButton>
         </FooterSection>
       </SidebarContent>
