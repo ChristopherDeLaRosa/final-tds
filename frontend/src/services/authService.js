@@ -1,190 +1,139 @@
-import apiService from './apiService';
+import axiosInstance from '../services/axiosConfig';
+
+const STORAGE = {
+  setToken(token, remember) {
+    const s = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    s.setItem('token', token);
+    other.removeItem('token');
+  },
+  setUser(user, remember) {
+    const s = remember ? localStorage : sessionStorage;
+    const other = remember ? sessionStorage : localStorage;
+    s.setItem('user', JSON.stringify(user));
+    other.removeItem('user');
+  },
+  clear() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+  },
+  getToken() {
+    return localStorage.getItem('token') || sessionStorage.getItem('token');
+  },
+  getUser() {
+    const raw = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+  }
+};
 
 class AuthService {
-  
   /**
    * Login de usuario
-   * @param {Object} credentials - { nombreUsuario: string, contraseña: string }
-   * @returns {Promise<Object>} - { token, userId, nombreUsuario, email, rol }
+   * @param {{ nombreUsuario: string, password: string, remember?: boolean }} params
+   * @returns {Promise<{ token:string, nombreUsuario:string, email:string, rol:string, expiracion:string }>}
    */
-  async login(credentials) {
+  async login({ nombreUsuario, password, remember = false }) {
     try {
-      const response = await apiService.post('/auth/login', {
-        nombreUsuario: credentials.nombreUsuario,
-        contraseña: credentials.contraseña
-      });
+      // Tu backend espera LoginDto { NombreUsuario, Password }
+      const payload = { nombreUsuario, password };
+      const { data } = await axiosInstance.post('/Auth/login', payload);
 
-      // Guardar token y datos del usuario
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify({
-          userId: response.userId,
-          nombreUsuario: response.nombreUsuario,
-          email: response.email,
-          rol: response.rol
-        }));
+      if (data?.token) {
+        STORAGE.setToken(data.token, remember);
+        STORAGE.setUser(
+          {
+            nombreUsuario: data.nombreUsuario,
+            email: data.email,
+            rol: data.rol,
+            expiracion: data.expiracion
+          },
+          remember
+        );
       }
-
-      return response;
+      return data;
     } catch (error) {
-      console.error('Error en login:', error);
-      throw error;
+      const msg =
+        error?.response?.data?.message ||
+        (error?.response?.status === 401 ? 'Credenciales inválidas' : 'Error al iniciar sesión');
+      throw msg;
     }
   }
 
   /**
-   * Registro de nuevo usuario (requiere rol Admin)
-   * @param {Object} userData - Datos del nuevo usuario
-   * @returns {Promise<Object>}
+   * Registro (rol Admin)
    */
   async register(userData) {
     try {
-      const response = await apiService.post('/auth/register', userData);
-
-      // Opcionalmente guardar token si el registro devuelve uno
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify({
-          userId: response.userId,
-          nombreUsuario: response.nombreUsuario,
-          email: response.email,
-          rol: response.rol
-        }));
+      const { data } = await axiosInstance.post('/Auth/register', userData);
+      if (data?.token) {
+        // por si quieres mantener la sesión tras registro
+        STORAGE.setToken(data.token, true);
+        STORAGE.setUser(
+          {
+            nombreUsuario: data.nombreUsuario,
+            email: data.email,
+            rol: data.rol,
+            expiracion: data.expiracion
+          },
+          true
+        );
       }
-
-      return response;
+      return data;
     } catch (error) {
-      console.error('Error en registro:', error);
-      throw error;
+      const msg = error?.response?.data?.message || 'Error al registrar usuario';
+      throw msg;
     }
   }
 
-  /**
-   * Logout del usuario
-   */
   async logout() {
     try {
-      // Llamar al endpoint de logout (opcional)
-      await apiService.post('/auth/logout');
-    } catch (error) {
-      console.error('Error al hacer logout en el servidor:', error);
+      // opcional: tu backend soporta /Auth/logout (Authorize) pero manejas logout en cliente
+      await axiosInstance.post('/Auth/logout');
+    } catch {
+      /* noop */
     } finally {
-      // Siempre limpiar localStorage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      STORAGE.clear();
     }
   }
 
-  /**
-   * Verificar si el token es válido
-   * @returns {Promise<Object>} - Datos del usuario autenticado
-   */
   async verifyToken() {
-    try {
-      return await apiService.get('/auth/verify');
-    } catch (error) {
-      console.error('Error al verificar token:', error);
-      throw error;
-    }
+    const { data } = await axiosInstance.get('/Auth/verify');
+    return data; // { userId, userName, userEmail, userRole, message }
   }
 
-  /**
-   * Verificar si un nombre de usuario existe
-   * @param {string} nombreUsuario
-   * @returns {Promise<boolean>}
-   */
   async checkUsername(nombreUsuario) {
-    try {
-      const response = await apiService.get(`/auth/check-username/${nombreUsuario}`);
-      return response.exists;
-    } catch (error) {
-      console.error('Error al verificar nombre de usuario:', error);
-      throw error;
-    }
+    const { data } = await axiosInstance.get(`/Auth/check-username/${encodeURIComponent(nombreUsuario)}`);
+    return !!data?.exists;
   }
 
-  /**
-   * Verificar si un email existe
-   * @param {string} email
-   * @returns {Promise<boolean>}
-   */
   async checkEmail(email) {
-    try {
-      const response = await apiService.get(`/auth/check-email/${email}`);
-      return response.exists;
-    } catch (error) {
-      console.error('Error al verificar email:', error);
-      throw error;
-    }
+    const { data } = await axiosInstance.get(`/Auth/check-email/${encodeURIComponent(email)}`);
+    return !!data?.exists;
   }
 
-  /**
-   * Obtener el token actual
-   * @returns {string|null}
-   */
   getToken() {
-    return localStorage.getItem('token');
+    return STORAGE.getToken();
   }
 
-  /**
-   * Obtener datos del usuario actual
-   * @returns {Object|null}
-   */
   getCurrentUser() {
-    const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
-    
-    try {
-      return JSON.parse(userStr);
-    } catch (error) {
-      console.error('Error al parsear usuario:', error);
-      return null;
-    }
+    return STORAGE.getUser();
   }
 
-  /**
-   * Verificar si el usuario está autenticado
-   * @returns {boolean}
-   */
   isAuthenticated() {
     return !!this.getToken();
   }
 
-  /**
-   * Verificar si el usuario tiene un rol específico
-   * @param {string} role - Rol a verificar
-   * @returns {boolean}
-   */
   hasRole(role) {
-    const user = this.getCurrentUser();
-    return user?.rol === role;
+    return this.getCurrentUser()?.rol === role;
   }
 
-  /**
-   * Verificar si el usuario es Admin
-   * @returns {boolean}
-   */
-  isAdmin() {
-    return this.hasRole('Admin');
-  }
-
-  /**
-   * Verificar si el usuario es Docente
-   * @returns {boolean}
-   */
-  isDocente() {
-    return this.hasRole('Docente');
-  }
-
-  /**
-   * Verificar si el usuario es Estudiante
-   * @returns {boolean}
-   */
-  isEstudiante() {
-    return this.hasRole('Estudiante');
-  }
+  isAdmin() { return this.hasRole('Admin'); }
+  isDocente() { return this.hasRole('Docente'); }
+  isEstudiante() { return this.hasRole('Estudiante'); }
 }
 
-// Exportar una instancia única (singleton)
 const authService = new AuthService();
 export default authService;

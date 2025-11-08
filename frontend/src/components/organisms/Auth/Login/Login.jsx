@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, LogIn, Moon, Sun } from 'lucide-react';
-import * as S from './Login.styles';
+import { useNavigate } from 'react-router-dom';
+import authService from '../../../../services/authService';
+import styles from './Login.module.css';
 
 export default function Login({ isDarkMode, toggleTheme }) {
-  const [email, setEmail] = useState('');
+  const navigate = useNavigate();
+
+  // ← tu backend usa NombreUsuario, aquí lo llamamos username para el input
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(false);
@@ -11,109 +16,115 @@ export default function Login({ isDarkMode, toggleTheme }) {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
 
-    // Validaciones básicas
-    if (!email || !password) {
+    if (!username || !password) {
       setError('Por favor completa todos los campos');
       return;
     }
 
-    if (!email.includes('@')) {
-      setError('Por favor ingresa un email válido');
-      return;
-    }
-
     setLoading(true);
+    try {
+      await authService.login({
+        nombreUsuario: username,
+        password,                 
+        remember,                  // para decidir localStorage vs sessionStorage
+      });
 
-    // Simulación de login
-    setTimeout(() => {
-      setLoading(false);
       setSuccess('¡Inicio de sesión exitoso!');
-      console.log('Login data:', { email, password, remember });
-      
-      // Aquí iría tu lógica de autenticación real
-      // Por ejemplo: llamada a API, redirección, etc.
-    }, 1500);
+      navigate('/dashboard');
+    } catch (err) {
+      // authService lanza string amigable
+      setError(typeof err === 'string' ? err : 'Error al iniciar sesión');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <S.Container>
-      <S.ThemeToggleButton onClick={toggleTheme} title={isDarkMode ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}>
-        {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
-      </S.ThemeToggleButton>
+    <div className={`${styles.container} ${isDarkMode ? styles.dark : styles.light}`}>
 
-      <S.LoginCard>
-        <S.Logo>
-          <Lock size={28} color="#ffffff" />
-        </S.Logo>
-        
-        <S.Title>Bienvenido</S.Title>
-        <S.Subtitle>Ingresa tus credenciales para continuar</S.Subtitle>
+      <div className={styles.card}>
+        <div className={styles.logo}>
+          <Lock size={28} color="#fff" />
+        </div>
 
-        {error && <S.ErrorMessage>{error}</S.ErrorMessage>}
-        {success && <S.SuccessMessage>{success}</S.SuccessMessage>}
+        <h1 className={styles.title}>Bienvenido</h1>
+        <p className={styles.subtitle}>Ingresa tus credenciales para continuar</p>
 
-        <S.Form>
-          <S.InputGroup>
-            <S.Label>Email</S.Label>
-            <S.InputWrapper>
-              <S.IconWrapper>
-                <Mail size={18} />
-              </S.IconWrapper>
-              <S.Input
-                type="email"
-                placeholder="tu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+        {error && <div className={styles.error}>{error}</div>}
+        {success && <div className={styles.success}>{success}</div>}
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          <label className={styles.label}>
+            Usuario
+            <div className={styles.inputWrapper}>
+              <Mail className={styles.icon} size={18} />
+              <input
+                type="text"
+                className={styles.input}
+                placeholder="tu_usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={loading}
+                autoComplete="username"
               />
-            </S.InputWrapper>
-          </S.InputGroup>
+            </div>
+          </label>
 
-          <S.InputGroup>
-            <S.Label>Contraseña</S.Label>
-            <S.InputWrapper>
-              <S.IconWrapper>
-                <Lock size={18} />
-              </S.IconWrapper>
-              <S.Input
+          <label className={styles.label}>
+            Contraseña
+            <div className={styles.inputWrapper}>
+              <Lock className={styles.icon} size={18} />
+              <input
                 type={showPassword ? 'text' : 'password'}
+                className={styles.input}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                autoComplete="current-password"
               />
-              <S.TogglePassword
+              <button
                 type="button"
+                className={styles.togglePassword}
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </S.TogglePassword>
-            </S.InputWrapper>
-          </S.InputGroup>
+              </button>
+            </div>
+          </label>
 
-          <S.RememberForgot>
-            <S.CheckboxLabel>
-              <S.Checkbox
+          <div className={styles.rememberForgot}>
+            <label className={styles.checkboxLabel}>
+              <input
                 type="checkbox"
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
+                disabled={loading}
               />
-              Recordarme
-            </S.CheckboxLabel>
-            <S.ForgotLink onClick={() => alert('Funcionalidad de recuperación de contraseña')}>
-              ¿Olvidaste tu contraseña?
-            </S.ForgotLink>
-          </S.RememberForgot>
+              Recordar por 30 días
+            </label>
 
-          <S.Button onClick={handleSubmit} disabled={loading}>
-            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+            <button
+              type="button"
+              className={styles.link}
+              onClick={() => alert('Contacta al administrador para recuperar tu contraseña')}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+
+          <button type="submit" className={styles.button} disabled={loading}>
+            {loading ? 'Ingresando...' : 'Iniciar Sesión'}
             <LogIn size={20} />
-          </S.Button>
-        </S.Form>
-      </S.LoginCard>
-    </S.Container>
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }

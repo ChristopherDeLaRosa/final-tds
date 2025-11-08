@@ -7,7 +7,7 @@ namespace EduCore.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    //[Authorize]
+    [Authorize]
     public class EstudiantesController : ControllerBase
     {
         private readonly IEstudianteService _estudianteService;
@@ -69,7 +69,7 @@ namespace EduCore.API.Controllers
         /// <param name="matricula">Matrícula del estudiante</param>
         /// <returns>Datos del estudiante</returns>
         [HttpGet("matricula/{matricula}")]
-        //[Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin,Docente")]
         public async Task<ActionResult<EstudianteDto>> GetByMatricula(string matricula)
         {
             try
@@ -94,7 +94,7 @@ namespace EduCore.API.Controllers
         /// <param name="createDto">Datos del nuevo estudiante</param>
         /// <returns>Estudiante creado</returns>
         [HttpPost]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EstudianteDto>> Create([FromBody] CreateEstudianteDto createDto)
         {
             try
@@ -125,7 +125,7 @@ namespace EduCore.API.Controllers
         /// <param name="updateDto">Datos actualizados</param>
         /// <returns>Estudiante actualizado</returns>
         [HttpPut("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EstudianteDto>> Update(int id, [FromBody] UpdateEstudianteDto updateDto)
         {
             try
@@ -153,7 +153,7 @@ namespace EduCore.API.Controllers
         /// <param name="id">ID del estudiante</param>
         /// <returns>Confirmación de eliminación</returns>
         [HttpDelete("{id}")]
-        //[Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try

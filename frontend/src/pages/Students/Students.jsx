@@ -3,7 +3,7 @@ import { DataTable } from '../../components';
 import { theme } from '../../styles';
 import styled from 'styled-components';
 import StudentModal from '../../components/organisms/StudentModal';
-import estudianteService from '../../api/estudianteService';
+import estudianteService from '../../services/authService';
 
 const PageContainer = styled.div`
   padding: ${theme.spacing.xl};

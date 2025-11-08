@@ -11,7 +11,7 @@ import {
   SecondaryButton,
 } from '../atoms/FormElements';
 import { useForm, validators, createValidationSchema } from '../../hooks/useForm';
-import estudianteService from '../../api/estudianteService';
+import estudianteService from '../../services/estudianteService';
 
 // Esquema de validación para estudiante (campos reales de tu API)
 const validationSchema = createValidationSchema({
