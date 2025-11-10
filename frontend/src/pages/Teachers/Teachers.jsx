@@ -1,86 +1,86 @@
 import { useState } from 'react';
 import { theme } from '../../styles';
-import estudianteService from '../../services/estudianteService';
+import docenteService from '../../services/docenteService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useModal } from '../../hooks/useModal';
 import { MySwal, Toast } from '../../utils/alerts';
 import {
-  studentsColumns,
-  studentsSearchFields,
-  getStudentsFormFields,
-  studentsValidationRules,
-  getInitialStudentFormData,
-  formatStudentForForm,
-  formatStudentDataForAPI,
-} from './studentsConfig';
+  teachersColumns,
+  teachersSearchFields,
+  getTeachersFormFields,
+  teachersValidationRules,
+  getInitialTeacherFormData,
+  formatTeacherForForm,
+  formatTeacherDataForAPI,
+} from './teachersConfig';
 
-export default function Students() {
+export default function Teachers() {
   // Custom Hooks
   const { 
-    data: estudiantes, 
+    data: teachers, 
     loading, 
     error, 
     create, 
     update, 
     remove,
     fetchAll,
-  } = useCrud(estudianteService);
+  } = useCrud(docenteService);
 
   const { 
     errors: formErrors, 
     validate, 
     clearError, 
     clearAllErrors 
-  } = useFormValidation(studentsValidationRules);
+  } = useFormValidation(teachersValidationRules);
 
   const { 
     isOpen: isModalOpen, 
-    modalData: selectedEstudiante, 
+    modalData: selectedTeacher, 
     open: openModal, 
     close: closeModal 
   } = useModal();
 
   // Estados del formulario
-  const [formData, setFormData] = useState(getInitialStudentFormData());
+  const [formData, setFormData] = useState(getInitialTeacherFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calcular estadísticas
-  const totalEstudiantes = estudiantes.length;
-  const estudiantesActivos = estudiantes.filter(e => e.activo).length;
-  const estudiantesInactivos = estudiantes.filter(e => e.isActivo === false).length;
+  const totalTeachers = teachers.length;
+  const activeTeachers = teachers.filter(t => t.activo).length;
+  const inactiveTeachers = teachers.filter(t => !t.activo).length;
 
   const stats = [
     {
-      label: 'Total Estudiantes',
-      value: totalEstudiantes,
+      label: 'Total Docentes',
+      value: totalTeachers,
       color: theme.colors.accent,
     },
     {
-      label: 'Estudiantes Activos',
-      value: estudiantesActivos,
+      label: 'Docentes Activos',
+      value: activeTeachers,
       color: '#10b981',
     },
     {
-      label: 'Estudiantes Inactivos',
-      value: estudiantesInactivos,
+      label: 'Docentes Inactivos',
+      value: inactiveTeachers,
       color: '#ef4444',
     },
   ];
 
   // Handler para abrir modal de crear
-  const handleAddStudent = () => {
-    setFormData(getInitialStudentFormData());
+  const handleAddTeacher = () => {
+    setFormData(getInitialTeacherFormData());
     clearAllErrors();
     openModal(null);
   };
 
   // Handler para abrir modal de editar
-  const handleEditStudent = (estudiante) => {
-    setFormData(formatStudentForForm(estudiante));
+  const handleEditTeacher = (teacher) => {
+    setFormData(formatTeacherForForm(teacher));
     clearAllErrors();
-    openModal(estudiante);
+    openModal(teacher);
   };
 
   // Handler para cambios en el formulario
@@ -97,8 +97,8 @@ export default function Students() {
     }
   };
 
-  // Handler para guardar estudiante
-  const handleSaveStudent = async () => {
+  // Handler para guardar docente
+  const handleSaveTeacher = async () => {
     if (!validate(formData)) {
       return;
     }
@@ -106,37 +106,46 @@ export default function Students() {
     setIsSubmitting(true);
     
     try {
-      const dataToSend = formatStudentDataForAPI(formData);
+      const dataToSend = formatTeacherDataForAPI(formData);
 
-      if (selectedEstudiante) {
-        await update(selectedEstudiante.id, dataToSend);
+      if (selectedTeacher) {
+        await update(selectedTeacher.id, dataToSend);
       } else {
+        // Verificar si el código ya existe antes de crear
+        const codigoExists = await docenteService.codigoExists(dataToSend.codigo);
+        if (codigoExists) {
+          MySwal.fire({
+            icon: 'error',
+            title: 'Código duplicado',
+            text: 'El código ya está registrado. Por favor, usa uno diferente.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+        
         await create(dataToSend);
       }
       
       closeModal();
-      setFormData(getInitialStudentFormData());
+      setFormData(getInitialTeacherFormData());
     } catch (err) {
-      console.error('Error saving estudiante:', err);
+      console.error('Error saving teacher:', err);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handler para eliminar estudiante
-  const handleDeleteStudent = async (estudiante) => {
-    const nombre = estudiante?.nombreCompleto || 
-                   `${estudiante?.nombres} ${estudiante?.apellidos}` || 
-                   'este estudiante';
-    
-    await remove(estudiante.id, nombre);
+  // Handler para eliminar docente
+  const handleDeleteTeacher = async (teacher) => {
+    const nombre = `${teacher?.nombres} ${teacher?.apellidos}` || 'este docente';
+    await remove(teacher.id, nombre);
   };
 
   // Handler para cerrar modal
   const handleCancelModal = () => {
     if (!isSubmitting) {
       closeModal();
-      setFormData(getInitialStudentFormData());
+      setFormData(getInitialTeacherFormData());
       clearAllErrors();
     }
   };
@@ -166,35 +175,35 @@ export default function Students() {
   return (
     <CrudPage
       // Títulos y mensajes
-      title="Gestión de Estudiantes"
-      subtitle="Sistema de registro escolar - EduCore"
-      addButtonText="Agregar Estudiante"
-      emptyMessage="No hay estudiantes registrados. ¡Agrega el primero!"
-      loadingMessage="Cargando estudiantes..."
+      title="Gestión de Docentes"
+      subtitle="Sistema de gestión del personal docente - EduCore"
+      addButtonText="Agregar Docente"
+      emptyMessage="No hay docentes registrados. ¡Agrega el primero!"
+      loadingMessage="Cargando docentes..."
       
       // Datos
-      data={estudiantes}
+      data={teachers}
       loading={loading}
       error={error}
       stats={stats}
       
       // Tabla
-      columns={studentsColumns}
-      searchFields={studentsSearchFields}
+      columns={teachersColumns}
+      searchFields={teachersSearchFields}
       
       // Modal
       isModalOpen={isModalOpen}
-      modalTitle={selectedEstudiante ? 'Editar Estudiante' : 'Nuevo Estudiante'}
-      formFields={getStudentsFormFields(!!selectedEstudiante)}
+      modalTitle={selectedTeacher ? 'Editar Docente' : 'Nuevo Docente'}
+      formFields={getTeachersFormFields(!!selectedTeacher)}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting}
       
       // Handlers
-      onAdd={handleAddStudent}
-      onEdit={handleEditStudent}
-      onDelete={handleDeleteStudent}
-      onSave={handleSaveStudent}
+      onAdd={handleAddTeacher}
+      onEdit={handleEditTeacher}
+      onDelete={handleDeleteTeacher}
+      onSave={handleSaveTeacher}
       onCancel={handleCancelModal}
       onInputChange={handleInputChange}
       onRetry={handleRetry}
