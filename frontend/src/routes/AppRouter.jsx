@@ -3,6 +3,7 @@ import { AppLayout } from "../templates/AppLayout/AppLayout.jsx";
 import Login from "../components/organisms/Auth/Login/Login.jsx";
 import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import Students from "../pages/Students/Students.jsx";
+import Teachers from "../pages/Teachers/Teachers.jsx";
 import Courses from "../pages/Courses/Courses.jsx";
 import Grades from "../pages/Grades/Grades.jsx";
 import Attendance from "../pages/Attendance/Attendance.jsx";
@@ -40,6 +41,7 @@ export default function AppRouter() {
           <Route path="courses" element={<Courses />} />
           <Route path="grades" element={<Grades />} />
           <Route path="students" element={<Students />} />
+          <Route path="teachers" element={<Teachers />} />
           {/* <Route path="payments" element={<Payments />} /> */}
         </Route>
 

@@ -1,3 +1,4 @@
+// src/components/organisms/Sidebar/Sidebar.jsx (o la ubicación correcta)
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -8,6 +9,7 @@ import {
   BookOpen,
   GraduationCap,
   Users,
+  UserCheck, 
   LogOut
 } from 'lucide-react';
 import styled from 'styled-components';
@@ -160,6 +162,7 @@ const menuItems = [
   { path: '/courses', label: 'Cursos', icon: BookOpen },
   { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
   { path: '/students', label: 'Estudiantes', icon: Users },
+  { path: '/teachers', label: 'Docentes', icon: UserCheck }, // ✅ NUEVO
 ];
 
 export const Sidebar = () => {

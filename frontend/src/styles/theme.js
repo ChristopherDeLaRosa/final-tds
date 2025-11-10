@@ -21,8 +21,8 @@ export const theme = {
     border: '#1f2430',
     text: '#e6e9ef',
     textMuted: '#8b92a8',
-    accent: '#4f8cff',
-    accentHover: '#669fff'
+    accent: '#3B82F6',
+    accentHover: '#2563EB'
   },
   spacing: {
     xs: '4px',
