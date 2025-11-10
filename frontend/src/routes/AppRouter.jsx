@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard/Dashboard.jsx";
 import Students from "../pages/Students/Students.jsx";
 import Teachers from "../pages/Teachers/Teachers.jsx";
 import Courses from "../pages/Courses/Courses.jsx";
+import Sections from "../pages/Sections/Sections.jsx";
 import Grades from "../pages/Grades/Grades.jsx";
 import Attendance from "../pages/Attendance/Attendance.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
@@ -39,6 +40,7 @@ export default function AppRouter() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="attendance" element={<Attendance />} />
           <Route path="courses" element={<Courses />} />
+          <Route path="sections" element={<Sections />} />
           <Route path="grades" element={<Grades />} />
           <Route path="students" element={<Students />} />
           <Route path="teachers" element={<Teachers />} />
