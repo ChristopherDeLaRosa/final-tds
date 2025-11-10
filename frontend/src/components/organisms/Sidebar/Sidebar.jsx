@@ -159,7 +159,7 @@ const Resizer = styled.div`
 const menuItems = [
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/attendance', label: 'Asistencia', icon: CalendarCheck },
-  { path: '/courses', label: 'Cursos', icon: BookOpen },
+  { path: '/courses', label: 'Materias', icon: BookOpen },
   { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
   { path: '/students', label: 'Estudiantes', icon: Users },
   { path: '/teachers', label: 'Docentes', icon: UserCheck }, // ✅ NUEVO
