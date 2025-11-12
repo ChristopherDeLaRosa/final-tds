@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+ import { useEffect } from 'react';
 import { SearchField, FilterSelect, PaginationButtons } from '../../molecules';
 import { Text } from '../../atoms';
 import { Edit2, Trash2 } from 'lucide-react';
@@ -31,7 +31,8 @@ const DataTable = ({
   loadingMessage = "Cargando...",
   onEdit,
   onDelete,
-  showActions = true
+  showActions = true,
+  customActions,
 }) => {
   
   const { searchTerm, setSearchTerm, searchedData } = useTableSearch(data, searchFields);
@@ -50,12 +51,11 @@ const DataTable = ({
     resetPagination();
   }, [searchTerm, ...Object.values(filters)]);
 
-  // para construir columnas dinámicamente incluyendo acciones
-  const tableColumns = showActions && (onEdit || onDelete)
+  const tableColumns = showActions && (onEdit || onDelete || customActions)
     ? [...columns, {
         key: 'actions',
         title: 'Acciones',
-        width: '120px',
+        width: '150px',
         render: (_, row) => (
           <ActionButtons>
             {onEdit && (
@@ -76,6 +76,8 @@ const DataTable = ({
                 <Trash2 size={18} />
               </ActionButton>
             )}
+            {/*Renderizar acciones personalizadas */}
+            {customActions && customActions(row)}
           </ActionButtons>
         )
       }]

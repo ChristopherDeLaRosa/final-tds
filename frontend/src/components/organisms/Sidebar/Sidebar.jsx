@@ -11,6 +11,7 @@ import {
   UserCheck, 
   LogOut,
   Layers,
+  Calendar,
   icons
 } from 'lucide-react';
 import styled from 'styled-components';
@@ -21,6 +22,8 @@ import { NavItem } from '../../molecules/NavItem/NavItem';
 import { SectionHeader } from '../../molecules/SectionHeader/SectionHeader';
 import { theme } from '../../../styles/theme';
 import authService from '../../../services/authService';
+// SweetAlert utils
+import { MySwal, Toast } from '../../../utils/alerts';
 
 const SidebarWrapper = styled.aside`
   background: ${theme.colors.bgDark};
@@ -162,6 +165,7 @@ const menuItems = [
   { path: '/attendance', label: 'Asistencia', icon: CalendarCheck },
   { path: '/courses', label: 'Materias', icon: BookOpen },
   { path: '/sections', label: 'Secciones', icon: Layers },
+  { path: '/sessions', label: 'Sesiones', icon: Calendar },
   { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
   { path: '/students', label: 'Estudiantes', icon: Users },
   { path: '/teachers', label: 'Docentes', icon: UserCheck },
@@ -192,18 +196,47 @@ export const Sidebar = () => {
   };
 
   const handleLogout = async () => {
-    const confirmLogout = window.confirm('¿Estás seguro de que deseas cerrar sesión?');
-    
-    if (!confirmLogout) return;
+    // Confirmación con SweetAlert
+    const result = await MySwal.fire({
+      title: '¿Cerrar sesión?',
+      text: 'Se cerrará tu sesión actual en EduCore.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, cerrar sesión',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true,
+      focusCancel: true,
+    });
+
+    if (!result.isConfirmed) return;
 
     setIsLoggingOut(true);
-    
+
     try {
+      // Loader mientras se cierra sesión
+      MySwal.fire({
+        title: 'Cerrando sesión...',
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+      });
+
       await authService.logout();
+
+      MySwal.close();
+      Toast.fire({ icon: 'success', title: 'Sesión cerrada' });
       navigate('/login', { replace: true });
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
-      // Forzar logout aunque falle
+
+      MySwal.close();
+      await MySwal.fire({
+        icon: 'error',
+        title: 'No se pudo cerrar sesión correctamente',
+        text: 'Se forzará el cierre de sesión.',
+        confirmButtonText: 'Continuar',
+      });
+
       navigate('/login', { replace: true });
     } finally {
       setIsLoggingOut(false);
@@ -213,7 +246,6 @@ export const Sidebar = () => {
   useEffect(() => {
     const handleMouseMove = (e) => {
       if (!isResizing) return;
-      
       const newWidth = e.clientX;
       const clampedWidth = Math.min(Math.max(newWidth, 220), 420);
       setWidth(clampedWidth);
@@ -238,7 +270,7 @@ export const Sidebar = () => {
     item.label.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Función para obtener el rol en español
+  // Rol en español
   const getRoleLabel = (role) => {
     const roleMap = {
       'Admin': 'Administrador',
@@ -255,7 +287,7 @@ export const Sidebar = () => {
       $width={width}
       aria-label="Primary navigation"
     >
-      {/* HEADER CON NOMBRE DE LA APLICACIÓN Y USUARIO */}
+      {/* HEADER */}
       <SidebarHeader>
         {!collapsed ? (
           <AppTitle>
@@ -300,7 +332,7 @@ export const Sidebar = () => {
           ))}
         </NavigationSection>
 
-        {/* BOTÓN DE CERRAR SESIÓN EN EL FOOTER */}
+        {/* FOOTER: Cerrar sesión */}
         <FooterSection>
           <LogoutButton 
             onClick={handleLogout}
