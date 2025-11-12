@@ -6,6 +6,7 @@ import Students from "../pages/Students/Students.jsx";
 import Teachers from "../pages/Teachers/Teachers.jsx";
 import Courses from "../pages/Courses/Courses.jsx";
 import Sections from "../pages/Sections/Sections.jsx";
+import Sessions from "../pages/Sessions/Sessions.jsx";
 import Grades from "../pages/Grades/Grades.jsx";
 import Attendance from "../pages/Attendance/Attendance.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
@@ -41,6 +42,7 @@ export default function AppRouter() {
           <Route path="attendance" element={<Attendance />} />
           <Route path="courses" element={<Courses />} />
           <Route path="sections" element={<Sections />} />
+          <Route path="sessions" element={<Sessions />} />
           <Route path="grades" element={<Grades />} />
           <Route path="students" element={<Students />} />
           <Route path="teachers" element={<Teachers />} />

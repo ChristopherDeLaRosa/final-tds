@@ -76,6 +76,10 @@ const AddButton = styled.button`
     width: 100%;
     justify-content: center;
   }
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const TableCard = styled.div`
@@ -194,6 +198,7 @@ export default function CrudPage({
   onCancel,
   onInputChange,
   onRetry,
+  customActions,
 }) {
   if (loading) {
     return (
@@ -263,6 +268,7 @@ export default function CrudPage({
           showActions={true}
           emptyMessage={emptyMessage}
           loadingMessage={loadingMessage}
+          customActions={customActions}
         />
       </TableCard>
 
@@ -305,3 +311,4 @@ export default function CrudPage({
     </PageContainer>
   );
 }
+
