@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Mail, Lock, Eye, EyeOff, LogIn, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { Mail, Lock, Eye, EyeOff, LogIn, UserLock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../../../services/authService';
 import styles from './Login.module.css';
@@ -7,7 +7,7 @@ import styles from './Login.module.css';
 export default function Login({ isDarkMode, toggleTheme }) {
   const navigate = useNavigate();
 
-  // ← tu backend usa NombreUsuario, aquí lo llamamos username para el input
+
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,7 +49,7 @@ export default function Login({ isDarkMode, toggleTheme }) {
 
       <div className={styles.card}>
         <div className={styles.logo}>
-          <Lock size={28} color="#fff" />
+          <UserLock size={28} color="#fff" />
         </div>
 
         <h1 className={styles.title}>Bienvenido</h1>
@@ -100,15 +100,6 @@ export default function Login({ isDarkMode, toggleTheme }) {
           </label>
 
           <div className={styles.rememberForgot}>
-            <label className={styles.checkboxLabel}>
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                disabled={loading}
-              />
-              Recordar por 30 días
-            </label>
 
             <button
               type="button"

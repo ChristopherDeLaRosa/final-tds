@@ -7,14 +7,16 @@ const TOKENS = {
   radius: { md: '8px', lg: '12px' },
   fontSize: { base: '16px', lg: '20px' },
   colors: {
-    bg: '#0B0F1A',
-    bgDark: '#0F1525',
-    bgHover: '#151C2F',
-    border: '#24304A',
-    text: '#E6EAF2',
-    textMuted: '#9AA4B2',
+    bg: '#FFFFFF',
+    bgAlt: '#FAFBFC',
+    bgHover: '#F5F7F9',
+    border: '#D9DFE7',
+    borderLight: '#E8EBF0',
+    text: '#1A202C',
+    textMuted: '#718096',
+    primary: '#2563EB',
   },
-  shadow: '0 10px 30px rgba(0,0,0,0.35)',
+  shadow: '0 10px 30px rgba(0,0,0,0.12)',
   transition: 'all .2s ease',
 };
 
@@ -83,7 +85,7 @@ const Modal = ({
 const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+  background-color: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -134,7 +136,7 @@ const ModalHeader = styled.div`
   align-items: center;
   justify-content: space-between;
   padding: ${TOKENS.spacing.xl} ${TOKENS.spacing.xl};
-  border-bottom: 1px solid ${TOKENS.colors.border};
+  border-bottom: 1px solid ${TOKENS.colors.borderLight};
 `;
 
 const ModalTitle = styled.h2`
@@ -172,7 +174,7 @@ const ModalBody = styled.div`
   /* Scrollbar */
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track {
-    background: ${TOKENS.colors.bgDark};
+    background: ${TOKENS.colors.bgHover};
     border-radius: ${TOKENS.radius.md};
   }
   &::-webkit-scrollbar-thumb {
@@ -190,8 +192,8 @@ const ModalFooter = styled.div`
   justify-content: flex-end;
   gap: ${TOKENS.spacing.md};
   padding: ${TOKENS.spacing.lg} ${TOKENS.spacing.xl};
-  border-top: 1px solid ${TOKENS.colors.border};
-  background-color: ${TOKENS.colors.bgDark};
+  border-top: 1px solid ${TOKENS.colors.borderLight};
+  background-color: ${TOKENS.colors.bgAlt};
   border-radius: 0 0 ${TOKENS.radius.lg} ${TOKENS.radius.lg};
 `;
 
