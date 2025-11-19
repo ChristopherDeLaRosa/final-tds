@@ -14,7 +14,7 @@ namespace EduCore.API.Data
         public DbSet<Estudiante> Estudiantes { get; set; }
         public DbSet<Docente> Docentes { get; set; }
         public DbSet<Curso> Cursos { get; set; }
-        public DbSet<Seccion> Secciones { get; set; }
+        public DbSet<GrupoCurso> GruposCursos { get; set; }
         public DbSet<Inscripcion> Inscripciones { get; set; }
         public DbSet<Rubro> Rubros { get; set; }
         public DbSet<Calificacion> Calificaciones { get; set; }
@@ -25,7 +25,10 @@ namespace EduCore.API.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            // Configuración de índices únicos
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE ÍNDICES ÚNICOS
+            // ═══════════════════════════════════════════════════════════════
+
             modelBuilder.Entity<Usuario>()
                 .HasIndex(u => u.NombreUsuario)
                 .IsUnique();
@@ -54,79 +57,284 @@ namespace EduCore.API.Data
                 .HasIndex(c => c.Codigo)
                 .IsUnique();
 
-            modelBuilder.Entity<Seccion>()
-                .HasIndex(s => s.Codigo)
+            modelBuilder.Entity<GrupoCurso>()
+                .HasIndex(g => g.Codigo)
                 .IsUnique();
 
-            // Configuración de relaciones
-            modelBuilder.Entity<Usuario>()
-                .HasOne(u => u.Estudiante)
-                .WithMany()
-                .HasForeignKey(u => u.EstudianteId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE USUARIO
+            // ═══════════════════════════════════════════════════════════════
 
-            modelBuilder.Entity<Usuario>()
-                .HasOne(u => u.Docente)
-                .WithMany()
-                .HasForeignKey(u => u.DocenteId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Usuario>(entity =>
+            {
+                entity.Property(e => e.NombreUsuario).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.PasswordHash).IsRequired();
+                entity.Property(e => e.Rol).IsRequired().HasMaxLength(20);
 
-            modelBuilder.Entity<Inscripcion>()
-                .HasOne(i => i.Estudiante)
-                .WithMany(e => e.Inscripciones)
-                .HasForeignKey(i => i.EstudianteId)
-                .OnDelete(DeleteBehavior.Restrict);
+                // Relación con Estudiante
+                entity.HasOne(u => u.Estudiante)
+                    .WithMany()
+                    .HasForeignKey(u => u.EstudianteId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Inscripcion>()
-                .HasOne(i => i.Seccion)
-                .WithMany(s => s.Inscripciones)
-                .HasForeignKey(i => i.SeccionId)
-                .OnDelete(DeleteBehavior.Restrict);
+                // Relación con Docente
+                entity.HasOne(u => u.Docente)
+                    .WithMany()
+                    .HasForeignKey(u => u.DocenteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<Calificacion>()
-                .HasOne(c => c.Estudiante)
-                .WithMany(e => e.Calificaciones)
-                .HasForeignKey(c => c.EstudianteId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE DOCENTE
+            // ═══════════════════════════════════════════════════════════════
 
-            modelBuilder.Entity<Calificacion>()
-                .HasOne(c => c.Rubro)
-                .WithMany(r => r.Calificaciones)
-                .HasForeignKey(c => c.RubroId)
-                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Docente>(entity =>
+            {
+                entity.Property(e => e.Codigo).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Nombres).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Apellidos).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Telefono).HasMaxLength(20);
+                entity.Property(e => e.Especialidad).HasMaxLength(100);
 
-            modelBuilder.Entity<Asistencia>()
-                .HasOne(a => a.Estudiante)
-                .WithMany(e => e.Asistencias)
-                .HasForeignKey(a => a.EstudianteId)
-                .OnDelete(DeleteBehavior.Restrict);
+                // Relación uno a muchos: Un Docente puede tener muchos GruposCursos
+                entity.HasMany(d => d.GrupoCursos)
+                    .WithOne(g => g.Docente)
+                    .HasForeignKey(g => g.DocenteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
 
-            modelBuilder.Entity<Asistencia>()
-                .HasOne(a => a.Sesion)
-                .WithMany(s => s.Asistencias)
-                .HasForeignKey(a => a.SesionId)
-                .OnDelete(DeleteBehavior.Restrict);
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE ESTUDIANTE
+            // ═══════════════════════════════════════════════════════════════
 
-            // Configuración de precisión decimal
-            modelBuilder.Entity<Calificacion>()
-                .Property(c => c.Nota)
-                .HasPrecision(5, 2);
+            modelBuilder.Entity<Estudiante>(entity =>
+            {
+                entity.Property(e => e.Matricula).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Nombres).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Apellidos).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Telefono).HasMaxLength(20);
+                entity.Property(e => e.Direccion).HasMaxLength(200);
+                entity.Property(e => e.SeccionActual).HasMaxLength(10);
+                entity.Property(e => e.NombreTutor).HasMaxLength(200);
+                entity.Property(e => e.TelefonoTutor).HasMaxLength(20);
+                entity.Property(e => e.EmailTutor).HasMaxLength(150);
+                entity.Property(e => e.ObservacionesMedicas).HasMaxLength(500);
+            });
 
-            modelBuilder.Entity<Inscripcion>()
-                .Property(i => i.PromedioFinal)
-                .HasPrecision(5, 2);
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE CURSO
+            // ═══════════════════════════════════════════════════════════════
 
-            modelBuilder.Entity<Rubro>()
-                .Property(r => r.Porcentaje)
-                .HasPrecision(5, 2);
+            modelBuilder.Entity<Curso>(entity =>
+            {
+                entity.Property(e => e.Codigo).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Nombre).IsRequired().HasMaxLength(150);
+                entity.Property(e => e.Nivel).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.AreaConocimiento).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Descripcion).HasMaxLength(500);
+                entity.Property(e => e.NivelGrado).IsRequired();
+                entity.Property(e => e.HorasSemana).IsRequired();
+                entity.Property(e => e.EsObligatoria).IsRequired();
 
-            // Datos semilla (Seed Data) - Usuario Admin por defecto
+                // Relación uno a muchos: Un Curso puede tener muchos GruposCursos
+                entity.HasMany(c => c.GruposCursos)
+                    .WithOne(g => g.Curso)
+                    .HasForeignKey(g => g.CursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE GRUPOCURSO
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<GrupoCurso>(entity =>
+            {
+                entity.Property(e => e.Codigo).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Periodo).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Aula).HasMaxLength(50);
+                entity.Property(e => e.Horario).HasMaxLength(200);
+                entity.Property(e => e.Grado).IsRequired();
+                entity.Property(e => e.Anio).IsRequired();
+                entity.Property(e => e.CapacidadMaxima).IsRequired();
+
+                // Relación con Curso
+                entity.HasOne(g => g.Curso)
+                    .WithMany(c => c.GruposCursos)
+                    .HasForeignKey(g => g.CursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con Docente
+                entity.HasOne(g => g.Docente)
+                    .WithMany(d => d.GrupoCursos)
+                    .HasForeignKey(g => g.DocenteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relaciones uno a muchos
+                entity.HasMany(g => g.Inscripciones)
+                    .WithOne(i => i.GrupoCurso)
+                    .HasForeignKey(i => i.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(g => g.Sesiones)
+                    .WithOne(s => s.GrupoCurso)
+                    .HasForeignKey(s => s.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasMany(g => g.Rubros)
+                    .WithOne(r => r.GrupoCurso)
+                    .HasForeignKey(r => r.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE INSCRIPCIÓN
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<Inscripcion>(entity =>
+            {
+                entity.Property(e => e.Estado).IsRequired().HasMaxLength(20);
+
+                // Relación con Estudiante
+                entity.HasOne(i => i.Estudiante)
+                    .WithMany()
+                    .HasForeignKey(i => i.EstudianteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con GrupoCurso
+                entity.HasOne(i => i.GrupoCurso)
+                    .WithMany(g => g.Inscripciones)
+                    .HasForeignKey(i => i.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice único compuesto: un estudiante no puede estar inscrito 
+                // dos veces en el mismo grupo si está activo
+                entity.HasIndex(i => new { i.EstudianteId, i.GrupoCursoId })
+                    .IsUnique()
+                    .HasFilter("[Activo] = 1");
+
+                // Precisión decimal
+                entity.Property(i => i.PromedioFinal)
+                    .HasPrecision(5, 2);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE SESION
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<Sesion>(entity =>
+            {
+                entity.Property(e => e.Tema).HasMaxLength(100);
+                entity.Property(e => e.Observaciones).HasMaxLength(500);
+
+                // Relación con GrupoCurso
+                entity.HasOne(s => s.GrupoCurso)
+                    .WithMany(g => g.Sesiones)
+                    .HasForeignKey(s => s.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación uno a muchos con Asistencias
+                entity.HasMany(s => s.Asistencias)
+                    .WithOne(a => a.Sesion)
+                    .HasForeignKey(a => a.SesionId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE RUBRO
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<Rubro>(entity =>
+            {
+                entity.Property(e => e.Nombre).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.Descripcion).HasMaxLength(300);
+
+                // Relación con GrupoCurso
+                entity.HasOne(r => r.GrupoCurso)
+                    .WithMany(g => g.Rubros)
+                    .HasForeignKey(r => r.GrupoCursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación uno a muchos con Calificaciones
+                entity.HasMany(r => r.Calificaciones)
+                    .WithOne(c => c.Rubro)
+                    .HasForeignKey(c => c.RubroId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Precisión decimal
+                entity.Property(r => r.Porcentaje)
+                    .HasPrecision(5, 2);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE CALIFICACIÓN
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<Calificacion>(entity =>
+            {
+                entity.Property(e => e.Observaciones).HasMaxLength(500);
+
+                // Relación con Estudiante
+                entity.HasOne(c => c.Estudiante)
+                    .WithMany()
+                    .HasForeignKey(c => c.EstudianteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con Rubro
+                entity.HasOne(c => c.Rubro)
+                    .WithMany(r => r.Calificaciones)
+                    .HasForeignKey(c => c.RubroId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice compuesto: un estudiante puede tener múltiples 
+                // calificaciones en un rubro (recuperaciones)
+                entity.HasIndex(c => new { c.EstudianteId, c.RubroId });
+
+                // Precisión decimal
+                entity.Property(c => c.Nota)
+                    .HasPrecision(5, 2);
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // CONFIGURACIÓN DE ASISTENCIA
+            // ═══════════════════════════════════════════════════════════════
+
+            modelBuilder.Entity<Asistencia>(entity =>
+            {
+                entity.Property(e => e.Estado).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Observaciones).HasMaxLength(300);
+
+                // Relación con Estudiante
+                entity.HasOne(a => a.Estudiante)
+                    .WithMany()
+                    .HasForeignKey(a => a.EstudianteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con Sesion
+                entity.HasOne(a => a.Sesion)
+                    .WithMany(s => s.Asistencias)
+                    .HasForeignKey(a => a.SesionId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice único compuesto: un estudiante no puede tener 
+                // dos registros en la misma sesión
+                entity.HasIndex(a => new { a.EstudianteId, a.SesionId })
+                    .IsUnique();
+            });
+
+            // ═══════════════════════════════════════════════════════════════
+            // DATOS SEMILLA (SEED DATA)
+            // ═══════════════════════════════════════════════════════════════
+
             SeedData(modelBuilder);
         }
 
         private void SeedData(ModelBuilder modelBuilder)
         {
-            // Hash de la contraseña "Admin123!" (en prodcucion debo usar un hash real)
+            // Hash de la contraseña "Admin123!"
             var passwordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!");
 
             modelBuilder.Entity<Usuario>().HasData(

@@ -36,6 +36,6 @@ namespace EduCore.API.Models
         public bool Activo { get; set; } = true;
 
         // Navegación
-        public virtual ICollection<Seccion> Secciones { get; set; } = new List<Seccion>();
+        public virtual ICollection<GrupoCurso> GrupoCursos { get; set; } = new List<GrupoCurso>();
     }
 }

@@ -50,12 +50,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEstudianteService, EstudianteService>();
 builder.Services.AddScoped<IDocenteService, DocenteService>();
 builder.Services.AddScoped<ICursoService, CursoService>();
-builder.Services.AddScoped<ISeccionService, SeccionService>();
+builder.Services.AddScoped<IGrupoCursoService, GrupoCursoService>();
 builder.Services.AddScoped<IRubroService, RubroService>();
 builder.Services.AddScoped<ICalificacionService, CalificacionService>();
 builder.Services.AddScoped<ISesionService, SesionService>();
 builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
-builder.Services.AddScoped<IReporteService, ReporteService>();
 
 // Configuración de Controllers
 builder.Services.AddControllers();

@@ -29,6 +29,10 @@ namespace EduCore.API.Models
 
         public DateTime FechaRegistro { get; set; } = DateTime.UtcNow;
 
-        public int? UsuarioRegistroId { get; set; }
+        public int? UsuarioRegistroId { get; set; } // Docente que registró
+
+        public bool NotificacionEnviada { get; set; } = false; // Para notificar a tutores
+
+        public DateTime? FechaNotificacion { get; set; }
     }
 }

@@ -35,6 +35,26 @@ namespace EduCore.API.Models
 
         public DateTime FechaIngreso { get; set; } = DateTime.UtcNow;
 
+        [Required]
+        [Range(1, 12)]
+        public int GradoActual { get; set; } // 1-12 (grado actual del estudiante)
+
+        [Required]
+        [MaxLength(10)]
+        public string SeccionActual { get; set; } = string.Empty; // "A", "B", "C"
+
+        [MaxLength(100)]
+        public string? NombreTutor { get; set; } // Nombre del padre/madre/tutor
+
+        [MaxLength(20)]
+        public string? TelefonoTutor { get; set; }
+
+        [MaxLength(150)]
+        public string? EmailTutor { get; set; }
+
+        [MaxLength(500)]
+        public string? ObservacionesMedicas { get; set; } // Alergias, condiciones especiales
+
         public bool Activo { get; set; } = true;
 
         // Navegación

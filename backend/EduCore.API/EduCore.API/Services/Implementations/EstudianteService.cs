@@ -21,7 +21,9 @@ namespace EduCore.API.Services.Implementations
         {
             var estudiantes = await _context.Estudiantes
                 .Where(e => e.Activo)
-                .OrderBy(e => e.Apellidos)
+                .OrderBy(e => e.GradoActual)
+                .ThenBy(e => e.SeccionActual)
+                .ThenBy(e => e.Apellidos)
                 .ThenBy(e => e.Nombres)
                 .ToListAsync();
 
@@ -44,6 +46,49 @@ namespace EduCore.API.Services.Implementations
             return estudiante != null ? MapToDto(estudiante) : null;
         }
 
+        public async Task<IEnumerable<EstudianteDto>> GetByGradoAsync(int grado)
+        {
+            var estudiantes = await _context.Estudiantes
+                .Where(e => e.Activo && e.GradoActual == grado)
+                .OrderBy(e => e.SeccionActual)
+                .ThenBy(e => e.Apellidos)
+                .ThenBy(e => e.Nombres)
+                .ToListAsync();
+
+            return estudiantes.Select(e => MapToDto(e));
+        }
+
+        public async Task<IEnumerable<EstudianteDto>> GetByGradoSeccionAsync(int grado, string seccion)
+        {
+            var estudiantes = await _context.Estudiantes
+                .Where(e => e.Activo && e.GradoActual == grado && e.SeccionActual == seccion)
+                .OrderBy(e => e.Apellidos)
+                .ThenBy(e => e.Nombres)
+                .ToListAsync();
+
+            return estudiantes.Select(e => MapToDto(e));
+        }
+
+        public async Task<EstudiantesPorGradoDto?> GetEstudiantesPorGradoSeccionAsync(int grado, string seccion)
+        {
+            var estudiantes = await _context.Estudiantes
+                .Where(e => e.Activo && e.GradoActual == grado && e.SeccionActual == seccion)
+                .OrderBy(e => e.Apellidos)
+                .ThenBy(e => e.Nombres)
+                .ToListAsync();
+
+            if (!estudiantes.Any())
+                return null;
+
+            return new EstudiantesPorGradoDto
+            {
+                Grado = grado,
+                Seccion = seccion,
+                TotalEstudiantes = estudiantes.Count,
+                Estudiantes = estudiantes.Select(e => MapToDto(e)).ToList()
+            };
+        }
+
         public async Task<EstudianteDto> CreateAsync(CreateEstudianteDto createDto)
         {
             var estudiante = new Estudiante
@@ -55,6 +100,12 @@ namespace EduCore.API.Services.Implementations
                 Telefono = createDto.Telefono,
                 Direccion = createDto.Direccion,
                 FechaNacimiento = createDto.FechaNacimiento,
+                GradoActual = createDto.GradoActual,
+                SeccionActual = createDto.SeccionActual,
+                NombreTutor = createDto.NombreTutor,
+                TelefonoTutor = createDto.TelefonoTutor,
+                EmailTutor = createDto.EmailTutor,
+                ObservacionesMedicas = createDto.ObservacionesMedicas,
                 FechaIngreso = DateTime.UtcNow,
                 Activo = true
             };
@@ -62,8 +113,11 @@ namespace EduCore.API.Services.Implementations
             _context.Estudiantes.Add(estudiante);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Estudiante creado: {Matricula} - {Nombres} {Apellidos}",
-                estudiante.Matricula, estudiante.Nombres, estudiante.Apellidos);
+            _logger.LogInformation(
+                "Estudiante creado: {Matricula} - {Nombres} {Apellidos} - Grado: {Grado}{Seccion}",
+                estudiante.Matricula, estudiante.Nombres, estudiante.Apellidos,
+                estudiante.GradoActual, estudiante.SeccionActual
+            );
 
             return MapToDto(estudiante);
         }
@@ -81,6 +135,12 @@ namespace EduCore.API.Services.Implementations
             estudiante.Telefono = updateDto.Telefono;
             estudiante.Direccion = updateDto.Direccion;
             estudiante.FechaNacimiento = updateDto.FechaNacimiento;
+            estudiante.GradoActual = updateDto.GradoActual;
+            estudiante.SeccionActual = updateDto.SeccionActual;
+            estudiante.NombreTutor = updateDto.NombreTutor;
+            estudiante.TelefonoTutor = updateDto.TelefonoTutor;
+            estudiante.EmailTutor = updateDto.EmailTutor;
+            estudiante.ObservacionesMedicas = updateDto.ObservacionesMedicas;
             estudiante.Activo = updateDto.Activo;
 
             await _context.SaveChangesAsync();
@@ -110,11 +170,11 @@ namespace EduCore.API.Services.Implementations
         {
             var estudiante = await _context.Estudiantes
                 .Include(e => e.Inscripciones)
-                    .ThenInclude(i => i.Seccion)
-                        .ThenInclude(s => s.Curso)
+                    .ThenInclude(i => i.GrupoCurso) // CAMBIO: Seccion -> GrupoCurso
+                        .ThenInclude(g => g.Curso)
                 .Include(e => e.Inscripciones)
-                    .ThenInclude(i => i.Seccion)
-                        .ThenInclude(s => s.Docente)
+                    .ThenInclude(i => i.GrupoCurso) // CAMBIO: Seccion -> GrupoCurso
+                        .ThenInclude(g => g.Docente)
                 .Include(e => e.Asistencias)
                     .ThenInclude(a => a.Sesion)
                 .FirstOrDefaultAsync(e => e.Id == id);
@@ -122,17 +182,20 @@ namespace EduCore.API.Services.Implementations
             if (estudiante == null)
                 return null;
 
-            var cursosHistorial = new List<HistorialCursoDto>();
-            foreach (var inscripcion in estudiante.Inscripciones)
+            var gruposHistorial = new List<HistorialGrupoDto>();
+
+            foreach (var inscripcion in estudiante.Inscripciones.Where(i => i.Activo))
             {
+                // Obtener total de sesiones del grupo
                 var totalSesiones = await _context.Sesiones
-                    .Where(s => s.SeccionId == inscripcion.SeccionId && s.Realizada)
+                    .Where(s => s.GrupoCursoId == inscripcion.GrupoCursoId && s.Realizada) // CAMBIO
                     .CountAsync();
 
+                // Contar asistencias del estudiante
                 var asistencias = await _context.Asistencias
                     .Include(a => a.Sesion)
                     .Where(a => a.EstudianteId == id &&
-                               a.Sesion.SeccionId == inscripcion.SeccionId &&
+                               a.Sesion.GrupoCursoId == inscripcion.GrupoCursoId && // CAMBIO
                                a.Estado == "Presente")
                     .CountAsync();
 
@@ -140,21 +203,30 @@ namespace EduCore.API.Services.Implementations
                     ? (decimal)asistencias / totalSesiones * 100
                     : 0;
 
-                cursosHistorial.Add(new HistorialCursoDto
+                gruposHistorial.Add(new HistorialGrupoDto
                 {
-                    CodigoCurso = inscripcion.Seccion.Curso.Codigo,
-                    NombreCurso = inscripcion.Seccion.Curso.Nombre,
-                    Periodo = inscripcion.Seccion.Periodo,
-                    Docente = $"{inscripcion.Seccion.Docente.Nombres} {inscripcion.Seccion.Docente.Apellidos}",
+                    CodigoCurso = inscripcion.GrupoCurso.Curso.Codigo,
+                    NombreCurso = inscripcion.GrupoCurso.Curso.Nombre,
+                    AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
+                    Grado = inscripcion.GrupoCurso.Grado,
+                    Seccion = inscripcion.GrupoCurso.Seccion,
+                    Periodo = inscripcion.GrupoCurso.Periodo,
+                    Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
                     PromedioFinal = inscripcion.PromedioFinal,
                     Estado = inscripcion.Estado,
                     PorcentajeAsistencia = Math.Round(porcentajeAsistencia, 2)
                 });
             }
 
-            var cursosConNota = cursosHistorial.Where(c => c.PromedioFinal.HasValue).ToList();
-            var promedioGeneral = cursosConNota.Any()
-                ? cursosConNota.Average(c => c.PromedioFinal!.Value)
+            // Calcular estadísticas generales
+            var gruposConNota = gruposHistorial.Where(g => g.PromedioFinal.HasValue).ToList();
+            var promedioGeneral = gruposConNota.Any()
+                ? gruposConNota.Average(g => g.PromedioFinal!.Value)
+                : 0;
+
+            var gruposConAsistencia = gruposHistorial.Where(g => g.PorcentajeAsistencia.HasValue).ToList();
+            var porcentajeAsistenciaGeneral = gruposConAsistencia.Any()
+                ? gruposConAsistencia.Average(g => g.PorcentajeAsistencia!.Value)
                 : 0;
 
             return new EstudianteHistorialDto
@@ -162,10 +234,13 @@ namespace EduCore.API.Services.Implementations
                 EstudianteId = estudiante.Id,
                 Matricula = estudiante.Matricula,
                 NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
-                Cursos = cursosHistorial,
+                GradoActual = estudiante.GradoActual,
+                SeccionActual = estudiante.SeccionActual,
+                Grupos = gruposHistorial.OrderByDescending(g => g.Periodo).ToList(),
                 PromedioGeneral = Math.Round(promedioGeneral, 2),
-                TotalCursosAprobados = cursosHistorial.Count(c => c.PromedioFinal >= 70),
-                TotalCursosReprobados = cursosHistorial.Count(c => c.PromedioFinal < 70 && c.PromedioFinal > 0)
+                TotalMateriasAprobadas = gruposHistorial.Count(g => g.PromedioFinal >= 70),
+                TotalMateriasReprobadas = gruposHistorial.Count(g => g.PromedioFinal < 70 && g.PromedioFinal > 0),
+                PorcentajeAsistenciaGeneral = Math.Round(porcentajeAsistenciaGeneral, 2)
             };
         }
 
@@ -192,6 +267,12 @@ namespace EduCore.API.Services.Implementations
                 Direccion = estudiante.Direccion,
                 FechaNacimiento = estudiante.FechaNacimiento,
                 FechaIngreso = estudiante.FechaIngreso,
+                GradoActual = estudiante.GradoActual,
+                SeccionActual = estudiante.SeccionActual,
+                NombreTutor = estudiante.NombreTutor,
+                TelefonoTutor = estudiante.TelefonoTutor,
+                EmailTutor = estudiante.EmailTutor,
+                ObservacionesMedicas = estudiante.ObservacionesMedicas,
                 Activo = estudiante.Activo
             };
         }

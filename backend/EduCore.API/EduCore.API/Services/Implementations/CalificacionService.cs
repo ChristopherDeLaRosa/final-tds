@@ -17,22 +17,13 @@ namespace EduCore.API.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<CalificacionDto>> GetAllAsync()
-        {
-            var calificaciones = await _context.Calificaciones
-                .Include(c => c.Estudiante)
-                .Include(c => c.Rubro)
-                .OrderByDescending(c => c.FechaRegistro)
-                .ToListAsync();
-
-            return calificaciones.Select(c => MapToDto(c));
-        }
-
         public async Task<CalificacionDto?> GetByIdAsync(int id)
         {
             var calificacion = await _context.Calificaciones
                 .Include(c => c.Estudiante)
                 .Include(c => c.Rubro)
+                    .ThenInclude(r => r.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             return calificacion != null ? MapToDto(calificacion) : null;
@@ -43,8 +34,27 @@ namespace EduCore.API.Services.Implementations
             var calificaciones = await _context.Calificaciones
                 .Include(c => c.Estudiante)
                 .Include(c => c.Rubro)
+                    .ThenInclude(r => r.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
                 .Where(c => c.EstudianteId == estudianteId)
                 .OrderByDescending(c => c.FechaRegistro)
+                .ToListAsync();
+
+            return calificaciones.Select(c => MapToDto(c));
+        }
+
+        public async Task<IEnumerable<CalificacionDto>> GetByEstudianteGrupoCursoAsync(
+            int estudianteId,
+            int grupoCursoId)
+        {
+            var calificaciones = await _context.Calificaciones
+                .Include(c => c.Estudiante)
+                .Include(c => c.Rubro)
+                    .ThenInclude(r => r.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
+                .Where(c => c.EstudianteId == estudianteId &&
+                           c.Rubro.GrupoCursoId == grupoCursoId)
+                .OrderBy(c => c.Rubro.Orden)
                 .ToListAsync();
 
             return calificaciones.Select(c => MapToDto(c));
@@ -55,6 +65,8 @@ namespace EduCore.API.Services.Implementations
             var calificaciones = await _context.Calificaciones
                 .Include(c => c.Estudiante)
                 .Include(c => c.Rubro)
+                    .ThenInclude(r => r.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
                 .Where(c => c.RubroId == rubroId)
                 .OrderBy(c => c.Estudiante.Apellidos)
                 .ThenBy(c => c.Estudiante.Nombres)
@@ -63,41 +75,32 @@ namespace EduCore.API.Services.Implementations
             return calificaciones.Select(c => MapToDto(c));
         }
 
-        public async Task<IEnumerable<CalificacionDto>> GetBySeccionAsync(int seccionId)
+        public async Task<CalificacionDto> CreateAsync(CreateCalificacionDto createDto)
         {
-            var calificaciones = await _context.Calificaciones
-                .Include(c => c.Estudiante)
-                .Include(c => c.Rubro)
-                .Where(c => c.Rubro.SeccionId == seccionId)
-                .OrderBy(c => c.Estudiante.Apellidos)
-                .ThenBy(c => c.Estudiante.Nombres)
-                .ThenBy(c => c.Rubro.Orden)
-                .ToListAsync();
+            // Verificar si ya existe calificación (si no es recuperación)
+            if (!createDto.Recuperacion)
+            {
+                var yaRegistrada = await YaRegistradaAsync(createDto.EstudianteId, createDto.RubroId);
+                if (yaRegistrada)
+                {
+                    throw new InvalidOperationException(
+                        "Ya existe una calificación registrada para este estudiante en este rubro"
+                    );
+                }
+            }
 
-            return calificaciones.Select(c => MapToDto(c));
-        }
-
-        public async Task<CalificacionDto> CreateAsync(CreateCalificacionDto createDto, int usuarioId)
-        {
             var calificacion = new Calificacion
             {
                 EstudianteId = createDto.EstudianteId,
                 RubroId = createDto.RubroId,
                 Nota = createDto.Nota,
                 Observaciones = createDto.Observaciones,
-                FechaRegistro = DateTime.UtcNow,
-                UsuarioModificacionId = usuarioId
+                Recuperacion = createDto.Recuperacion,
+                FechaRegistro = DateTime.UtcNow
             };
 
             _context.Calificaciones.Add(calificacion);
             await _context.SaveChangesAsync();
-
-            // Actualizar promedio final del estudiante
-            var rubro = await _context.Rubros.FindAsync(createDto.RubroId);
-            if (rubro != null)
-            {
-                await ActualizarPromedioFinalAsync(rubro.SeccionId, createDto.EstudianteId);
-            }
 
             // Recargar con relaciones
             await _context.Entry(calificacion)
@@ -106,18 +109,34 @@ namespace EduCore.API.Services.Implementations
             await _context.Entry(calificacion)
                 .Reference(c => c.Rubro)
                 .LoadAsync();
+            await _context.Entry(calificacion.Rubro)
+                .Reference(r => r.GrupoCurso)
+                .LoadAsync();
+            await _context.Entry(calificacion.Rubro.GrupoCurso)
+                .Reference(g => g.Curso)
+                .LoadAsync();
 
-            _logger.LogInformation("Calificación creada para estudiante {EstudianteId} en rubro {RubroId}",
-                createDto.EstudianteId, createDto.RubroId);
+            // Actualizar promedio de inscripción
+            await ActualizarPromediosInscripcionAsync(
+                calificacion.EstudianteId,
+                calificacion.Rubro.GrupoCursoId
+            );
+
+            _logger.LogInformation(
+                "Calificación registrada: Estudiante {EstudianteId} - Rubro {RubroId} - Nota: {Nota}",
+                calificacion.EstudianteId, calificacion.RubroId, calificacion.Nota
+            );
 
             return MapToDto(calificacion);
         }
 
-        public async Task<CalificacionDto?> UpdateAsync(int id, UpdateCalificacionDto updateDto, int usuarioId)
+        public async Task<CalificacionDto?> UpdateAsync(int id, UpdateCalificacionDto updateDto)
         {
             var calificacion = await _context.Calificaciones
                 .Include(c => c.Estudiante)
                 .Include(c => c.Rubro)
+                    .ThenInclude(r => r.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (calificacion == null)
@@ -126,12 +145,14 @@ namespace EduCore.API.Services.Implementations
             calificacion.Nota = updateDto.Nota;
             calificacion.Observaciones = updateDto.Observaciones;
             calificacion.FechaModificacion = DateTime.UtcNow;
-            calificacion.UsuarioModificacionId = usuarioId;
 
             await _context.SaveChangesAsync();
 
-            // Actualizar promedio final
-            await ActualizarPromedioFinalAsync(calificacion.Rubro.SeccionId, calificacion.EstudianteId);
+            // Actualizar promedio de inscripción
+            await ActualizarPromediosInscripcionAsync(
+                calificacion.EstudianteId,
+                calificacion.Rubro.GrupoCursoId
+            );
 
             _logger.LogInformation("Calificación actualizada: {Id}", id);
 
@@ -147,221 +168,449 @@ namespace EduCore.API.Services.Implementations
             if (calificacion == null)
                 return false;
 
-            var seccionId = calificacion.Rubro.SeccionId;
             var estudianteId = calificacion.EstudianteId;
+            var grupoCursoId = calificacion.Rubro.GrupoCursoId;
 
             _context.Calificaciones.Remove(calificacion);
             await _context.SaveChangesAsync();
 
-            // Actualizar promedio final
-            await ActualizarPromedioFinalAsync(seccionId, estudianteId);
+            // Actualizar promedio de inscripción
+            await ActualizarPromediosInscripcionAsync(estudianteId, grupoCursoId);
 
             _logger.LogInformation("Calificación eliminada: {Id}", id);
 
             return true;
         }
 
-        public async Task<bool> CargaMasivaAsync(int rubroId, CargaCalificacionesDto cargaDto, int usuarioId)
+        public async Task<List<CalificacionDto>> RegistrarCalificacionesGrupoAsync(
+            RegistrarCalificacionesGrupoDto registroDto)
         {
-            var rubro = await _context.Rubros.FindAsync(rubroId);
+            var calificacionesCreadas = new List<Calificacion>();
+            var gruposCursosActualizar = new HashSet<(int estudianteId, int grupoCursoId)>();
+
+            // Obtener el GrupoCursoId del rubro
+            var rubro = await _context.Rubros.FindAsync(registroDto.RubroId);
             if (rubro == null)
-                return false;
+                throw new InvalidOperationException("Rubro no encontrado");
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            foreach (var calificacionDto in registroDto.Calificaciones)
             {
-                foreach (var calificacionDto in cargaDto.Calificaciones)
+                // Verificar si ya existe
+                var yaRegistrada = await YaRegistradaAsync(
+                    calificacionDto.EstudianteId,
+                    registroDto.RubroId
+                );
+
+                if (yaRegistrada)
                 {
-                    // Verificar si ya existe una calificación
-                    var existente = await _context.Calificaciones
-                        .FirstOrDefaultAsync(c => c.EstudianteId == calificacionDto.EstudianteId && c.RubroId == rubroId);
-
-                    if (existente != null)
-                    {
-                        // Actualizar
-                        existente.Nota = calificacionDto.Nota;
-                        existente.Observaciones = calificacionDto.Observaciones;
-                        existente.FechaModificacion = DateTime.UtcNow;
-                        existente.UsuarioModificacionId = usuarioId;
-                    }
-                    else
-                    {
-                        // Crear nueva
-                        var nueva = new Calificacion
-                        {
-                            EstudianteId = calificacionDto.EstudianteId,
-                            RubroId = rubroId,
-                            Nota = calificacionDto.Nota,
-                            Observaciones = calificacionDto.Observaciones,
-                            FechaRegistro = DateTime.UtcNow,
-                            UsuarioModificacionId = usuarioId
-                        };
-                        _context.Calificaciones.Add(nueva);
-                    }
-
-                    // Actualizar promedio final
-                    await ActualizarPromedioFinalAsync(rubro.SeccionId, calificacionDto.EstudianteId);
+                    _logger.LogWarning(
+                        "Calificación ya registrada para estudiante {EstudianteId} en rubro {RubroId}",
+                        calificacionDto.EstudianteId, registroDto.RubroId
+                    );
+                    continue;
                 }
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                var calificacion = new Calificacion
+                {
+                    EstudianteId = calificacionDto.EstudianteId,
+                    RubroId = registroDto.RubroId,
+                    Nota = calificacionDto.Nota,
+                    Observaciones = calificacionDto.Observaciones,
+                    FechaRegistro = DateTime.UtcNow,
+                    Recuperacion = false
+                };
 
-                _logger.LogInformation("Carga masiva de calificaciones completada para rubro {RubroId}. Total: {Total}",
-                    rubroId, cargaDto.Calificaciones.Count);
-
-                return true;
+                _context.Calificaciones.Add(calificacion);
+                calificacionesCreadas.Add(calificacion);
+                gruposCursosActualizar.Add((calificacionDto.EstudianteId, rubro.GrupoCursoId));
             }
-            catch (Exception ex)
+
+            await _context.SaveChangesAsync();
+
+            // Actualizar promedios de todas las inscripciones afectadas
+            foreach (var (estudianteId, grupoCursoId) in gruposCursosActualizar)
             {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error en carga masiva de calificaciones para rubro {RubroId}", rubroId);
-                return false;
+                await ActualizarPromediosInscripcionAsync(estudianteId, grupoCursoId);
             }
+
+            _logger.LogInformation(
+                "Calificaciones grupales registradas: {Cantidad} estudiantes en rubro {RubroId}",
+                calificacionesCreadas.Count, registroDto.RubroId
+            );
+
+            // Recargar con relaciones
+            foreach (var calificacion in calificacionesCreadas)
+            {
+                await _context.Entry(calificacion)
+                    .Reference(c => c.Estudiante)
+                    .LoadAsync();
+                await _context.Entry(calificacion)
+                    .Reference(c => c.Rubro)
+                    .LoadAsync();
+                await _context.Entry(calificacion.Rubro)
+                    .Reference(r => r.GrupoCurso)
+                    .LoadAsync();
+                await _context.Entry(calificacion.Rubro.GrupoCurso)
+                    .Reference(g => g.Curso)
+                    .LoadAsync();
+            }
+
+            return calificacionesCreadas.Select(c => MapToDto(c)).ToList();
         }
 
-        public async Task<PromedioEstudianteDto?> GetPromedioEstudianteAsync(int seccionId, int estudianteId)
+        public async Task<CalificacionesGrupoCursoDto?> GetCalificacionesGrupoCursoAsync(int grupoCursoId)
         {
-            var estudiante = await _context.Estudiantes.FindAsync(estudianteId);
-            if (estudiante == null)
+            var grupoCurso = await _context.GruposCursos
+                .Include(g => g.Curso)
+                .FirstOrDefaultAsync(g => g.Id == grupoCursoId);
+
+            if (grupoCurso == null)
                 return null;
 
+            // Obtener rubros del grupo
             var rubros = await _context.Rubros
-                .Where(r => r.SeccionId == seccionId && r.Activo)
+                .Where(r => r.GrupoCursoId == grupoCursoId && r.Activo)
                 .OrderBy(r => r.Orden)
                 .ToListAsync();
 
-            var calificaciones = await _context.Calificaciones
-                .Where(c => c.EstudianteId == estudianteId && c.Rubro.SeccionId == seccionId)
-                .Include(c => c.Rubro)
+            // Obtener estudiantes inscritos
+            var estudiantes = await _context.Inscripciones
+                .Include(i => i.Estudiante)
+                .Where(i => i.GrupoCursoId == grupoCursoId && i.Activo)
+                .OrderBy(i => i.Estudiante.Apellidos)
+                .ThenBy(i => i.Estudiante.Nombres)
+                .Select(i => i.Estudiante)
                 .ToListAsync();
 
-            var notas = new List<NotaRubroDto>();
-            decimal sumaNotas = 0;
+            // Obtener todas las calificaciones del grupo
+            var calificaciones = await _context.Calificaciones
+                .Include(c => c.Rubro)
+                .Where(c => c.Rubro.GrupoCursoId == grupoCursoId && !c.Recuperacion)
+                .ToListAsync();
+
+            var estudiantesCalificaciones = new List<EstudianteCalificacionesDto>();
+            var promedios = new List<decimal>();
+
+            foreach (var estudiante in estudiantes)
+            {
+                var notasPorRubro = new Dictionary<int, decimal?>();
+
+                foreach (var rubro in rubros)
+                {
+                    var calificacion = calificaciones.FirstOrDefault(
+                        c => c.EstudianteId == estudiante.Id && c.RubroId == rubro.Id
+                    );
+                    notasPorRubro[rubro.Id] = calificacion?.Nota;
+                }
+
+                var promedio = await CalcularPromedioGrupoCursoAsync(estudiante.Id, grupoCursoId);
+
+                estudiantesCalificaciones.Add(new EstudianteCalificacionesDto
+                {
+                    EstudianteId = estudiante.Id,
+                    Matricula = estudiante.Matricula,
+                    NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
+                    NotasPorRubro = notasPorRubro,
+                    PromedioFinal = promedio
+                });
+
+                if (promedio.HasValue)
+                    promedios.Add(promedio.Value);
+            }
+
+            var promedioGrupo = promedios.Any() ? promedios.Average() : 0;
+
+            return new CalificacionesGrupoCursoDto
+            {
+                GrupoCursoId = grupoCurso.Id,
+                CodigoGrupo = grupoCurso.Codigo,
+                NombreCurso = grupoCurso.Curso.Nombre,
+                Grado = grupoCurso.Grado,
+                Seccion = grupoCurso.Seccion,
+                Periodo = grupoCurso.Periodo,
+                Rubros = rubros.Select(r => new RubroResumenDto
+                {
+                    RubroId = r.Id,
+                    NombreRubro = r.Nombre,
+                    Porcentaje = r.Porcentaje,
+                    Orden = r.Orden
+                }).ToList(),
+                Estudiantes = estudiantesCalificaciones,
+                PromedioGrupo = Math.Round(promedioGrupo, 2)
+            };
+        }
+
+        public async Task<BoletinEstudianteDto?> GetBoletinEstudianteAsync(int estudianteId, string periodo)
+        {
+            var estudiante = await _context.Estudiantes
+                .FirstOrDefaultAsync(e => e.Id == estudianteId);
+
+            if (estudiante == null)
+                return null;
+
+            // Obtener inscripciones del periodo
+            var inscripciones = await _context.Inscripciones
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Curso)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Docente)
+                .Where(i => i.EstudianteId == estudianteId &&
+                           i.GrupoCurso.Periodo == periodo &&
+                           i.Activo)
+                .ToListAsync();
+
+            var gruposCursosDto = new List<CalificacionGrupoCursoDto>();
+            var promediosFinales = new List<decimal>();
+            int aprobadas = 0;
+            int reprobadas = 0;
+
+            foreach (var inscripcion in inscripciones)
+            {
+                // Obtener rubros del grupo
+                var rubros = await _context.Rubros
+                    .Where(r => r.GrupoCursoId == inscripcion.GrupoCursoId && r.Activo)
+                    .OrderBy(r => r.Orden)
+                    .ToListAsync();
+
+                // Obtener calificaciones del estudiante
+                var calificaciones = await _context.Calificaciones
+                    .Where(c => c.EstudianteId == estudianteId &&
+                               rubros.Select(r => r.Id).Contains(c.RubroId))
+                    .ToListAsync();
+
+                var rubrosDto = new List<CalificacionRubroDto>();
+                decimal sumaPonderada = 0;
+                decimal sumaPorcentajes = 0;
+
+                foreach (var rubro in rubros)
+                {
+                    var calificacion = calificaciones
+                        .Where(c => c.RubroId == rubro.Id)
+                        .OrderByDescending(c => c.Recuperacion)
+                        .FirstOrDefault();
+
+                    decimal? notaPonderada = null;
+                    if (calificacion != null)
+                    {
+                        notaPonderada = calificacion.Nota * (rubro.Porcentaje / 100);
+                        sumaPonderada += notaPonderada.Value;
+                        sumaPorcentajes += rubro.Porcentaje;
+                    }
+
+                    rubrosDto.Add(new CalificacionRubroDto
+                    {
+                        RubroId = rubro.Id,
+                        NombreRubro = rubro.Nombre,
+                        PorcentajeRubro = rubro.Porcentaje,
+                        Nota = calificacion?.Nota,
+                        NotaPonderada = notaPonderada.HasValue ? Math.Round(notaPonderada.Value, 2) : null,
+                        Recuperacion = calificacion?.Recuperacion ?? false,
+                        Observaciones = calificacion?.Observaciones
+                    });
+                }
+
+                decimal? promedioFinal = sumaPorcentajes > 0 ? sumaPonderada : null;
+                string estado = promedioFinal.HasValue
+                    ? (promedioFinal.Value >= 70 ? "Aprobado" : "Reprobado")
+                    : "Pendiente";
+
+                if (promedioFinal.HasValue)
+                {
+                    promediosFinales.Add(promedioFinal.Value);
+                    if (promedioFinal.Value >= 70)
+                        aprobadas++;
+                    else
+                        reprobadas++;
+                }
+
+                gruposCursosDto.Add(new CalificacionGrupoCursoDto
+                {
+                    GrupoCursoId = inscripcion.GrupoCursoId,
+                    CodigoCurso = inscripcion.GrupoCurso.Curso.Codigo,
+                    NombreCurso = inscripcion.GrupoCurso.Curso.Nombre,
+                    AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
+                    Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
+                    Rubros = rubrosDto,
+                    PromedioFinal = promedioFinal.HasValue ? Math.Round(promedioFinal.Value, 2) : null,
+                    Estado = estado
+                });
+            }
+
+            var promedioGeneral = promediosFinales.Any()
+                ? Math.Round(promediosFinales.Average(), 2)
+                : 0;
+
+            // Calcular porcentaje de asistencia del periodo
+            var asistencias = await _context.Asistencias
+                .Include(a => a.Sesion)
+                .Where(a => a.EstudianteId == estudianteId &&
+                           inscripciones.Select(i => i.GrupoCursoId)
+                               .Contains(a.Sesion.GrupoCursoId))
+                .ToListAsync();
+
+            var totalSesiones = asistencias.Count;
+            var presentes = asistencias.Count(a => a.Estado == "Presente");
+            var porcentajeAsistencia = totalSesiones > 0
+                ? Math.Round((decimal)presentes / totalSesiones * 100, 2)
+                : 0;
+
+            return new BoletinEstudianteDto
+            {
+                EstudianteId = estudiante.Id,
+                Matricula = estudiante.Matricula,
+                NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
+                GradoActual = estudiante.GradoActual,
+                SeccionActual = estudiante.SeccionActual,
+                Periodo = periodo,
+                GruposCursos = gruposCursosDto.OrderBy(g => g.AreaConocimiento).ToList(),
+                PromedioGeneral = promedioGeneral,
+                TotalMateriasAprobadas = aprobadas,
+                TotalMateriasReprobadas = reprobadas,
+                PorcentajeAsistencia = porcentajeAsistencia
+            };
+        }
+
+        public async Task<EstadisticasCalificacionesDto?> GetEstadisticasGrupoCursoAsync(int grupoCursoId)
+        {
+            var grupoCurso = await _context.GruposCursos
+                .Include(g => g.Curso)
+                .FirstOrDefaultAsync(g => g.Id == grupoCursoId);
+
+            if (grupoCurso == null)
+                return null;
+
+            var estudiantes = await _context.Inscripciones
+                .Where(i => i.GrupoCursoId == grupoCursoId && i.Activo)
+                .Select(i => i.EstudianteId)
+                .ToListAsync();
+
+            var promedios = new List<decimal>();
+            int aprobados = 0;
+            int reprobados = 0;
+
+            foreach (var estudianteId in estudiantes)
+            {
+                var promedio = await CalcularPromedioGrupoCursoAsync(estudianteId, grupoCursoId);
+                if (promedio.HasValue)
+                {
+                    promedios.Add(promedio.Value);
+                    if (promedio.Value >= 70)
+                        aprobados++;
+                    else
+                        reprobados++;
+                }
+            }
+
+            var totalEstudiantes = estudiantes.Count;
+            var porcentajeAprobacion = totalEstudiantes > 0
+                ? Math.Round((decimal)aprobados / totalEstudiantes * 100, 2)
+                : 0;
+
+            var promedioGrupo = promedios.Any() ? Math.Round(promedios.Average(), 2) : 0;
+            var notaMaxima = promedios.Any() ? Math.Round(promedios.Max(), 2) : 0;
+            var notaMinima = promedios.Any() ? Math.Round(promedios.Min(), 2) : 0;
+
+            // Distribución de notas
+            var distribucion = new List<DistribucionNotasDto>
+            {
+                new() { Rango = "90-100", Cantidad = promedios.Count(p => p >= 90 && p <= 100) },
+                new() { Rango = "80-89", Cantidad = promedios.Count(p => p >= 80 && p < 90) },
+                new() { Rango = "70-79", Cantidad = promedios.Count(p => p >= 70 && p < 80) },
+                new() { Rango = "60-69", Cantidad = promedios.Count(p => p >= 60 && p < 70) },
+                new() { Rango = "0-59", Cantidad = promedios.Count(p => p < 60) }
+            };
+
+            foreach (var dist in distribucion)
+            {
+                dist.Porcentaje = promedios.Any()
+                    ? Math.Round((decimal)dist.Cantidad / promedios.Count * 100, 2)
+                    : 0;
+            }
+
+            return new EstadisticasCalificacionesDto
+            {
+                GrupoCursoId = grupoCurso.Id,
+                NombreCurso = grupoCurso.Curso.Nombre,
+                TotalEstudiantes = totalEstudiantes,
+                Aprobados = aprobados,
+                Reprobados = reprobados,
+                PorcentajeAprobacion = porcentajeAprobacion,
+                PromedioGrupo = promedioGrupo,
+                NotaMaxima = notaMaxima,
+                NotaMinima = notaMinima,
+                DistribucionNotas = distribucion
+            };
+        }
+
+        public async Task<decimal?> CalcularPromedioGrupoCursoAsync(int estudianteId, int grupoCursoId)
+        {
+            var rubros = await _context.Rubros
+                .Where(r => r.GrupoCursoId == grupoCursoId && r.Activo)
+                .ToListAsync();
+
+            if (!rubros.Any())
+                return null;
+
+            var calificaciones = await _context.Calificaciones
+                .Where(c => c.EstudianteId == estudianteId &&
+                           rubros.Select(r => r.Id).Contains(c.RubroId))
+                .ToListAsync();
+
+            decimal sumaPonderada = 0;
             decimal sumaPorcentajes = 0;
 
             foreach (var rubro in rubros)
             {
-                var calificacion = calificaciones.FirstOrDefault(c => c.RubroId == rubro.Id);
-                decimal? notaPonderada = null;
+                var calificacion = calificaciones
+                    .Where(c => c.RubroId == rubro.Id)
+                    .OrderByDescending(c => c.Recuperacion)
+                    .FirstOrDefault();
 
                 if (calificacion != null)
                 {
-                    notaPonderada = calificacion.Nota * (rubro.Porcentaje / 100);
-                    sumaNotas += notaPonderada.Value;
+                    sumaPonderada += calificacion.Nota * (rubro.Porcentaje / 100);
                     sumaPorcentajes += rubro.Porcentaje;
                 }
-
-                notas.Add(new NotaRubroDto
-                {
-                    NombreRubro = rubro.Nombre,
-                    Porcentaje = rubro.Porcentaje,
-                    Nota = calificacion?.Nota,
-                    NotaPonderada = notaPonderada
-                });
             }
 
-            var promedioFinal = Math.Round(sumaNotas, 2);
-            var estado = sumaPorcentajes < 100 ? "Pendiente" : promedioFinal >= 70 ? "Aprobado" : "Reprobado";
-
-            return new PromedioEstudianteDto
-            {
-                SeccionId = seccionId,
-                EstudianteId = estudianteId,
-                Matricula = estudiante.Matricula,
-                NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
-                Notas = notas,
-                PromedioFinal = promedioFinal,
-                Estado = estado
-            };
+            return sumaPorcentajes > 0 ? Math.Round(sumaPonderada, 2) : null;
         }
 
-        public async Task<ActaCalificacionesDto?> GenerarActaAsync(int seccionId)
-        {
-            var seccion = await _context.Secciones
-                .Include(s => s.Curso)
-                .Include(s => s.Docente)
-                .Include(s => s.Inscripciones)
-                    .ThenInclude(i => i.Estudiante)
-                .FirstOrDefaultAsync(s => s.Id == seccionId);
-
-            if (seccion == null)
-                return null;
-
-            var rubros = await _context.Rubros
-                .Where(r => r.SeccionId == seccionId && r.Activo)
-                .OrderBy(r => r.Orden)
-                .ToListAsync();
-
-            var estudiantes = new List<EstudianteCalificacionesDto>();
-
-            foreach (var inscripcion in seccion.Inscripciones.Where(i => i.Activo))
-            {
-                var promedio = await GetPromedioEstudianteAsync(seccionId, inscripcion.EstudianteId);
-                if (promedio == null) continue;
-
-                var notasPorRubro = new Dictionary<string, decimal?>();
-                foreach (var nota in promedio.Notas)
-                {
-                    notasPorRubro[nota.NombreRubro] = nota.Nota;
-                }
-
-                estudiantes.Add(new EstudianteCalificacionesDto
-                {
-                    EstudianteId = inscripcion.EstudianteId,
-                    Matricula = inscripcion.Estudiante.Matricula,
-                    NombreCompleto = $"{inscripcion.Estudiante.Nombres} {inscripcion.Estudiante.Apellidos}",
-                    NotasPorRubro = notasPorRubro,
-                    PromedioFinal = promedio.PromedioFinal,
-                    Estado = promedio.Estado
-                });
-            }
-
-            return new ActaCalificacionesDto
-            {
-                SeccionId = seccionId,
-                CodigoSeccion = seccion.Codigo,
-                CodigoCurso = seccion.Curso.Codigo,
-                NombreCurso = seccion.Curso.Nombre,
-                Periodo = seccion.Periodo,
-                Docente = $"{seccion.Docente.Nombres} {seccion.Docente.Apellidos}",
-                FechaGeneracion = DateTime.UtcNow,
-                Rubros = rubros.Select(r => new RubroDto
-                {
-                    Id = r.Id,
-                    SeccionId = r.SeccionId,
-                    Nombre = r.Nombre,
-                    Descripcion = r.Descripcion,
-                    Porcentaje = r.Porcentaje,
-                    Orden = r.Orden,
-                    Activo = r.Activo
-                }).ToList(),
-                Estudiantes = estudiantes
-            };
-        }
-
-        public async Task<bool> ActualizarPromedioFinalAsync(int seccionId, int estudianteId)
+        public async Task ActualizarPromediosInscripcionAsync(int estudianteId, int grupoCursoId)
         {
             var inscripcion = await _context.Inscripciones
-                .FirstOrDefaultAsync(i => i.SeccionId == seccionId && i.EstudianteId == estudianteId);
+                .FirstOrDefaultAsync(i => i.EstudianteId == estudianteId &&
+                                         i.GrupoCursoId == grupoCursoId);
 
             if (inscripcion == null)
-                return false;
+                return;
 
-            var promedio = await GetPromedioEstudianteAsync(seccionId, estudianteId);
-            if (promedio == null)
-                return false;
+            var promedio = await CalcularPromedioGrupoCursoAsync(estudianteId, grupoCursoId);
+            inscripcion.PromedioFinal = promedio;
 
-            inscripcion.PromedioFinal = promedio.PromedioFinal;
-            inscripcion.Estado = promedio.Estado == "Aprobado" ? "Completado" :
-                                promedio.Estado == "Reprobado" ? "Completado" : "Activo";
+            if (promedio.HasValue)
+            {
+                inscripcion.Estado = promedio.Value >= 70 ? "Aprobado" : "Reprobado";
+            }
+            else
+            {
+                inscripcion.Estado = "Cursando";
+            }
 
             await _context.SaveChangesAsync();
-            return true;
         }
 
         public async Task<bool> ExistsAsync(int id)
         {
             return await _context.Calificaciones.AnyAsync(c => c.Id == id);
+        }
+
+        public async Task<bool> YaRegistradaAsync(int estudianteId, int rubroId)
+        {
+            return await _context.Calificaciones
+                .AnyAsync(c => c.EstudianteId == estudianteId &&
+                              c.RubroId == rubroId &&
+                              !c.Recuperacion);
         }
 
         private CalificacionDto MapToDto(Calificacion calificacion)
@@ -374,12 +623,15 @@ namespace EduCore.API.Services.Implementations
                 NombreEstudiante = $"{calificacion.Estudiante.Nombres} {calificacion.Estudiante.Apellidos}",
                 RubroId = calificacion.RubroId,
                 NombreRubro = calificacion.Rubro.Nombre,
+                PorcentajeRubro = calificacion.Rubro.Porcentaje,
+                GrupoCursoId = calificacion.Rubro.GrupoCursoId,
+                NombreCurso = calificacion.Rubro.GrupoCurso.Curso.Nombre,
                 Nota = calificacion.Nota,
                 Observaciones = calificacion.Observaciones,
                 FechaRegistro = calificacion.FechaRegistro,
-                FechaModificacion = calificacion.FechaModificacion
+                FechaModificacion = calificacion.FechaModificacion,
+                Recuperacion = calificacion.Recuperacion
             };
         }
     }
 }
-

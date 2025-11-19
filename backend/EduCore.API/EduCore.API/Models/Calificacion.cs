@@ -32,5 +32,10 @@ namespace EduCore.API.Models
         public DateTime? FechaModificacion { get; set; }
 
         public int? UsuarioModificacionId { get; set; }
+
+        // Campos adicionales escolares
+        public bool Recuperacion { get; set; } = false; // Si es nota de recuperación
+
+        public int? CalificacionOriginalId { get; set; } // Referencia a la nota original si es recuperación
     }
 }

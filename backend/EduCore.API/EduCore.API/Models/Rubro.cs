@@ -3,17 +3,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduCore.API.Models
 {
-    // rubro representa un componente de evaluacion dentro de una sección de curso
+    // Rubro representa un componente de evaluacion dentro de un grupo-curso
     public class Rubro
     {
         [Key]
         public int Id { get; set; }
 
+        // CAMBIO: SeccionId -> GrupoCursoId
         [Required]
-        public int SeccionId { get; set; }
+        public int GrupoCursoId { get; set; }
 
-        [ForeignKey("SeccionId")]
-        public virtual Seccion Seccion { get; set; } = null!;
+        [ForeignKey("GrupoCursoId")]
+        public virtual GrupoCurso GrupoCurso { get; set; } = null!;
 
         [Required]
         [MaxLength(100)]
