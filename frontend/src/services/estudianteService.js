@@ -1,110 +1,77 @@
 import axiosInstance from './axiosConfig';
 
-const ESTUDIANTES_ENDPOINT = '/Estudiantes';
+const API_URL = '/Estudiantes';
 
-// Servicio de API para Estudiantes
 const estudianteService = {
-  /**
-   * Obtener todos los estudiantes activos
-   * @returns {Promise} Lista de estudiantes
-   */
+  // Obtener todos los estudiantes activos
   getAll: async () => {
-    try {
-      const response = await axiosInstance.get(ESTUDIANTES_ENDPOINT);
-      return response.data;
-    } catch (error) {
-      console.error('Error al obtener estudiantes:', error);
-      throw error;
-    }
+    const response = await axiosInstance.get(API_URL);
+    return response.data;
   },
 
-  /**
-   * Obtener estudiante por ID
-   * @param {number} id - ID del estudiante
-   * @returns {Promise} Datos del estudiante
-   */
+  // Obtener estudiante por ID
   getById: async (id) => {
-    try {
-      const response = await axiosInstance.get(`${ESTUDIANTES_ENDPOINT}/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error al obtener estudiante ${id}:`, error);
-      throw error;
-    }
+    const response = await axiosInstance.get(`${API_URL}/${id}`);
+    return response.data;
   },
 
-  /**
-   * Obtener estudiante por matrícula
-   * @param {string} matricula - Matrícula del estudiante
-   * @returns {Promise} Datos del estudiante
-   */
+  // Obtener estudiante por matrícula
   getByMatricula: async (matricula) => {
-    try {
-      const response = await axiosInstance.get(`${ESTUDIANTES_ENDPOINT}/matricula/${matricula}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error al obtener estudiante con matrícula ${matricula}:`, error);
-      throw error;
-    }
+    const response = await axiosInstance.get(`${API_URL}/matricula/${matricula}`);
+    return response.data;
   },
 
-  /**
-   * Crear nuevo estudiante
-   * @param {Object} estudianteData - Datos del nuevo estudiante
-   * @returns {Promise} Estudiante creado
-   */
+  // Obtener estudiantes por grado
+  getByGrado: async (grado) => {
+    const response = await axiosInstance.get(`${API_URL}/grado/${grado}`);
+    return response.data;
+  },
+
+  // Obtener estudiantes por grado y sección
+  getByGradoSeccion: async (grado, seccion) => {
+    const response = await axiosInstance.get(`${API_URL}/grado/${grado}/seccion/${seccion}`);
+    return response.data;
+  },
+
+  // Obtener lista de estudiantes por grado y sección
+  getEstudiantesPorGradoSeccion: async (grado, seccion) => {
+    const response = await axiosInstance.get(`${API_URL}/grado/${grado}/seccion/${seccion}/lista`);
+    return response.data;
+  },
+
+  // Crear nuevo estudiante
   create: async (estudianteData) => {
-    try {
-      const response = await axiosInstance.post(ESTUDIANTES_ENDPOINT, estudianteData);
-      return response.data;
-    } catch (error) {
-      console.error('Error al crear estudiante:', error);
-      throw error;
-    }
+    const response = await axiosInstance.post(API_URL, estudianteData);
+    return response.data;
   },
 
-  /**
-   * Actualizar estudiante existente
-   * @param {number} id - ID del estudiante
-   * @param {Object} estudianteData - Datos actualizados
-   * @returns {Promise} Estudiante actualizado
-   */
+  // Actualizar estudiante
   update: async (id, estudianteData) => {
-    try {
-      const response = await axiosInstance.put(`${ESTUDIANTES_ENDPOINT}/${id}`, estudianteData);
-      return response.data;
-    } catch (error) {
-      console.error(`Error al actualizar estudiante ${id}:`, error);
-      throw error;
-    }
+    const response = await axiosInstance.put(`${API_URL}/${id}`, estudianteData);
+    return response.data;
   },
 
-  /**
-   * Eliminar estudiante (soft delete)
-   * @param {number} id - ID del estudiante
-   * @returns {Promise} Confirmación de eliminación
-   */
+  // Eliminar estudiante (soft delete)
   delete: async (id) => {
-    try {
-      const response = await axiosInstance.delete(`${ESTUDIANTES_ENDPOINT}/${id}`);
-      return response.data;
-    } catch (error) {
-      console.error(`Error al eliminar estudiante ${id}:`, error);
-      throw error;
-    }
+    const response = await axiosInstance.delete(`${API_URL}/${id}`);
+    return response.data;
   },
 
-  /**
-   * Obtener historial académico del estudiante
-   * @param {number} id - ID del estudiante
-   * @returns {Promise} Historial completo con cursos, notas y asistencia
-   */
+  // Obtener historial académico completo
   getHistorial: async (id) => {
+    const response = await axiosInstance.get(`${API_URL}/${id}/historial`);
+    return response.data;
+  },
+
+  // Verificar si la matrícula existe
+  matriculaExists: async (matricula) => {
     try {
-      const response = await axiosInstance.get(`${ESTUDIANTES_ENDPOINT}/${id}/historial`);
-      return response.data;
+      await axiosInstance.get(`${API_URL}/matricula/${matricula}`);
+      return true;
     } catch (error) {
-      console.error(`Error al obtener historial del estudiante ${id}:`, error);
+      if (error.response?.status === 404) {
+        return false;
+      }
       throw error;
     }
   },
