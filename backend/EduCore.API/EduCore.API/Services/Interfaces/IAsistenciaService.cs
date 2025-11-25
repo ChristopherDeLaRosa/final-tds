@@ -4,18 +4,28 @@ namespace EduCore.API.Services.Interfaces
 {
     public interface IAsistenciaService
     {
-        Task<IEnumerable<AsistenciaDto>> GetAllAsync();
+        // CRUD básico
         Task<AsistenciaDto?> GetByIdAsync(int id);
-        Task<IEnumerable<AsistenciaDto>> GetBySesionAsync(int sesionId);
-        Task<IEnumerable<AsistenciaDto>> GetByEstudianteAsync(int estudianteId);
-        Task<AsistenciaDto> CreateAsync(CreateAsistenciaDto createDto, int usuarioId);
-        Task<AsistenciaDto?> UpdateAsync(int id, UpdateAsistenciaDto updateDto, int usuarioId);
+        Task<AsistenciaDto> CreateAsync(CreateAsistenciaDto createDto);
+        Task<AsistenciaDto?> UpdateAsync(int id, UpdateAsistenciaDto updateDto);
         Task<bool> DeleteAsync(int id);
-        Task<bool> RegistrarAsistenciaSesionAsync(int sesionId, RegistroAsistenciaSesionDto registroDto, int usuarioId);
-        Task<ListaAsistenciaSesionDto?> GetListaAsistenciaSesionAsync(int sesionId);
-        Task<ResumenAsistenciaSeccionDto?> GetResumenAsistenciaSeccionAsync(int seccionId);
-        Task<ResumenAsistenciaEstudianteDto?> GetResumenAsistenciaEstudianteAsync(int estudianteId);
-        Task<List<AsistenciaRegistroDto>> GenerarPlantillaAsistenciaAsync(int sesionId);
+
+        // Consultas por sesión
+        Task<IEnumerable<AsistenciaDto>> GetBySesionAsync(int sesionId);
+
+        // Consultas por estudiante
+        Task<IEnumerable<AsistenciaDto>> GetByEstudianteAsync(int estudianteId);
+        Task<IEnumerable<AsistenciaDto>> GetByEstudianteGrupoCursoAsync(int estudianteId, int grupoCursoId);
+
+        // Registrar asistencia masiva (toda la clase)
+        Task<List<AsistenciaDto>> RegistrarAsistenciaGrupoAsync(RegistrarAsistenciaGrupoDto registroDto);
+
+        // Reportes
+        Task<ReporteAsistenciaEstudianteDto?> GetReporteEstudianteAsync(int estudianteId, int? grupoCursoId = null);
+        Task<ReporteAsistenciaGrupoCursoDto?> GetReporteGrupoCursoAsync(int grupoCursoId, string? periodo = null);
+
+        // Validaciones
         Task<bool> ExistsAsync(int id);
+        Task<bool> YaRegistradaAsync(int sesionId, int estudianteId);
     }
 }

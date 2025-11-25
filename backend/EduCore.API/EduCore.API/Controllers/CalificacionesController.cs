@@ -1,8 +1,11 @@
 ﻿using EduCore.API.DTOs;
+using EduCore.API.Models;
 using EduCore.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Win32;
+using System.Text.RegularExpressions;
 
 namespace EduCore.API.Controllers
 {
@@ -14,37 +17,17 @@ namespace EduCore.API.Controllers
         private readonly ICalificacionService _calificacionService;
         private readonly ILogger<CalificacionesController> _logger;
 
-        public CalificacionesController(ICalificacionService calificacionService, ILogger<CalificacionesController> logger)
+        public CalificacionesController(
+            ICalificacionService calificacionService,
+            ILogger<CalificacionesController> logger)
         {
             _calificacionService = calificacionService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtener todas las calificaciones
-        /// </summary>
-        /// <returns>Lista de calificaciones</returns>
-        [HttpGet]
-        [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<IEnumerable<CalificacionDto>>> GetAll()
-        {
-            try
-            {
-                var calificaciones = await _calificacionService.GetAllAsync();
-                return Ok(calificaciones);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al obtener calificaciones");
-                return StatusCode(500, new { message = "Error interno del servidor" });
-            }
-        }
-
-        /// <summary>
         /// Obtener calificación por ID
         /// </summary>
-        /// <param name="id">ID de la calificación</param>
-        /// <returns>Datos de la calificación</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<CalificacionDto>> GetById(int id)
         {
@@ -65,10 +48,8 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener calificaciones por estudiante
+        /// Obtener calificaciones de un estudiante
         /// </summary>
-        /// <param name="estudianteId">ID del estudiante</param>
-        /// <returns>Lista de calificaciones del estudiante</returns>
         [HttpGet("estudiante/{estudianteId}")]
         public async Task<ActionResult<IEnumerable<CalificacionDto>>> GetByEstudiante(int estudianteId)
         {
@@ -85,12 +66,33 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener calificaciones por rubro
+        /// Obtener calificaciones de un estudiante en un grupo específico
         /// </summary>
-        /// <param name="rubroId">ID del rubro</param>
-        /// <returns>Lista de calificaciones del rubro</returns>
+        [HttpGet("estudiante/{estudianteId}/grupo/{grupoCursoId}")]
+        public async Task<ActionResult<IEnumerable<CalificacionDto>>> GetByEstudianteGrupoCurso(
+            int estudianteId,
+            int grupoCursoId)
+        {
+            try
+            {
+                var calificaciones = await _calificacionService.GetByEstudianteGrupoCursoAsync(
+                    estudianteId,
+                    grupoCursoId
+                );
+                return Ok(calificaciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener calificaciones");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener calificaciones de un rubro (todas las notas de ese componente)
+        /// </summary>
         [HttpGet("rubro/{rubroId}")]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
         public async Task<ActionResult<IEnumerable<CalificacionDto>>> GetByRubro(int rubroId)
         {
             try
@@ -106,33 +108,33 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener calificaciones por sección
+        /// Obtener todas las calificaciones de un grupo-curso (libro de notas)
         /// </summary>
-        /// <param name="seccionId">ID de la sección</param>
-        /// <returns>Lista de calificaciones de la sección</returns>
-        [HttpGet("seccion/{seccionId}")]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<ActionResult<IEnumerable<CalificacionDto>>> GetBySeccion(int seccionId)
+        [HttpGet("grupo/{grupoCursoId}")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<CalificacionesGrupoCursoDto>> GetCalificacionesGrupoCurso(int grupoCursoId)
         {
             try
             {
-                var calificaciones = await _calificacionService.GetBySeccionAsync(seccionId);
+                var calificaciones = await _calificacionService.GetCalificacionesGrupoCursoAsync(grupoCursoId);
+
+                if (calificaciones == null)
+                    return NotFound(new { message = "Grupo no encontrado" });
+
                 return Ok(calificaciones);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener calificaciones de la sección {SeccionId}", seccionId);
+                _logger.LogError(ex, "Error al obtener calificaciones del grupo {GrupoCursoId}", grupoCursoId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
 
         /// <summary>
-        /// Crear nueva calificación
+        /// Registrar calificación individual
         /// </summary>
-        /// <param name="createDto">Datos de la nueva calificación</param>
-        /// <returns>Calificación creada</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
         public async Task<ActionResult<CalificacionDto>> Create([FromBody] CreateCalificacionDto createDto)
         {
             try
@@ -140,10 +142,12 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                var calificacion = await _calificacionService.CreateAsync(createDto, usuarioId);
-
+                var calificacion = await _calificacionService.CreateAsync(createDto);
                 return CreatedAtAction(nameof(GetById), new { id = calificacion.Id }, calificacion);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -153,22 +157,51 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Actualizar calificación existente
+        /// Registrar calificaciones para todo un grupo (libro de notas masivo)
         /// </summary>
-        /// <param name="id">ID de la calificación</param>
-        /// <param name="updateDto">Datos actualizados</param>
-        /// <returns>Calificación actualizada</returns>
-        [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<ActionResult<CalificacionDto>> Update(int id, [FromBody] UpdateCalificacionDto updateDto)
+        [HttpPost("grupo")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<List<CalificacionDto>>> RegistrarGrupo(
+            [FromBody] RegistrarCalificacionesGrupoDto registroDto)
         {
             try
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                var calificacion = await _calificacionService.UpdateAsync(id, updateDto, usuarioId);
+                var calificaciones = await _calificacionService.RegistrarCalificacionesGrupoAsync(registroDto);
+                return Ok(new
+                {
+                    message = $"{calificaciones.Count} calificaciones registradas exitosamente",
+                    calificaciones
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al registrar calificaciones grupales");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Actualizar calificación
+        /// </summary>
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<CalificacionDto>> Update(
+            int id,
+            [FromBody] UpdateCalificacionDto updateDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var calificacion = await _calificacionService.UpdateAsync(id, updateDto);
 
                 if (calificacion == null)
                     return NotFound(new { message = "Calificación no encontrada" });
@@ -185,10 +218,8 @@ namespace EduCore.API.Controllers
         /// <summary>
         /// Eliminar calificación
         /// </summary>
-        /// <param name="id">ID de la calificación</param>
-        /// <returns>Confirmación de eliminación</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -208,86 +239,115 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Carga masiva de calificaciones para un rubro
+        /// Obtener boletín de calificaciones de un estudiante (reporte completo)
         /// </summary>
-        /// <param name="rubroId">ID del rubro</param>
-        /// <param name="cargaDto">Lista de calificaciones a cargar</param>
-        /// <returns>Confirmación de carga</returns>
-        [HttpPost("carga-masiva/{rubroId}")]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<IActionResult> CargaMasiva(int rubroId, [FromBody] CargaCalificacionesDto cargaDto)
+        [HttpGet("boletin/estudiante/{estudianteId}")]
+        public async Task<ActionResult<BoletinEstudianteDto>> GetBoletinEstudiante(
+            int estudianteId,
+            [FromQuery] string periodo)
         {
             try
             {
-                if (!ModelState.IsValid)
-                    return BadRequest(ModelState);
+                if (string.IsNullOrWhiteSpace(periodo))
+                    return BadRequest(new { message = "El periodo es requerido" });
 
-                var usuarioId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
-                var result = await _calificacionService.CargaMasivaAsync(rubroId, cargaDto, usuarioId);
+                var boletin = await _calificacionService.GetBoletinEstudianteAsync(estudianteId, periodo);
 
-                if (!result)
-                    return BadRequest(new { message = "Error en la carga masiva de calificaciones" });
+                if (boletin == null)
+                    return NotFound(new { message = "Estudiante no encontrado" });
 
-                return Ok(new { message = "Calificaciones cargadas exitosamente", total = cargaDto.Calificaciones.Count });
+                return Ok(boletin);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error en carga masiva de calificaciones para rubro {RubroId}", rubroId);
+                _logger.LogError(ex, "Error al generar boletín del estudiante {EstudianteId}", estudianteId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
 
         /// <summary>
-        /// Obtener promedio de un estudiante en una sección
+        /// Obtener estadísticas de calificaciones de un grupo-curso
         /// </summary>
-        /// <param name="seccionId">ID de la sección</param>
-        /// <param name="estudianteId">ID del estudiante</param>
-        /// <returns>Promedio con detalle por rubro</returns>
-        [HttpGet("promedio/seccion/{seccionId}/estudiante/{estudianteId}")]
-        public async Task<ActionResult<PromedioEstudianteDto>> GetPromedio(int seccionId, int estudianteId)
+        [HttpGet("estadisticas/grupo/{grupoCursoId}")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<EstadisticasCalificacionesDto>> GetEstadisticasGrupoCurso(int grupoCursoId)
         {
             try
             {
-                var promedio = await _calificacionService.GetPromedioEstudianteAsync(seccionId, estudianteId);
+                var estadisticas = await _calificacionService.GetEstadisticasGrupoCursoAsync(grupoCursoId);
 
-                if (promedio == null)
-                    return NotFound(new { message = "No se encontraron datos" });
+                if (estadisticas == null)
+                    return NotFound(new { message = "Grupo no encontrado" });
 
-                return Ok(promedio);
+                return Ok(estadisticas);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener promedio del estudiante {EstudianteId} en sección {SeccionId}",
-                    estudianteId, seccionId);
+                _logger.LogError(ex, "Error al generar estadísticas del grupo {GrupoCursoId}", grupoCursoId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
 
         /// <summary>
-        /// Generar acta de calificaciones de una sección
+        /// Calcular promedio de un estudiante en un grupo-curso específico
         /// </summary>
-        /// <param name="seccionId">ID de la sección</param>
-        /// <returns>Acta completa con todas las calificaciones</returns>
-        [HttpGet("acta/{seccionId}")]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<ActionResult<ActaCalificacionesDto>> GenerarActa(int seccionId)
+        [HttpGet("promedio/estudiante/{estudianteId}/grupo/{grupoCursoId}")]
+        public async Task<ActionResult<object>> GetPromedioEstudianteGrupoCurso(
+            int estudianteId,
+            int grupoCursoId)
         {
             try
             {
-                var acta = await _calificacionService.GenerarActaAsync(seccionId);
+                var promedio = await _calificacionService.CalcularPromedioGrupoCursoAsync(
+                    estudianteId,
+                    grupoCursoId
+                );
 
-                if (acta == null)
-                    return NotFound(new { message = "Sección no encontrada" });
+                if (!promedio.HasValue)
+                    return Ok(new { message = "No hay calificaciones registradas", promedio = (decimal?)null });
 
-                return Ok(acta);
+                return Ok(new
+                {
+                    estudianteId,
+                    grupoCursoId,
+                    promedio = promedio.Value,
+                    estado = promedio.Value >= 70 ? "Aprobado" : "Reprobado"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al generar acta de la sección {SeccionId}", seccionId);
+                _logger.LogError(ex, "Error al calcular promedio");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Actualizar promedios de inscripción (recalcular después de cambios)
+        /// </summary>
+        [HttpPost("actualizar-promedios/estudiante/{estudianteId}/grupo/{grupoCursoId}")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult> ActualizarPromedios(int estudianteId, int grupoCursoId)
+        {
+            try
+            {
+                await _calificacionService.ActualizarPromediosInscripcionAsync(estudianteId, grupoCursoId);
+
+                var promedio = await _calificacionService.CalcularPromedioGrupoCursoAsync(
+                    estudianteId,
+                    grupoCursoId
+                );
+
+                return Ok(new
+                {
+                    message = "Promedios actualizados exitosamente",
+                    promedioFinal = promedio
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar promedios");
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
     }
 }
-
-

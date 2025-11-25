@@ -17,17 +17,6 @@ namespace EduCore.API.Services.Implementations
             _logger = logger;
         }
 
-        public async Task<IEnumerable<AsistenciaDto>> GetAllAsync()
-        {
-            var asistencias = await _context.Asistencias
-                .Include(a => a.Sesion)
-                .Include(a => a.Estudiante)
-                .OrderByDescending(a => a.FechaRegistro)
-                .ToListAsync();
-
-            return asistencias.Select(a => MapToDto(a));
-        }
-
         public async Task<AsistenciaDto?> GetByIdAsync(int id)
         {
             var asistencia = await _context.Asistencias
@@ -55,6 +44,8 @@ namespace EduCore.API.Services.Implementations
         {
             var asistencias = await _context.Asistencias
                 .Include(a => a.Sesion)
+                    .ThenInclude(s => s.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
                 .Include(a => a.Estudiante)
                 .Where(a => a.EstudianteId == estudianteId)
                 .OrderByDescending(a => a.Sesion.Fecha)
@@ -63,8 +54,34 @@ namespace EduCore.API.Services.Implementations
             return asistencias.Select(a => MapToDto(a));
         }
 
-        public async Task<AsistenciaDto> CreateAsync(CreateAsistenciaDto createDto, int usuarioId)
+        public async Task<IEnumerable<AsistenciaDto>> GetByEstudianteGrupoCursoAsync(
+            int estudianteId,
+            int grupoCursoId)
         {
+            var asistencias = await _context.Asistencias
+                .Include(a => a.Sesion)
+                    .ThenInclude(s => s.GrupoCurso)
+                        .ThenInclude(g => g.Curso)
+                .Include(a => a.Estudiante)
+                .Where(a => a.EstudianteId == estudianteId &&
+                           a.Sesion.GrupoCursoId == grupoCursoId)
+                .OrderByDescending(a => a.Sesion.Fecha)
+                .ToListAsync();
+
+            return asistencias.Select(a => MapToDto(a));
+        }
+
+        public async Task<AsistenciaDto> CreateAsync(CreateAsistenciaDto createDto)
+        {
+            // Verificar si ya existe registro
+            var yaRegistrada = await YaRegistradaAsync(createDto.SesionId, createDto.EstudianteId);
+            if (yaRegistrada)
+            {
+                throw new InvalidOperationException(
+                    "Ya existe un registro de asistencia para este estudiante en esta sesión"
+                );
+            }
+
             var asistencia = new Asistencia
             {
                 SesionId = createDto.SesionId,
@@ -72,7 +89,7 @@ namespace EduCore.API.Services.Implementations
                 Estado = createDto.Estado,
                 Observaciones = createDto.Observaciones,
                 FechaRegistro = DateTime.UtcNow,
-                UsuarioRegistroId = usuarioId
+                NotificacionEnviada = false
             };
 
             _context.Asistencias.Add(asistencia);
@@ -86,13 +103,15 @@ namespace EduCore.API.Services.Implementations
                 .Reference(a => a.Estudiante)
                 .LoadAsync();
 
-            _logger.LogInformation("Asistencia registrada: Estudiante {EstudianteId}, Sesión {SesionId}, Estado {Estado}",
-                createDto.EstudianteId, createDto.SesionId, createDto.Estado);
+            _logger.LogInformation(
+                "Asistencia registrada: Estudiante {EstudianteId} - Sesión {SesionId} - Estado: {Estado}",
+                asistencia.EstudianteId, asistencia.SesionId, asistencia.Estado
+            );
 
             return MapToDto(asistencia);
         }
 
-        public async Task<AsistenciaDto?> UpdateAsync(int id, UpdateAsistenciaDto updateDto, int usuarioId)
+        public async Task<AsistenciaDto?> UpdateAsync(int id, UpdateAsistenciaDto updateDto)
         {
             var asistencia = await _context.Asistencias
                 .Include(a => a.Sesion)
@@ -104,7 +123,6 @@ namespace EduCore.API.Services.Implementations
 
             asistencia.Estado = updateDto.Estado;
             asistencia.Observaciones = updateDto.Observaciones;
-            asistencia.UsuarioRegistroId = usuarioId;
 
             await _context.SaveChangesAsync();
 
@@ -128,273 +146,194 @@ namespace EduCore.API.Services.Implementations
             return true;
         }
 
-        public async Task<bool> RegistrarAsistenciaSesionAsync(int sesionId, RegistroAsistenciaSesionDto registroDto, int usuarioId)
+        public async Task<List<AsistenciaDto>> RegistrarAsistenciaGrupoAsync(
+            RegistrarAsistenciaGrupoDto registroDto)
         {
-            var sesion = await _context.Sesiones.FindAsync(sesionId);
-            if (sesion == null)
-                return false;
+            var asistenciasCreadas = new List<Asistencia>();
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            foreach (var asistenciaDto in registroDto.Asistencias)
             {
-                foreach (var asistenciaDto in registroDto.Asistencias)
-                {
-                    // Verificar si ya existe registro de asistencia
-                    var existente = await _context.Asistencias
-                        .FirstOrDefaultAsync(a => a.SesionId == sesionId && a.EstudianteId == asistenciaDto.EstudianteId);
+                // Verificar si ya existe
+                var yaRegistrada = await YaRegistradaAsync(
+                    registroDto.SesionId,
+                    asistenciaDto.EstudianteId
+                );
 
-                    if (existente != null)
-                    {
-                        // Actualizar
-                        existente.Estado = asistenciaDto.Estado;
-                        existente.Observaciones = asistenciaDto.Observaciones;
-                        existente.UsuarioRegistroId = usuarioId;
-                    }
-                    else
-                    {
-                        // Crear nueva
-                        var nueva = new Asistencia
-                        {
-                            SesionId = sesionId,
-                            EstudianteId = asistenciaDto.EstudianteId,
-                            Estado = asistenciaDto.Estado,
-                            Observaciones = asistenciaDto.Observaciones,
-                            FechaRegistro = DateTime.UtcNow,
-                            UsuarioRegistroId = usuarioId
-                        };
-                        _context.Asistencias.Add(nueva);
-                    }
+                if (yaRegistrada)
+                {
+                    _logger.LogWarning(
+                        "Asistencia ya registrada para estudiante {EstudianteId} en sesión {SesionId}",
+                        asistenciaDto.EstudianteId, registroDto.SesionId
+                    );
+                    continue;
                 }
 
-                // Marcar sesión como realizada
-                sesion.Realizada = true;
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                _logger.LogInformation("Asistencia registrada para sesión {SesionId}. Total: {Total}",
-                    sesionId, registroDto.Asistencias.Count);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error al registrar asistencia de sesión {SesionId}", sesionId);
-                return false;
-            }
-        }
-
-        public async Task<ListaAsistenciaSesionDto?> GetListaAsistenciaSesionAsync(int sesionId)
-        {
-            var sesion = await _context.Sesiones
-                .Include(s => s.Seccion)
-                    .ThenInclude(sec => sec.Curso)
-                .Include(s => s.Asistencias)
-                    .ThenInclude(a => a.Estudiante)
-                .FirstOrDefaultAsync(s => s.Id == sesionId);
-
-            if (sesion == null)
-                return null;
-
-            // Obtener todos los estudiantes inscritos en la sección
-            var estudiantesInscritos = await _context.Inscripciones
-                .Include(i => i.Estudiante)
-                .Where(i => i.SeccionId == sesion.SeccionId && i.Activo)
-                .Select(i => i.Estudiante)
-                .ToListAsync();
-
-            var asistencias = new List<AsistenciaEstudianteDto>();
-
-            foreach (var estudiante in estudiantesInscritos)
-            {
-                var asistencia = sesion.Asistencias.FirstOrDefault(a => a.EstudianteId == estudiante.Id);
-
-                asistencias.Add(new AsistenciaEstudianteDto
+                var asistencia = new Asistencia
                 {
-                    EstudianteId = estudiante.Id,
-                    Matricula = estudiante.Matricula,
-                    NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
-                    Estado = asistencia?.Estado ?? "Sin registrar",
-                    Observaciones = asistencia?.Observaciones
-                });
+                    SesionId = registroDto.SesionId,
+                    EstudianteId = asistenciaDto.EstudianteId,
+                    Estado = asistenciaDto.Estado,
+                    Observaciones = asistenciaDto.Observaciones,
+                    FechaRegistro = DateTime.UtcNow,
+                    NotificacionEnviada = false
+                };
+
+                _context.Asistencias.Add(asistencia);
+                asistenciasCreadas.Add(asistencia);
             }
 
-            return new ListaAsistenciaSesionDto
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Asistencia grupal registrada: {Cantidad} estudiantes en sesión {SesionId}",
+                asistenciasCreadas.Count, registroDto.SesionId
+            );
+
+            // Recargar con relaciones
+            foreach (var asistencia in asistenciasCreadas)
             {
-                SesionId = sesion.Id,
-                SeccionId = sesion.SeccionId,
-                CodigoSeccion = sesion.Seccion.Codigo,
-                NombreCurso = sesion.Seccion.Curso.Nombre,
-                Fecha = sesion.Fecha,
-                Tema = sesion.Tema,
-                Asistencias = asistencias
-            };
-        }
-
-        public async Task<ResumenAsistenciaSeccionDto?> GetResumenAsistenciaSeccionAsync(int seccionId)
-        {
-            var seccion = await _context.Secciones
-                .Include(s => s.Curso)
-                .Include(s => s.Inscripciones)
-                    .ThenInclude(i => i.Estudiante)
-                .FirstOrDefaultAsync(s => s.Id == seccionId);
-
-            if (seccion == null)
-                return null;
-
-            var sesiones = await _context.Sesiones
-                .Where(s => s.SeccionId == seccionId)
-                .ToListAsync();
-
-            var sesionesRealizadas = sesiones.Where(s => s.Realizada).ToList();
-
-            var estudiantes = new List<EstudianteAsistenciaDto>();
-
-            foreach (var inscripcion in seccion.Inscripciones.Where(i => i.Activo))
-            {
-                var asistencias = await _context.Asistencias
-                    .Include(a => a.Sesion)
-                    .Where(a => a.EstudianteId == inscripcion.EstudianteId &&
-                               a.Sesion.SeccionId == seccionId)
-                    .ToListAsync();
-
-                var totalPresente = asistencias.Count(a => a.Estado == "Presente");
-                var totalAusente = asistencias.Count(a => a.Estado == "Ausente");
-                var totalTardanza = asistencias.Count(a => a.Estado == "Tardanza");
-                var totalJustificado = asistencias.Count(a => a.Estado == "Justificado");
-
-                var porcentaje = sesionesRealizadas.Count > 0
-                    ? (decimal)(totalPresente + totalTardanza) / sesionesRealizadas.Count * 100
-                    : 0;
-
-                var estadoAsistencia = porcentaje >= 90 ? "Excelente" :
-                                      porcentaje >= 75 ? "Bueno" :
-                                      porcentaje >= 60 ? "Regular" : "Bajo";
-
-                estudiantes.Add(new EstudianteAsistenciaDto
-                {
-                    EstudianteId = inscripcion.EstudianteId,
-                    Matricula = inscripcion.Estudiante.Matricula,
-                    NombreCompleto = $"{inscripcion.Estudiante.Nombres} {inscripcion.Estudiante.Apellidos}",
-                    TotalPresente = totalPresente,
-                    TotalAusente = totalAusente,
-                    TotalTardanza = totalTardanza,
-                    TotalJustificado = totalJustificado,
-                    PorcentajeAsistencia = Math.Round(porcentaje, 2),
-                    EstadoAsistencia = estadoAsistencia
-                });
+                await _context.Entry(asistencia)
+                    .Reference(a => a.Sesion)
+                    .LoadAsync();
+                await _context.Entry(asistencia)
+                    .Reference(a => a.Estudiante)
+                    .LoadAsync();
             }
 
-            return new ResumenAsistenciaSeccionDto
-            {
-                SeccionId = seccion.Id,
-                CodigoSeccion = seccion.Codigo,
-                CodigoCurso = seccion.Curso.Codigo,
-                NombreCurso = seccion.Curso.Nombre,
-                Periodo = seccion.Periodo,
-                TotalSesiones = sesiones.Count,
-                SesionesRealizadas = sesionesRealizadas.Count,
-                Estudiantes = estudiantes
-            };
+            return asistenciasCreadas.Select(a => MapToDto(a)).ToList();
         }
 
-        public async Task<ResumenAsistenciaEstudianteDto?> GetResumenAsistenciaEstudianteAsync(int estudianteId)
+        public async Task<ReporteAsistenciaEstudianteDto?> GetReporteEstudianteAsync(
+            int estudianteId,
+            int? grupoCursoId = null)
         {
-            var estudiante = await _context.Estudiantes.FindAsync(estudianteId);
+            var estudiante = await _context.Estudiantes
+                .FirstOrDefaultAsync(e => e.Id == estudianteId);
+
             if (estudiante == null)
                 return null;
 
-            var inscripciones = await _context.Inscripciones
-                .Include(i => i.Seccion)
-                    .ThenInclude(s => s.Curso)
-                .Where(i => i.EstudianteId == estudianteId && i.Activo)
-                .ToListAsync();
+            // Query base de asistencias
+            var query = _context.Asistencias
+                .Include(a => a.Sesion)
+                .Where(a => a.EstudianteId == estudianteId);
 
-            var secciones = new List<SeccionAsistenciaDto>();
-
-            foreach (var inscripcion in inscripciones)
+            // Filtrar por grupo si se especifica
+            if (grupoCursoId.HasValue)
             {
-                var sesiones = await _context.Sesiones
-                    .Where(s => s.SeccionId == inscripcion.SeccionId && s.Realizada)
-                    .CountAsync();
-
-                var asistencias = await _context.Asistencias
-                    .Include(a => a.Sesion)
-                    .Where(a => a.EstudianteId == estudianteId &&
-                               a.Sesion.SeccionId == inscripcion.SeccionId)
-                    .ToListAsync();
-
-                var totalPresente = asistencias.Count(a => a.Estado == "Presente");
-                var totalAusente = asistencias.Count(a => a.Estado == "Ausente");
-                var totalTardanza = asistencias.Count(a => a.Estado == "Tardanza");
-                var totalJustificado = asistencias.Count(a => a.Estado == "Justificado");
-
-                var porcentaje = sesiones > 0
-                    ? (decimal)(totalPresente + totalTardanza) / sesiones * 100
-                    : 0;
-
-                secciones.Add(new SeccionAsistenciaDto
-                {
-                    SeccionId = inscripcion.SeccionId,
-                    CodigoSeccion = inscripcion.Seccion.Codigo,
-                    NombreCurso = inscripcion.Seccion.Curso.Nombre,
-                    Periodo = inscripcion.Seccion.Periodo,
-                    TotalSesiones = sesiones,
-                    TotalPresente = totalPresente,
-                    TotalAusente = totalAusente,
-                    TotalTardanza = totalTardanza,
-                    TotalJustificado = totalJustificado,
-                    PorcentajeAsistencia = Math.Round(porcentaje, 2)
-                });
+                query = query.Where(a => a.Sesion.GrupoCursoId == grupoCursoId.Value);
             }
 
-            var promedioGeneral = secciones.Any()
-                ? secciones.Average(s => s.PorcentajeAsistencia)
+            var asistencias = await query.ToListAsync();
+
+            // Calcular estadísticas
+            var totalSesiones = asistencias.Count;
+            var presentes = asistencias.Count(a => a.Estado == "Presente");
+            var ausentes = asistencias.Count(a => a.Estado == "Ausente");
+            var tardanzas = asistencias.Count(a => a.Estado == "Tardanza");
+            var justificados = asistencias.Count(a => a.Estado == "Justificado");
+
+            var porcentajeAsistencia = totalSesiones > 0
+                ? (decimal)presentes / totalSesiones * 100
                 : 0;
 
-            return new ResumenAsistenciaEstudianteDto
+            return new ReporteAsistenciaEstudianteDto
             {
                 EstudianteId = estudiante.Id,
                 Matricula = estudiante.Matricula,
                 NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
-                Secciones = secciones,
-                PromedioAsistenciaGeneral = Math.Round(promedioGeneral, 2)
+                GradoActual = estudiante.GradoActual,
+                SeccionActual = estudiante.SeccionActual,
+                TotalSesiones = totalSesiones,
+                Presentes = presentes,
+                Ausentes = ausentes,
+                Tardanzas = tardanzas,
+                Justificados = justificados,
+                PorcentajeAsistencia = Math.Round(porcentajeAsistencia, 2)
             };
         }
 
-        public async Task<List<AsistenciaRegistroDto>> GenerarPlantillaAsistenciaAsync(int sesionId)
+        public async Task<ReporteAsistenciaGrupoCursoDto?> GetReporteGrupoCursoAsync(
+            int grupoCursoId,
+            string? periodo = null)
         {
-            var sesion = await _context.Sesiones
-                .Include(s => s.Seccion)
-                .FirstOrDefaultAsync(s => s.Id == sesionId);
+            var grupoCurso = await _context.GruposCursos
+                .Include(g => g.Curso)
+                .FirstOrDefaultAsync(g => g.Id == grupoCursoId);
 
-            if (sesion == null)
-                return new List<AsistenciaRegistroDto>();
+            if (grupoCurso == null)
+                return null;
 
-            // Obtener estudiantes inscritos en la sección
+            // Obtener todas las sesiones del grupo
+            var sesionesQuery = _context.Sesiones
+                .Where(s => s.GrupoCursoId == grupoCursoId && s.Realizada);
+
+            var totalSesiones = await sesionesQuery.CountAsync();
+
+            // Obtener estudiantes inscritos
             var estudiantes = await _context.Inscripciones
                 .Include(i => i.Estudiante)
-                .Where(i => i.SeccionId == sesion.SeccionId && i.Activo)
+                .Where(i => i.GrupoCursoId == grupoCursoId && i.Activo)
                 .Select(i => i.Estudiante)
-                .OrderBy(e => e.Apellidos)
-                .ThenBy(e => e.Nombres)
                 .ToListAsync();
 
-            // Generar plantilla con estado "Presente" por defecto
-            var plantilla = estudiantes.Select(e => new AsistenciaRegistroDto
-            {
-                EstudianteId = e.Id,
-                Estado = "Presente", // Por defecto todos presentes, el docente cambia los ausentes
-                Observaciones = null
-            }).ToList();
+            var estudiantesResumen = new List<AsistenciaEstudianteResumenDto>();
 
-            return plantilla;
+            foreach (var estudiante in estudiantes)
+            {
+                var asistencias = await _context.Asistencias
+                    .Include(a => a.Sesion)
+                    .Where(a => a.EstudianteId == estudiante.Id &&
+                               a.Sesion.GrupoCursoId == grupoCursoId)
+                    .ToListAsync();
+
+                var presentes = asistencias.Count(a => a.Estado == "Presente");
+                var ausentes = asistencias.Count(a => a.Estado == "Ausente");
+                var tardanzas = asistencias.Count(a => a.Estado == "Tardanza");
+
+                var porcentaje = totalSesiones > 0
+                    ? (decimal)presentes / totalSesiones * 100
+                    : 0;
+
+                estudiantesResumen.Add(new AsistenciaEstudianteResumenDto
+                {
+                    EstudianteId = estudiante.Id,
+                    Matricula = estudiante.Matricula,
+                    NombreCompleto = $"{estudiante.Nombres} {estudiante.Apellidos}",
+                    Presentes = presentes,
+                    Ausentes = ausentes,
+                    Tardanzas = tardanzas,
+                    PorcentajeAsistencia = Math.Round(porcentaje, 2)
+                });
+            }
+
+            var porcentajePromedio = estudiantesResumen.Any()
+                ? estudiantesResumen.Average(e => e.PorcentajeAsistencia)
+                : 0;
+
+            return new ReporteAsistenciaGrupoCursoDto
+            {
+                GrupoCursoId = grupoCurso.Id,
+                CodigoGrupo = grupoCurso.Codigo,
+                NombreCurso = grupoCurso.Curso.Nombre,
+                Grado = grupoCurso.Grado,
+                Seccion = grupoCurso.Seccion,
+                Periodo = grupoCurso.Periodo,
+                TotalSesiones = totalSesiones,
+                PorcentajeAsistenciaPromedio = Math.Round(porcentajePromedio, 2),
+                Estudiantes = estudiantesResumen.OrderBy(e => e.NombreCompleto).ToList()
+            };
         }
 
         public async Task<bool> ExistsAsync(int id)
         {
             return await _context.Asistencias.AnyAsync(a => a.Id == id);
+        }
+
+        public async Task<bool> YaRegistradaAsync(int sesionId, int estudianteId)
+        {
+            return await _context.Asistencias
+                .AnyAsync(a => a.SesionId == sesionId && a.EstudianteId == estudianteId);
         }
 
         private AsistenciaDto MapToDto(Asistencia asistencia)
@@ -404,13 +343,14 @@ namespace EduCore.API.Services.Implementations
                 Id = asistencia.Id,
                 SesionId = asistencia.SesionId,
                 FechaSesion = asistencia.Sesion.Fecha,
-                TemaClase = asistencia.Sesion.Tema ?? "Sin tema",
+                TemaSesion = asistencia.Sesion.Tema ?? string.Empty,
                 EstudianteId = asistencia.EstudianteId,
                 MatriculaEstudiante = asistencia.Estudiante.Matricula,
                 NombreEstudiante = $"{asistencia.Estudiante.Nombres} {asistencia.Estudiante.Apellidos}",
                 Estado = asistencia.Estado,
                 Observaciones = asistencia.Observaciones,
-                FechaRegistro = asistencia.FechaRegistro
+                FechaRegistro = asistencia.FechaRegistro,
+                NotificacionEnviada = asistencia.NotificacionEnviada
             };
         }
     }

@@ -21,7 +21,9 @@ namespace EduCore.API.Services.Implementations
         {
             var cursos = await _context.Cursos
                 .Where(c => c.Activo)
-                .OrderBy(c => c.Codigo)
+                .OrderBy(c => c.NivelGrado)
+                .ThenBy(c => c.Orden)
+                .ThenBy(c => c.Nombre)
                 .ToListAsync();
 
             return cursos.Select(c => MapToDto(c));
@@ -43,6 +45,40 @@ namespace EduCore.API.Services.Implementations
             return curso != null ? MapToDto(curso) : null;
         }
 
+        public async Task<IEnumerable<CursoDto>> GetByGradoAsync(int grado)
+        {
+            var cursos = await _context.Cursos
+                .Where(c => c.Activo && c.NivelGrado == grado)
+                .OrderBy(c => c.Orden)
+                .ThenBy(c => c.Nombre)
+                .ToListAsync();
+
+            return cursos.Select(c => MapToDto(c));
+        }
+
+        public async Task<IEnumerable<CursoDto>> GetByNivelAsync(string nivel)
+        {
+            var cursos = await _context.Cursos
+                .Where(c => c.Activo && c.Nivel == nivel)
+                .OrderBy(c => c.NivelGrado)
+                .ThenBy(c => c.Orden)
+                .ThenBy(c => c.Nombre)
+                .ToListAsync();
+
+            return cursos.Select(c => MapToDto(c));
+        }
+
+        public async Task<IEnumerable<CursoDto>> GetByAreaAsync(string area)
+        {
+            var cursos = await _context.Cursos
+                .Where(c => c.Activo && c.AreaConocimiento == area)
+                .OrderBy(c => c.NivelGrado)
+                .ThenBy(c => c.Nombre)
+                .ToListAsync();
+
+            return cursos.Select(c => MapToDto(c));
+        }
+
         public async Task<CursoDto> CreateAsync(CreateCursoDto createDto)
         {
             var curso = new Curso
@@ -50,15 +86,22 @@ namespace EduCore.API.Services.Implementations
                 Codigo = createDto.Codigo,
                 Nombre = createDto.Nombre,
                 Descripcion = createDto.Descripcion,
-                Creditos = createDto.Creditos,
+                NivelGrado = createDto.NivelGrado,
+                Nivel = createDto.Nivel,
+                AreaConocimiento = createDto.AreaConocimiento,
                 HorasSemana = createDto.HorasSemana,
+                EsObligatoria = createDto.EsObligatoria,
+                Orden = createDto.Orden,
                 Activo = true
             };
 
             _context.Cursos.Add(curso);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Curso creado: {Codigo} - {Nombre}", curso.Codigo, curso.Nombre);
+            _logger.LogInformation(
+                "Curso creado: {Codigo} - {Nombre} - Grado: {Grado}",
+                curso.Codigo, curso.Nombre, curso.NivelGrado
+            );
 
             return MapToDto(curso);
         }
@@ -72,8 +115,10 @@ namespace EduCore.API.Services.Implementations
 
             curso.Nombre = updateDto.Nombre;
             curso.Descripcion = updateDto.Descripcion;
-            curso.Creditos = updateDto.Creditos;
+            curso.AreaConocimiento = updateDto.AreaConocimiento;
             curso.HorasSemana = updateDto.HorasSemana;
+            curso.EsObligatoria = updateDto.EsObligatoria;
+            curso.Orden = updateDto.Orden;
             curso.Activo = updateDto.Activo;
 
             await _context.SaveChangesAsync();
@@ -90,6 +135,19 @@ namespace EduCore.API.Services.Implementations
             if (curso == null)
                 return false;
 
+            // Verificar si tiene grupos asociados activos
+            var tieneGruposActivos = await _context.GruposCursos
+                .AnyAsync(g => g.CursoId == id && g.Activo);
+
+            if (tieneGruposActivos)
+            {
+                _logger.LogWarning(
+                    "No se puede eliminar el curso {Id} porque tiene grupos activos",
+                    id
+                );
+                return false;
+            }
+
             // Soft delete
             curso.Activo = false;
             await _context.SaveChangesAsync();
@@ -99,52 +157,63 @@ namespace EduCore.API.Services.Implementations
             return true;
         }
 
-        public async Task<IEnumerable<CursoCatalogoDto>> GetCatalogoAsync(string? periodo = null)
+        public async Task<IEnumerable<CursoPorGradoDto>> GetCursosPorGradoAsync(
+            int grado,
+            string periodo)
         {
-            var query = _context.Cursos
-                .Include(c => c.Secciones)
-                    .ThenInclude(s => s.Docente)
-                .Where(c => c.Activo)
-                .AsQueryable();
+            var cursos = await _context.Cursos
+                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo == periodo))
+                    .ThenInclude(g => g.Docente)
+                .Where(c => c.Activo && c.NivelGrado == grado)
+                .OrderBy(c => c.Orden)
+                .ThenBy(c => c.Nombre)
+                .ToListAsync();
 
-            var cursos = await query.ToListAsync();
-
-            var catalogo = cursos.Select(c =>
+            return cursos.Select(c =>
             {
-                var secciones = c.Secciones.AsQueryable();
+                var grupos = c.GruposCursos.ToList();
 
-                // Filtrar secciones por periodo si se proporciona
-                if (!string.IsNullOrEmpty(periodo))
-                {
-                    secciones = secciones.Where(s => s.Periodo == periodo);
-                }
-
-                var seccionesActivas = secciones.Where(s => s.Activo).ToList();
-
-                return new CursoCatalogoDto
+                return new CursoPorGradoDto
                 {
                     Id = c.Id,
                     Codigo = c.Codigo,
                     Nombre = c.Nombre,
                     Descripcion = c.Descripcion,
-                    Creditos = c.Creditos,
+                    AreaConocimiento = c.AreaConocimiento,
+                    EsObligatoria = c.EsObligatoria,
                     HorasSemana = c.HorasSemana,
-                    SeccionesDisponibles = seccionesActivas.Count(s => s.Inscritos < s.Capacidad),
-                    Secciones = seccionesActivas.Select(s => new SeccionSimpleDto
+                    GruposDisponibles = grupos.Count(g => g.CantidadEstudiantes < g.CapacidadMaxima),
+                    Grupos = grupos.Select(g => new GrupoSimpleDto
                     {
-                        Id = s.Id,
-                        Codigo = s.Codigo,
-                        Periodo = s.Periodo,
-                        Aula = s.Aula,
-                        Horario = s.Horario,
-                        Docente = $"{s.Docente.Nombres} {s.Docente.Apellidos}",
-                        Inscritos = s.Inscritos,
-                        Capacidad = s.Capacidad
+                        Id = g.Id,
+                        Codigo = g.Codigo,
+                        Seccion = g.Seccion,
+                        Horario = g.Horario ?? string.Empty,
+                        Aula = g.Aula,
+                        Docente = $"{g.Docente.Nombres} {g.Docente.Apellidos}",
+                        CantidadEstudiantes = g.CantidadEstudiantes,
+                        CapacidadMaxima = g.CapacidadMaxima,
+                        DisponibleParaInscripcion = g.CantidadEstudiantes < g.CapacidadMaxima
                     }).ToList()
                 };
             }).ToList();
+        }
 
-            return catalogo;
+        public async Task<Dictionary<string, List<CursoDto>>> GetCursosPorAreaAsync(int grado)
+        {
+            var cursos = await _context.Cursos
+                .Where(c => c.Activo && c.NivelGrado == grado)
+                .OrderBy(c => c.AreaConocimiento)
+                .ThenBy(c => c.Orden)
+                .ThenBy(c => c.Nombre)
+                .ToListAsync();
+
+            return cursos
+                .GroupBy(c => c.AreaConocimiento)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.Select(c => MapToDto(c)).ToList()
+                );
         }
 
         public async Task<bool> ExistsAsync(int id)
@@ -165,8 +234,12 @@ namespace EduCore.API.Services.Implementations
                 Codigo = curso.Codigo,
                 Nombre = curso.Nombre,
                 Descripcion = curso.Descripcion,
-                Creditos = curso.Creditos,
+                NivelGrado = curso.NivelGrado,
+                Nivel = curso.Nivel,
+                AreaConocimiento = curso.AreaConocimiento,
                 HorasSemana = curso.HorasSemana,
+                EsObligatoria = curso.EsObligatoria,
+                Orden = curso.Orden,
                 Activo = curso.Activo
             };
         }

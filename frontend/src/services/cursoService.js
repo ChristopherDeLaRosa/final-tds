@@ -9,6 +9,12 @@ const cursoService = {
     return response.data;
   },
 
+  // Obtener solo cursos activos
+  getAllActivos: async () => {
+    const response = await axiosInstance.get(`${API_URL}/activos`);
+    return response.data;
+  },
+
   // Obtener curso por ID
   getById: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}`);
@@ -21,7 +27,19 @@ const cursoService = {
     return response.data;
   },
 
-  // Obtener catálogo de cursos con secciones disponibles
+  // Obtener cursos por nivel (Primaria/Secundaria)
+  getByNivel: async (nivel) => {
+    const response = await axiosInstance.get(`${API_URL}/nivel/${nivel}`);
+    return response.data;
+  },
+
+  // Obtener cursos por grado
+  getByGrado: async (grado) => {
+    const response = await axiosInstance.get(`${API_URL}/grado/${grado}`);
+    return response.data;
+  },
+
+  // Obtener catálogo completo de cursos con grupos
   getCatalogo: async (periodo = null) => {
     const url = periodo 
       ? `${API_URL}/catalogo?periodo=${periodo}`

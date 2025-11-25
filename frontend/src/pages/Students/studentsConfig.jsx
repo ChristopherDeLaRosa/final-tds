@@ -34,6 +34,12 @@ export const studentsColumns = [
     render: (value) => <MatriculaBadge>{value}</MatriculaBadge>
   },
   { key: 'nombreCompleto', title: 'Nombre Completo' },
+  { 
+    key: 'gradoActual', 
+    title: 'Grado',
+    width: '80px',
+    render: (value, row) => `${value}° ${row.seccionActual}`
+  },
   { key: 'email', title: 'Correo Electrónico' },
   { key: 'telefono', title: 'Teléfono', width: '130px' },
   {
@@ -59,7 +65,8 @@ export const studentsSearchFields = [
   'apellidos', 
   'email', 
   'matricula', 
-  'telefono'
+  'telefono',
+  'seccionActual'
 ];
 
 // Campos del formulario
@@ -68,9 +75,10 @@ export const getStudentsFormFields = (isEditing) => [
     name: 'matricula',
     label: `Matrícula ${isEditing ? '(No editable)' : ''}`,
     type: 'text',
-    placeholder: 'Ej: 2024001',
+    placeholder: 'Ej: 2024-001',
     required: true,
     disabled: isEditing,
+    maxLength: 20,
   },
   [
     {
@@ -79,6 +87,7 @@ export const getStudentsFormFields = (isEditing) => [
       type: 'text',
       placeholder: 'Ej: Juan Carlos',
       required: true,
+      maxLength: 100,
     },
     {
       name: 'apellidos',
@@ -86,6 +95,7 @@ export const getStudentsFormFields = (isEditing) => [
       type: 'text',
       placeholder: 'Ej: Pérez López',
       required: true,
+      maxLength: 100,
     },
   ],
   {
@@ -94,6 +104,7 @@ export const getStudentsFormFields = (isEditing) => [
     type: 'email',
     placeholder: 'estudiante@colegio.edu',
     required: true,
+    maxLength: 150,
   },
   [
     {
@@ -101,6 +112,7 @@ export const getStudentsFormFields = (isEditing) => [
       label: 'Teléfono',
       type: 'tel',
       placeholder: '809-555-1234',
+      maxLength: 20,
     },
     {
       name: 'fechaNacimiento',
@@ -114,26 +126,102 @@ export const getStudentsFormFields = (isEditing) => [
     label: 'Dirección',
     type: 'text',
     placeholder: 'Dirección completa',
+    maxLength: 200,
   },
+  [
+    {
+      name: 'gradoActual',
+      label: 'Grado Actual',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: 'Selecciona un grado' },
+        { value: 1, label: '1° Primaria' },
+        { value: 2, label: '2° Primaria' },
+        { value: 3, label: '3° Primaria' },
+        { value: 4, label: '4° Primaria' },
+        { value: 5, label: '5° Primaria' },
+        { value: 6, label: '6° Primaria' },
+        { value: 7, label: '1° Secundaria' },
+        { value: 8, label: '2° Secundaria' },
+        { value: 9, label: '3° Secundaria' },
+        { value: 10, label: '4° Secundaria' },
+        { value: 11, label: '5° Secundaria' },
+        { value: 12, label: '6° Secundaria' },
+      ],
+    },
+    {
+      name: 'seccionActual',
+      label: 'Sección Actual',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: 'Selecciona una sección' },
+        { value: 'A', label: 'Sección A' },
+        { value: 'B', label: 'Sección B' },
+        { value: 'C', label: 'Sección C' },
+        { value: 'D', label: 'Sección D' },
+      ],
+    },
+  ],
   ...(!isEditing ? [{
     name: 'fechaIngreso',
     label: 'Fecha de Ingreso',
     type: 'date',
   }] : []),
+  {
+    name: 'nombreTutor',
+    label: 'Nombre del Tutor',
+    type: 'text',
+    placeholder: 'Nombre completo del padre/madre/tutor',
+    maxLength: 100,
+  },
+  [
+    {
+      name: 'telefonoTutor',
+      label: 'Teléfono del Tutor',
+      type: 'tel',
+      placeholder: '809-555-1234',
+      maxLength: 20,
+    },
+    {
+      name: 'emailTutor',
+      label: 'Email del Tutor',
+      type: 'email',
+      placeholder: 'tutor@email.com',
+      maxLength: 150,
+    },
+  ],
+  {
+    name: 'observacionesMedicas',
+    label: 'Observaciones Médicas',
+    type: 'textarea',
+    placeholder: 'Alergias, condiciones especiales, medicamentos...',
+    maxLength: 500,
+    rows: 3,
+  },
+  {
+    name: 'activo',
+    label: 'Activo',
+    type: 'checkbox',
+  },
 ];
 
 // Reglas de validación
 export const studentsValidationRules = {
   matricula: {
     required: { message: 'La matrícula es requerida' },
+    maxLength: { value: 20, message: 'Máximo 20 caracteres' },
   },
   nombres: {
     required: { message: 'Los nombres son requeridos' },
-    minLength: { value: 2, message: 'Los nombres deben tener al menos 2 caracteres' },
+    minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+    maxLength: { value: 100, message: 'Máximo 100 caracteres' },
   },
   apellidos: {
     required: { message: 'Los apellidos son requeridos' },
-    minLength: { value: 2, message: 'Los apellidos deben tener al menos 2 caracteres' },
+    minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+    maxLength: { value: 100, message: 'Máximo 100 caracteres' },
   },
   email: {
     required: { message: 'El email es requerido' },
@@ -141,9 +229,55 @@ export const studentsValidationRules = {
       value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 
       message: 'El email no es válido' 
     },
+    maxLength: { value: 150, message: 'Máximo 150 caracteres' },
+  },
+  telefono: {
+    maxLength: { value: 20, message: 'Máximo 20 caracteres' },
   },
   fechaNacimiento: {
     required: { message: 'La fecha de nacimiento es requerida' },
+    validate: (value) => {
+      const birthDate = new Date(value);
+      const today = new Date();
+      const age = today.getFullYear() - birthDate.getFullYear();
+      
+      if (age < 3 || age > 25) {
+        return 'La edad debe estar entre 3 y 25 años';
+      }
+      return true;
+    },
+  },
+  direccion: {
+    maxLength: { value: 200, message: 'Máximo 200 caracteres' },
+  },
+  gradoActual: {
+    required: { message: 'El grado es requerido' },
+    validate: (value) => {
+      const grado = parseInt(value);
+      if (grado < 1 || grado > 12) {
+        return 'El grado debe estar entre 1 y 12';
+      }
+      return true;
+    },
+  },
+  seccionActual: {
+    required: { message: 'La sección es requerida' },
+  },
+  nombreTutor: {
+    maxLength: { value: 100, message: 'Máximo 100 caracteres' },
+  },
+  telefonoTutor: {
+    maxLength: { value: 20, message: 'Máximo 20 caracteres' },
+  },
+  emailTutor: {
+    pattern: { 
+      value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, 
+      message: 'El email del tutor no es válido' 
+    },
+    maxLength: { value: 150, message: 'Máximo 150 caracteres' },
+  },
+  observacionesMedicas: {
+    maxLength: { value: 500, message: 'Máximo 500 caracteres' },
   },
 };
 
@@ -157,6 +291,12 @@ export const getInitialStudentFormData = () => ({
   direccion: '',
   fechaNacimiento: '',
   fechaIngreso: new Date().toISOString().split('T')[0],
+  gradoActual: '',
+  seccionActual: '',
+  nombreTutor: '',
+  telefonoTutor: '',
+  emailTutor: '',
+  observacionesMedicas: '',
   activo: true,
 });
 
@@ -165,13 +305,6 @@ export const formatDateForForm = (fecha) => {
   if (!fecha) return '';
   return String(fecha).split('T')[0];
 };
-
-// Formatear datos para enviar a la API
-export const formatStudentDataForAPI = (formData) => ({
-  ...formData,
-  fechaNacimiento: formData.fechaNacimiento ? `${formData.fechaNacimiento}T00:00:00` : null,
-  fechaIngreso: formData.fechaIngreso ? `${formData.fechaIngreso}T00:00:00` : null,
-});
 
 // Formatear estudiante para el formulario
 export const formatStudentForForm = (estudiante) => ({
@@ -183,5 +316,30 @@ export const formatStudentForForm = (estudiante) => ({
   direccion: estudiante.direccion || '',
   fechaNacimiento: formatDateForForm(estudiante.fechaNacimiento),
   fechaIngreso: formatDateForForm(estudiante.fechaIngreso),
+  gradoActual: estudiante.gradoActual || '',
+  seccionActual: estudiante.seccionActual || '',
+  nombreTutor: estudiante.nombreTutor || '',
+  telefonoTutor: estudiante.telefonoTutor || '',
+  emailTutor: estudiante.emailTutor || '',
+  observacionesMedicas: estudiante.observacionesMedicas || '',
   activo: estudiante.activo ?? true,
+});
+
+// Formatear datos para enviar a la API
+export const formatStudentDataForAPI = (formData) => ({
+  matricula: formData.matricula.trim().toUpperCase(),
+  nombres: formData.nombres.trim(),
+  apellidos: formData.apellidos.trim(),
+  email: formData.email.trim().toLowerCase(),
+  telefono: formData.telefono?.trim() || null,
+  direccion: formData.direccion?.trim() || null,
+  fechaNacimiento: formData.fechaNacimiento ? `${formData.fechaNacimiento}T00:00:00` : null,
+  fechaIngreso: formData.fechaIngreso ? `${formData.fechaIngreso}T00:00:00` : null,
+  gradoActual: parseInt(formData.gradoActual, 10),
+  seccionActual: formData.seccionActual.trim().toUpperCase(),
+  nombreTutor: formData.nombreTutor?.trim() || null,
+  telefonoTutor: formData.telefonoTutor?.trim() || null,
+  emailTutor: formData.emailTutor?.trim().toLowerCase() || null,
+  observacionesMedicas: formData.observacionesMedicas?.trim() || null,
+  activo: formData.activo,
 });

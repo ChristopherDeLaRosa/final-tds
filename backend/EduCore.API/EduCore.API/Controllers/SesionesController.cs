@@ -1,7 +1,13 @@
 ﻿using EduCore.API.DTOs;
+using EduCore.API.Models;
 using EduCore.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Hosting;
+using System.Globalization;
+using System.Numerics;
+using System.Text.RegularExpressions;
 
 namespace EduCore.API.Controllers
 {
@@ -13,37 +19,17 @@ namespace EduCore.API.Controllers
         private readonly ISesionService _sesionService;
         private readonly ILogger<SesionesController> _logger;
 
-        public SesionesController(ISesionService sesionService, ILogger<SesionesController> logger)
+        public SesionesController(
+            ISesionService sesionService,
+            ILogger<SesionesController> logger)
         {
             _sesionService = sesionService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtener todas las sesiones
-        /// </summary>
-        /// <returns>Lista de sesiones</returns>
-        [HttpGet]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<ActionResult<IEnumerable<SesionDto>>> GetAll()
-        {
-            try
-            {
-                var sesiones = await _sesionService.GetAllAsync();
-                return Ok(sesiones);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al obtener sesiones");
-                return StatusCode(500, new { message = "Error interno del servidor" });
-            }
-        }
-
-        /// <summary>
         /// Obtener sesión por ID
         /// </summary>
-        /// <param name="id">ID de la sesión</param>
-        /// <returns>Datos de la sesión</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<SesionDto>> GetById(int id)
         {
@@ -64,46 +50,131 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener sesiones por sección
+        /// Obtener detalle completo de una sesión con asistencias
         /// </summary>
-        /// <param name="seccionId">ID de la sección</param>
-        /// <returns>Lista de sesiones de la sección</returns>
-        [HttpGet("seccion/{seccionId}")]
-        public async Task<ActionResult<IEnumerable<SesionDto>>> GetBySeccion(int seccionId)
+        [HttpGet("{id}/detalle")]
+        public async Task<ActionResult<SesionDetalleDto>> GetDetalle(int id)
         {
             try
             {
-                var sesiones = await _sesionService.GetBySeccionAsync(seccionId);
-                return Ok(sesiones);
+                var detalle = await _sesionService.GetDetalleByIdAsync(id);
+
+                if (detalle == null)
+                    return NotFound(new { message = "Sesión no encontrada" });
+
+                return Ok(detalle);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener sesiones de la sección {SeccionId}", seccionId);
+                _logger.LogError(ex, "Error al obtener detalle de sesión {Id}", id);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
 
         /// <summary>
-        /// Obtener sesiones por sección y rango de fechas
+        /// Obtener sesiones de un grupo-curso
         /// </summary>
-        /// <param name="seccionId">ID de la sección</param>
-        /// <param name="fechaInicio">Fecha de inicio</param>
-        /// <param name="fechaFin">Fecha de fin</param>
-        /// <returns>Lista de sesiones en el rango de fechas</returns>
-        [HttpGet("seccion/{seccionId}/rango")]
-        public async Task<ActionResult<IEnumerable<SesionDto>>> GetBySeccionYFecha(
-            int seccionId,
+        [HttpGet("grupo/{grupoCursoId}")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetByGrupoCurso(int grupoCursoId)
+        {
+            try
+            {
+                var sesiones = await _sesionService.GetByGrupoCursoAsync(grupoCursoId);
+                return Ok(sesiones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener sesiones del grupo {GrupoCursoId}", grupoCursoId);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener sesiones de un grupo-curso en un rango de fechas
+        /// </summary>
+        [HttpGet("grupo/{grupoCursoId}/fechas")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetByGrupoCursoFechas(
+            int grupoCursoId,
             [FromQuery] DateTime fechaInicio,
             [FromQuery] DateTime fechaFin)
         {
             try
             {
-                var sesiones = await _sesionService.GetBySeccionYFechaAsync(seccionId, fechaInicio, fechaFin);
+                if (fechaFin < fechaInicio)
+                    return BadRequest(new { message = "La fecha de fin debe ser posterior a la fecha de inicio" });
+
+                var sesiones = await _sesionService.GetByGrupoCursoFechasAsync(
+                    grupoCursoId,
+                    fechaInicio,
+                    fechaFin
+                );
                 return Ok(sesiones);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener sesiones de la sección {SeccionId} por rango de fechas", seccionId);
+                _logger.LogError(ex, "Error al obtener sesiones por fechas");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener sesiones por fecha específica
+        /// </summary>
+        [HttpGet("fecha/{fecha}")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetByFecha(DateTime fecha)
+        {
+            try
+            {
+                var sesiones = await _sesionService.GetByFechaAsync(fecha);
+                return Ok(sesiones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener sesiones por fecha {Fecha}", fecha.ToShortDateString());
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener sesiones en un rango de fechas
+        /// </summary>
+        [HttpGet("rango-fechas")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetByRangoFechas(
+            [FromQuery] DateTime fechaInicio,
+            [FromQuery] DateTime fechaFin)
+        {
+            try
+            {
+                if (fechaFin < fechaInicio)
+                    return BadRequest(new { message = "La fecha de fin debe ser posterior a la fecha de inicio" });
+
+                var sesiones = await _sesionService.GetByRangoFechasAsync(fechaInicio, fechaFin);
+                return Ok(sesiones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener sesiones por rango de fechas");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener sesiones de un docente
+        /// </summary>
+        [HttpGet("docente/{docenteId}")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetByDocente(
+            int docenteId,
+            [FromQuery] DateTime? fecha = null)
+        {
+            try
+            {
+                var sesiones = await _sesionService.GetByDocenteAsync(docenteId, fecha);
+                return Ok(sesiones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener sesiones del docente {DocenteId}", docenteId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
@@ -111,10 +182,8 @@ namespace EduCore.API.Controllers
         /// <summary>
         /// Crear nueva sesión
         /// </summary>
-        /// <param name="createDto">Datos de la nueva sesión</param>
-        /// <returns>Sesión creada</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
         public async Task<ActionResult<SesionDto>> Create([FromBody] CreateSesionDto createDto)
         {
             try
@@ -125,6 +194,10 @@ namespace EduCore.API.Controllers
                 var sesion = await _sesionService.CreateAsync(createDto);
                 return CreatedAtAction(nameof(GetById), new { id = sesion.Id }, sesion);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al crear sesión");
@@ -133,13 +206,42 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Actualizar sesión existente
+        /// Crear múltiples sesiones recurrentes (programación automática)
         /// </summary>
-        /// <param name="id">ID de la sesión</param>
-        /// <param name="updateDto">Datos actualizados</param>
-        /// <returns>Sesión actualizada</returns>
+        [HttpPost("recurrentes")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<List<SesionDto>>> CrearRecurrentes(
+            [FromBody] CrearSesionesRecurrentesDto recurrenteDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var sesiones = await _sesionService.CrearSesionesRecurrentesAsync(recurrenteDto);
+
+                return Ok(new
+                {
+                    message = $"{sesiones.Count} sesiones creadas exitosamente",
+                    sesiones
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear sesiones recurrentes");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Actualizar sesión
+        /// </summary>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
         public async Task<ActionResult<SesionDto>> Update(int id, [FromBody] UpdateSesionDto updateDto)
         {
             try
@@ -154,6 +256,10 @@ namespace EduCore.API.Controllers
 
                 return Ok(sesion);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar sesión {Id}", id);
@@ -162,12 +268,10 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Eliminar sesión
+        /// Eliminar sesión (solo si no tiene asistencias)
         /// </summary>
-        /// <param name="id">ID de la sesión</param>
-        /// <returns>Confirmación de eliminación</returns>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,Docente")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -175,7 +279,7 @@ namespace EduCore.API.Controllers
                 var result = await _sesionService.DeleteAsync(id);
 
                 if (!result)
-                    return NotFound(new { message = "Sesión no encontrada" });
+                    return NotFound(new { message = "Sesión no encontrada o tiene asistencias registradas" });
 
                 return Ok(new { message = "Sesión eliminada exitosamente" });
             }
@@ -189,24 +293,101 @@ namespace EduCore.API.Controllers
         /// <summary>
         /// Marcar sesión como realizada
         /// </summary>
-        /// <param name="id">ID de la sesión</param>
-        /// <returns>Confirmación</returns>
         [HttpPatch("{id}/marcar-realizada")]
-        [Authorize(Roles = "Admin,Docente")]
-        public async Task<IActionResult> MarcarRealizada(int id)
+        [Authorize(Roles = "Admin,Docente,Coordinador")]
+        public async Task<ActionResult<SesionDto>> MarcarComoRealizada(int id)
         {
             try
             {
-                var result = await _sesionService.MarcarComoRealizadaAsync(id);
+                var sesion = await _sesionService.MarcarComoRealizadaAsync(id);
 
-                if (!result)
+                if (sesion == null)
                     return NotFound(new { message = "Sesión no encontrada" });
 
-                return Ok(new { message = "Sesión marcada como realizada" });
+                return Ok(sesion);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al marcar sesión {Id} como realizada", id);
+                _logger.LogError(ex, "Error al marcar sesión como realizada {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener horario semanal de un grupo-curso
+        /// </summary>
+        [HttpGet("grupo/{grupoCursoId}/horario-semanal")]
+        public async Task<ActionResult<HorarioSemanalGrupoDto>> GetHorarioSemanal(
+            int grupoCursoId,
+            [FromQuery] DateTime fecha)
+        {
+            try
+            {
+                var horario = await _sesionService.GetHorarioSemanalAsync(grupoCursoId, fecha);
+
+                if (horario == null)
+                    return NotFound(new { message = "Grupo no encontrado" });
+
+                return Ok(horario);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener horario semanal del grupo {GrupoCursoId}", grupoCursoId);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener calendario mensual de sesiones por grado y sección
+        /// </summary>
+        [HttpGet("calendario/grado/{grado}/seccion/{seccion}")]
+        public async Task<ActionResult<CalendarioMensualDto>> GetCalendarioMensual(
+            int grado,
+            string seccion,
+            [FromQuery] int anio,
+            [FromQuery] int mes)
+        {
+            try
+            {
+                if (grado < 1 || grado > 12)
+                    return BadRequest(new { message = "El grado debe estar entre 1 y 12" });
+
+                if (mes < 1 || mes > 12)
+                    return BadRequest(new { message = "El mes debe estar entre 1 y 12" });
+
+                if (string.IsNullOrWhiteSpace(seccion))
+                    return BadRequest(new { message = "La sección es requerida" });
+
+                var calendario = await _sesionService.GetCalendarioMensualAsync(grado, seccion, anio, mes);
+                return Ok(calendario);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener calendario mensual");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener estadísticas de sesiones de un grupo-curso
+        /// </summary>
+        [HttpGet("grupo/{grupoCursoId}/estadisticas")]
+        public async Task<ActionResult<EstadisticasSesionesDto>> GetEstadisticas(
+            int grupoCursoId,
+            [FromQuery] string? periodo = null)
+        {
+            try
+            {
+                var estadisticas = await _sesionService.GetEstadisticasGrupoCursoAsync(grupoCursoId, periodo);
+
+                if (estadisticas == null)
+                    return NotFound(new { message = "Grupo no encontrado" });
+
+                return Ok(estadisticas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estadísticas del grupo {GrupoCursoId}", grupoCursoId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }

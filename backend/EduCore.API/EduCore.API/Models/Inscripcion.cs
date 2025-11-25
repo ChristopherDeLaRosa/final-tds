@@ -14,11 +14,12 @@ namespace EduCore.API.Models
         [ForeignKey("EstudianteId")]
         public virtual Estudiante Estudiante { get; set; } = null!;
 
+        // CAMBIO: SeccionId -> GrupoCursoId
         [Required]
-        public int SeccionId { get; set; }
+        public int GrupoCursoId { get; set; }
 
-        [ForeignKey("SeccionId")]
-        public virtual Seccion Seccion { get; set; } = null!;
+        [ForeignKey("GrupoCursoId")]
+        public virtual GrupoCurso GrupoCurso { get; set; } = null!;
 
         public DateTime FechaInscripcion { get; set; } = DateTime.UtcNow;
 

@@ -22,9 +22,8 @@ namespace EduCore.API.Controllers
         /// <summary>
         /// Obtener todos los estudiantes activos
         /// </summary>
-        /// <returns>Lista de estudiantes</returns>
+        /// <returns>Lista de estudiantes ordenados por grado, sección y apellido</returns>
         [HttpGet]
-        //[Authorize(Roles = "Admin,Docente")]
         public async Task<ActionResult<IEnumerable<EstudianteDto>>> GetAll()
         {
             try
@@ -69,7 +68,6 @@ namespace EduCore.API.Controllers
         /// <param name="matricula">Matrícula del estudiante</param>
         /// <returns>Datos del estudiante</returns>
         [HttpGet("matricula/{matricula}")]
-        [Authorize(Roles = "Admin,Docente")]
         public async Task<ActionResult<EstudianteDto>> GetByMatricula(string matricula)
         {
             try
@@ -89,12 +87,93 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
+        /// Obtener estudiantes por grado
+        /// </summary>
+        /// <param name="grado">Grado escolar (1-12)</param>
+        /// <returns>Lista de estudiantes del grado</returns>
+        [HttpGet("grado/{grado}")]
+        public async Task<ActionResult<IEnumerable<EstudianteDto>>> GetByGrado(int grado)
+        {
+            try
+            {
+                if (grado < 1 || grado > 12)
+                    return BadRequest(new { message = "El grado debe estar entre 1 y 12" });
+
+                var estudiantes = await _estudianteService.GetByGradoAsync(grado);
+                return Ok(estudiantes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estudiantes por grado {Grado}", grado);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener estudiantes por grado y sección
+        /// </summary>
+        /// <param name="grado">Grado escolar (1-12)</param>
+        /// <param name="seccion">Sección (A, B, C, etc.)</param>
+        /// <returns>Lista de estudiantes del grado y sección</returns>
+        [HttpGet("grado/{grado}/seccion/{seccion}")]
+        public async Task<ActionResult<IEnumerable<EstudianteDto>>> GetByGradoSeccion(int grado, string seccion)
+        {
+            try
+            {
+                if (grado < 1 || grado > 12)
+                    return BadRequest(new { message = "El grado debe estar entre 1 y 12" });
+
+                if (string.IsNullOrWhiteSpace(seccion))
+                    return BadRequest(new { message = "La sección es requerida" });
+
+                var estudiantes = await _estudianteService.GetByGradoSeccionAsync(grado, seccion);
+                return Ok(estudiantes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estudiantes por grado {Grado} y sección {Seccion}", grado, seccion);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener lista completa de estudiantes por grado y sección
+        /// </summary>
+        /// <param name="grado">Grado escolar (1-12)</param>
+        /// <param name="seccion">Sección (A, B, C, etc.)</param>
+        /// <returns>Lista detallada con total de estudiantes</returns>
+        [HttpGet("lista/grado/{grado}/seccion/{seccion}")]
+        public async Task<ActionResult<EstudiantesPorGradoDto>> GetListaPorGradoSeccion(int grado, string seccion)
+        {
+            try
+            {
+                if (grado < 1 || grado > 12)
+                    return BadRequest(new { message = "El grado debe estar entre 1 y 12" });
+
+                if (string.IsNullOrWhiteSpace(seccion))
+                    return BadRequest(new { message = "La sección es requerida" });
+
+                var lista = await _estudianteService.GetEstudiantesPorGradoSeccionAsync(grado, seccion);
+
+                if (lista == null)
+                    return NotFound(new { message = "No se encontraron estudiantes para el grado y sección especificados" });
+
+                return Ok(lista);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener lista de estudiantes");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Crear nuevo estudiante
         /// </summary>
         /// <param name="createDto">Datos del nuevo estudiante</param>
         /// <returns>Estudiante creado</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Coordinador")]
         public async Task<ActionResult<EstudianteDto>> Create([FromBody] CreateEstudianteDto createDto)
         {
             try
@@ -125,7 +204,7 @@ namespace EduCore.API.Controllers
         /// <param name="updateDto">Datos actualizados</param>
         /// <returns>Estudiante actualizado</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Coordinador")]
         public async Task<ActionResult<EstudianteDto>> Update(int id, [FromBody] UpdateEstudianteDto updateDto)
         {
             try
@@ -173,10 +252,10 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener historial académico del estudiante
+        /// Obtener historial académico completo del estudiante
         /// </summary>
         /// <param name="id">ID del estudiante</param>
-        /// <returns>Historial completo con cursos, notas y asistencia</returns>
+        /// <returns>Historial con todas las materias, notas y asistencia</returns>
         [HttpGet("{id}/historial")]
         public async Task<ActionResult<EstudianteHistorialDto>> GetHistorial(int id)
         {

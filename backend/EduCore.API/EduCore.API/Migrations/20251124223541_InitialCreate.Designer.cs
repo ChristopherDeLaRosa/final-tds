@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace EduCore.API.Migrations
 {
     [DbContext(typeof(EduCoreDbContext))]
-    [Migration("20251029001240_initial-migration")]
-    partial class initialmigration
+    [Migration("20251124223541_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -41,8 +41,14 @@ namespace EduCore.API.Migrations
                     b.Property<int>("EstudianteId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("FechaNotificacion")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaRegistro")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("NotificacionEnviada")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Observaciones")
                         .HasMaxLength(300)
@@ -56,9 +62,10 @@ namespace EduCore.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EstudianteId");
-
                     b.HasIndex("SesionId");
+
+                    b.HasIndex("EstudianteId", "SesionId")
+                        .IsUnique();
 
                     b.ToTable("Asistencias");
                 });
@@ -70,6 +77,9 @@ namespace EduCore.API.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CalificacionOriginalId")
+                        .HasColumnType("int");
 
                     b.Property<int>("EstudianteId")
                         .HasColumnType("int");
@@ -88,6 +98,9 @@ namespace EduCore.API.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("Recuperacion")
+                        .HasColumnType("bit");
+
                     b.Property<int>("RubroId")
                         .HasColumnType("int");
 
@@ -96,9 +109,9 @@ namespace EduCore.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EstudianteId");
-
                     b.HasIndex("RubroId");
+
+                    b.HasIndex("EstudianteId", "RubroId");
 
                     b.ToTable("Calificaciones");
                 });
@@ -114,25 +127,41 @@ namespace EduCore.API.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
+                    b.Property<string>("AreaConocimiento")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<int>("Creditos")
-                        .HasColumnType("int");
-
                     b.Property<string>("Descripcion")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("EsObligatoria")
+                        .HasColumnType("bit");
+
                     b.Property<int>("HorasSemana")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Nivel")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("NivelGrado")
                         .HasColumnType("int");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -220,23 +249,47 @@ namespace EduCore.API.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("EmailTutor")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<DateTime>("FechaIngreso")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("FechaNacimiento")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("GradoActual")
+                        .HasColumnType("int");
+
                     b.Property<string>("Matricula")
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("NombreTutor")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Nombres")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("ObservacionesMedicas")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SeccionActual")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("Telefono")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TelefonoTutor")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
@@ -249,6 +302,70 @@ namespace EduCore.API.Migrations
                         .IsUnique();
 
                     b.ToTable("Estudiantes");
+                });
+
+            modelBuilder.Entity("EduCore.API.Models.GrupoCurso", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Anio")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Aula")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("CantidadEstudiantes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CapacidadMaxima")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("CursoId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DocenteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Grado")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Horario")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Periodo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Seccion")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("CursoId");
+
+                    b.HasIndex("DocenteId");
+
+                    b.ToTable("GruposCursos");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Inscripcion", b =>
@@ -273,18 +390,20 @@ namespace EduCore.API.Migrations
                     b.Property<DateTime>("FechaInscripcion")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("GrupoCursoId")
+                        .HasColumnType("int");
+
                     b.Property<decimal?>("PromedioFinal")
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<int>("SeccionId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("EstudianteId");
+                    b.HasIndex("GrupoCursoId");
 
-                    b.HasIndex("SeccionId");
+                    b.HasIndex("EstudianteId", "GrupoCursoId")
+                        .IsUnique()
+                        .HasFilter("[Activo] = 1");
 
                     b.ToTable("Inscripciones");
                 });
@@ -304,6 +423,9 @@ namespace EduCore.API.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<int>("GrupoCursoId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -316,67 +438,11 @@ namespace EduCore.API.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<int>("SeccionId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("SeccionId");
+                    b.HasIndex("GrupoCursoId");
 
                     b.ToTable("Rubros");
-                });
-
-            modelBuilder.Entity("EduCore.API.Models.Seccion", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("Activo")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Aula")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("Capacidad")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Codigo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("CursoId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DocenteId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Horario")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int>("Inscritos")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Periodo")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Codigo")
-                        .IsUnique();
-
-                    b.HasIndex("CursoId");
-
-                    b.HasIndex("DocenteId");
-
-                    b.ToTable("Secciones");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Sesion", b =>
@@ -389,6 +455,9 @@ namespace EduCore.API.Migrations
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("GrupoCursoId")
+                        .HasColumnType("int");
 
                     b.Property<TimeSpan>("HoraFin")
                         .HasColumnType("time");
@@ -403,16 +472,13 @@ namespace EduCore.API.Migrations
                     b.Property<bool>("Realizada")
                         .HasColumnType("bit");
 
-                    b.Property<int>("SeccionId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Tema")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SeccionId");
+                    b.HasIndex("GrupoCursoId");
 
                     b.ToTable("Sesiones");
                 });
@@ -433,8 +499,8 @@ namespace EduCore.API.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int?>("EstudianteId")
                         .HasColumnType("int");
@@ -444,8 +510,8 @@ namespace EduCore.API.Migrations
 
                     b.Property<string>("NombreUsuario")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("PasswordHash")
                         .IsRequired()
@@ -453,8 +519,8 @@ namespace EduCore.API.Migrations
 
                     b.Property<string>("Rol")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime?>("UltimoAcceso")
                         .HasColumnType("datetime2");
@@ -479,9 +545,9 @@ namespace EduCore.API.Migrations
                             Id = 1,
                             Activo = true,
                             Email = "admin@educore.com",
-                            FechaCreacion = new DateTime(2025, 10, 29, 0, 12, 40, 62, DateTimeKind.Utc).AddTicks(1562),
+                            FechaCreacion = new DateTime(2025, 11, 24, 22, 35, 39, 512, DateTimeKind.Utc).AddTicks(2170),
                             NombreUsuario = "admin",
-                            PasswordHash = "$2a$11$7bzxwONyHgESxYlC1byzTOj1gXXhIDbQVqSIN8QGHfpX2v6ymgUV2",
+                            PasswordHash = "$2a$11$EqZKuYYjJqisJurR4oJxe.X0QriEEk2ussVjmsGQIDjE8I3E..v9m",
                             Rol = "Admin"
                         });
                 });
@@ -524,6 +590,25 @@ namespace EduCore.API.Migrations
                     b.Navigation("Rubro");
                 });
 
+            modelBuilder.Entity("EduCore.API.Models.GrupoCurso", b =>
+                {
+                    b.HasOne("EduCore.API.Models.Curso", "Curso")
+                        .WithMany("GruposCursos")
+                        .HasForeignKey("CursoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("EduCore.API.Models.Docente", "Docente")
+                        .WithMany("GrupoCursos")
+                        .HasForeignKey("DocenteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Curso");
+
+                    b.Navigation("Docente");
+                });
+
             modelBuilder.Entity("EduCore.API.Models.Inscripcion", b =>
                 {
                     b.HasOne("EduCore.API.Models.Estudiante", "Estudiante")
@@ -532,56 +617,37 @@ namespace EduCore.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("EduCore.API.Models.Seccion", "Seccion")
+                    b.HasOne("EduCore.API.Models.GrupoCurso", "GrupoCurso")
                         .WithMany("Inscripciones")
-                        .HasForeignKey("SeccionId")
+                        .HasForeignKey("GrupoCursoId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Estudiante");
 
-                    b.Navigation("Seccion");
+                    b.Navigation("GrupoCurso");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Rubro", b =>
                 {
-                    b.HasOne("EduCore.API.Models.Seccion", "Seccion")
+                    b.HasOne("EduCore.API.Models.GrupoCurso", "GrupoCurso")
                         .WithMany("Rubros")
-                        .HasForeignKey("SeccionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("GrupoCursoId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Seccion");
-                });
-
-            modelBuilder.Entity("EduCore.API.Models.Seccion", b =>
-                {
-                    b.HasOne("EduCore.API.Models.Curso", "Curso")
-                        .WithMany("Secciones")
-                        .HasForeignKey("CursoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("EduCore.API.Models.Docente", "Docente")
-                        .WithMany("Secciones")
-                        .HasForeignKey("DocenteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Curso");
-
-                    b.Navigation("Docente");
+                    b.Navigation("GrupoCurso");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Sesion", b =>
                 {
-                    b.HasOne("EduCore.API.Models.Seccion", "Seccion")
+                    b.HasOne("EduCore.API.Models.GrupoCurso", "GrupoCurso")
                         .WithMany("Sesiones")
-                        .HasForeignKey("SeccionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasForeignKey("GrupoCursoId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("Seccion");
+                    b.Navigation("GrupoCurso");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Usuario", b =>
@@ -603,12 +669,12 @@ namespace EduCore.API.Migrations
 
             modelBuilder.Entity("EduCore.API.Models.Curso", b =>
                 {
-                    b.Navigation("Secciones");
+                    b.Navigation("GruposCursos");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Docente", b =>
                 {
-                    b.Navigation("Secciones");
+                    b.Navigation("GrupoCursos");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Estudiante", b =>
@@ -620,18 +686,18 @@ namespace EduCore.API.Migrations
                     b.Navigation("Inscripciones");
                 });
 
-            modelBuilder.Entity("EduCore.API.Models.Rubro", b =>
-                {
-                    b.Navigation("Calificaciones");
-                });
-
-            modelBuilder.Entity("EduCore.API.Models.Seccion", b =>
+            modelBuilder.Entity("EduCore.API.Models.GrupoCurso", b =>
                 {
                     b.Navigation("Inscripciones");
 
                     b.Navigation("Rubros");
 
                     b.Navigation("Sesiones");
+                });
+
+            modelBuilder.Entity("EduCore.API.Models.Rubro", b =>
+                {
+                    b.Navigation("Calificaciones");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Sesion", b =>

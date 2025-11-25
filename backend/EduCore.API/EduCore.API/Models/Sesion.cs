@@ -3,17 +3,18 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduCore.API.Models
 {
-    // clases/sesiones programadas dentro de una sección de curso
+    // Clases/sesiones programadas dentro de un grupo-curso
     public class Sesion
     {
         [Key]
         public int Id { get; set; }
 
+        // CAMBIO: SeccionId -> GrupoCursoId
         [Required]
-        public int SeccionId { get; set; }
+        public int GrupoCursoId { get; set; }
 
-        [ForeignKey("SeccionId")]
-        public virtual Seccion Seccion { get; set; } = null!;
+        [ForeignKey("GrupoCursoId")]
+        public virtual GrupoCurso GrupoCurso { get; set; } = null!;
 
         [Required]
         public DateTime Fecha { get; set; }

@@ -13,18 +13,19 @@ namespace EduCore.API.Controllers
         private readonly IDocenteService _docenteService;
         private readonly ILogger<DocentesController> _logger;
 
-        public DocentesController(IDocenteService docenteService, ILogger<DocentesController> logger)
+        public DocentesController(
+            IDocenteService docenteService,
+            ILogger<DocentesController> logger)
         {
             _docenteService = docenteService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtener todos los docentes activos
+        /// Obtener todos los docentes
         /// </summary>
-        /// <returns>Lista de docentes</returns>
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Coordinador")]
         public async Task<ActionResult<IEnumerable<DocenteDto>>> GetAll()
         {
             try
@@ -40,10 +41,26 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
+        /// Obtener todos los docentes activos
+        /// </summary>
+        [HttpGet("activos")]
+        public async Task<ActionResult<IEnumerable<DocenteDto>>> GetAllActivos()
+        {
+            try
+            {
+                var docentes = await _docenteService.GetAllActivosAsync();
+                return Ok(docentes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener docentes activos");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Obtener docente por ID
         /// </summary>
-        /// <param name="id">ID del docente</param>
-        /// <returns>Datos del docente</returns>
         [HttpGet("{id}")]
         public async Task<ActionResult<DocenteDto>> GetById(int id)
         {
@@ -64,12 +81,31 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
+        /// Obtener detalle completo de docente con estadísticas
+        /// </summary>
+        [HttpGet("{id}/detalle")]
+        public async Task<ActionResult<DocenteDetalleDto>> GetDetalle(int id)
+        {
+            try
+            {
+                var detalle = await _docenteService.GetDetalleByIdAsync(id);
+
+                if (detalle == null)
+                    return NotFound(new { message = "Docente no encontrado" });
+
+                return Ok(detalle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener detalle de docente {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Obtener docente por código
         /// </summary>
-        /// <param name="codigo">Código del docente</param>
-        /// <returns>Datos del docente</returns>
         [HttpGet("codigo/{codigo}")]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DocenteDto>> GetByCodigo(string codigo)
         {
             try
@@ -83,7 +119,43 @@ namespace EduCore.API.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error al obtener docente con código {Codigo}", codigo);
+                _logger.LogError(ex, "Error al obtener docente por código {Codigo}", codigo);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Buscar docentes con filtros
+        /// </summary>
+        [HttpPost("buscar")]
+        public async Task<ActionResult<IEnumerable<DocenteDto>>> Search([FromBody] DocenteFiltrosDto filtros)
+        {
+            try
+            {
+                var docentes = await _docenteService.SearchAsync(filtros);
+                return Ok(docentes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al buscar docentes");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener docentes por especialidad
+        /// </summary>
+        [HttpGet("especialidad/{especialidad}")]
+        public async Task<ActionResult<IEnumerable<DocenteDto>>> GetByEspecialidad(string especialidad)
+        {
+            try
+            {
+                var docentes = await _docenteService.GetByEspecialidadAsync(especialidad);
+                return Ok(docentes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener docentes por especialidad {Especialidad}", especialidad);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
@@ -91,10 +163,8 @@ namespace EduCore.API.Controllers
         /// <summary>
         /// Crear nuevo docente
         /// </summary>
-        /// <param name="createDto">Datos del nuevo docente</param>
-        /// <returns>Docente creado</returns>
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Coordinador")]
         public async Task<ActionResult<DocenteDto>> Create([FromBody] CreateDocenteDto createDto)
         {
             try
@@ -102,14 +172,12 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Verificar si el código ya existe
-                if (await _docenteService.CodigoExistsAsync(createDto.Codigo))
-                {
-                    return BadRequest(new { message = "El código ya está registrado" });
-                }
-
                 var docente = await _docenteService.CreateAsync(createDto);
                 return CreatedAtAction(nameof(GetById), new { id = docente.Id }, docente);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -119,13 +187,10 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Actualizar docente existente
+        /// Actualizar docente
         /// </summary>
-        /// <param name="id">ID del docente</param>
-        /// <param name="updateDto">Datos actualizados</param>
-        /// <returns>Docente actualizado</returns>
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Coordinador")]
         public async Task<ActionResult<DocenteDto>> Update(int id, [FromBody] UpdateDocenteDto updateDto)
         {
             try
@@ -140,6 +205,10 @@ namespace EduCore.API.Controllers
 
                 return Ok(docente);
             }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al actualizar docente {Id}", id);
@@ -148,10 +217,8 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Eliminar docente (soft delete)
+        /// Eliminar docente (solo si no tiene grupos asignados)
         /// </summary>
-        /// <param name="id">ID del docente</param>
-        /// <returns>Confirmación de eliminación</returns>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
@@ -161,7 +228,7 @@ namespace EduCore.API.Controllers
                 var result = await _docenteService.DeleteAsync(id);
 
                 if (!result)
-                    return NotFound(new { message = "Docente no encontrado" });
+                    return NotFound(new { message = "Docente no encontrado o tiene grupos asignados" });
 
                 return Ok(new { message = "Docente eliminado exitosamente" });
             }
@@ -173,16 +240,82 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener carga académica del docente
+        /// Obtener horario semanal del docente
         /// </summary>
-        /// <param name="id">ID del docente</param>
-        /// <param name="periodo">Periodo académico (opcional)</param>
-        /// <returns>Carga académica con secciones asignadas</returns>
-        [HttpGet("{id}/carga-academica")]
-        public async Task<ActionResult<DocenteCargaAcademicaDto>> GetCargaAcademica(int id, [FromQuery] string? periodo = null)
+        [HttpGet("{id}/horario-semanal")]
+        public async Task<ActionResult<HorarioDocenteDto>> GetHorarioSemanal(
+            int id,
+            [FromQuery] DateTime fecha)
         {
             try
             {
+                var horario = await _docenteService.GetHorarioSemanalAsync(id, fecha);
+
+                if (horario == null)
+                    return NotFound(new { message = "Docente no encontrado" });
+
+                return Ok(horario);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener horario semanal del docente {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener sesiones del docente
+        /// </summary>
+        [HttpGet("{id}/sesiones")]
+        public async Task<ActionResult<IEnumerable<SesionDto>>> GetSesiones(
+            int id,
+            [FromQuery] DateTime? fecha = null)
+        {
+            try
+            {
+                var sesiones = await _docenteService.GetSesionesAsync(id, fecha);
+                return Ok(sesiones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener sesiones del docente {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener grupos asignados al docente
+        /// </summary>
+        [HttpGet("{id}/grupos")]
+        public async Task<ActionResult<IEnumerable<GrupoCursoDto>>> GetGruposAsignados(
+            int id,
+            [FromQuery] string? periodo = null)
+        {
+            try
+            {
+                var grupos = await _docenteService.GetGruposAsignadosAsync(id, periodo);
+                return Ok(grupos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener grupos del docente {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener carga académica del docente
+        /// </summary>
+        [HttpGet("{id}/carga-academica")]
+        public async Task<ActionResult<CargaAcademicaDocenteDto>> GetCargaAcademica(
+            int id,
+            [FromQuery] string periodo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(periodo))
+                    return BadRequest(new { message = "El periodo es requerido" });
+
                 var carga = await _docenteService.GetCargaAcademicaAsync(id, periodo);
 
                 if (carga == null)
@@ -193,6 +326,33 @@ namespace EduCore.API.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener carga académica del docente {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener estadísticas del docente
+        /// </summary>
+        [HttpGet("{id}/estadisticas")]
+        public async Task<ActionResult<EstadisticasDocenteDto>> GetEstadisticas(
+            int id,
+            [FromQuery] string periodo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(periodo))
+                    return BadRequest(new { message = "El periodo es requerido" });
+
+                var estadisticas = await _docenteService.GetEstadisticasAsync(id, periodo);
+
+                if (estadisticas == null)
+                    return NotFound(new { message = "Docente no encontrado" });
+
+                return Ok(estadisticas);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener estadísticas del docente {Id}", id);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
