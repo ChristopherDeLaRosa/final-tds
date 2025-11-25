@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace EduCore.API.Migrations
 {
     /// <inheritdoc />
-    public partial class initialmigration : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -20,8 +20,12 @@ namespace EduCore.API.Migrations
                     Codigo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Nombre = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Descripcion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Creditos = table.Column<int>(type: "int", nullable: false),
+                    NivelGrado = table.Column<int>(type: "int", nullable: false),
+                    Nivel = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    AreaConocimiento = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     HorasSemana = table.Column<int>(type: "int", nullable: false),
+                    EsObligatoria = table.Column<bool>(type: "bit", nullable: false),
+                    Orden = table.Column<int>(type: "int", nullable: false),
                     Activo = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -63,6 +67,12 @@ namespace EduCore.API.Migrations
                     Direccion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     FechaNacimiento = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaIngreso = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    GradoActual = table.Column<int>(type: "int", nullable: false),
+                    SeccionActual = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    NombreTutor = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    TelefonoTutor = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    EmailTutor = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    ObservacionesMedicas = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Activo = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
@@ -71,7 +81,7 @@ namespace EduCore.API.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Secciones",
+                name: "GruposCursos",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
@@ -79,28 +89,31 @@ namespace EduCore.API.Migrations
                     Codigo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     CursoId = table.Column<int>(type: "int", nullable: false),
                     DocenteId = table.Column<int>(type: "int", nullable: false),
-                    Periodo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Grado = table.Column<int>(type: "int", nullable: false),
+                    Seccion = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    Anio = table.Column<int>(type: "int", nullable: false),
+                    Periodo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Aula = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Horario = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Capacidad = table.Column<int>(type: "int", nullable: false),
-                    Inscritos = table.Column<int>(type: "int", nullable: false),
+                    Horario = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    CapacidadMaxima = table.Column<int>(type: "int", nullable: false),
+                    CantidadEstudiantes = table.Column<int>(type: "int", nullable: false),
                     Activo = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Secciones", x => x.Id);
+                    table.PrimaryKey("PK_GruposCursos", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Secciones_Cursos_CursoId",
+                        name: "FK_GruposCursos_Cursos_CursoId",
                         column: x => x.CursoId,
                         principalTable: "Cursos",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Secciones_Docentes_DocenteId",
+                        name: "FK_GruposCursos_Docentes_DocenteId",
                         column: x => x.DocenteId,
                         principalTable: "Docentes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -109,10 +122,10 @@ namespace EduCore.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    NombreUsuario = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    NombreUsuario = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Rol = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Rol = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Activo = table.Column<bool>(type: "bit", nullable: false),
                     FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UltimoAcceso = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -143,7 +156,7 @@ namespace EduCore.API.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     EstudianteId = table.Column<int>(type: "int", nullable: false),
-                    SeccionId = table.Column<int>(type: "int", nullable: false),
+                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
                     FechaInscripcion = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     PromedioFinal = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
@@ -159,9 +172,9 @@ namespace EduCore.API.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Inscripciones_Secciones_SeccionId",
-                        column: x => x.SeccionId,
-                        principalTable: "Secciones",
+                        name: "FK_Inscripciones_GruposCursos_GrupoCursoId",
+                        column: x => x.GrupoCursoId,
+                        principalTable: "GruposCursos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
@@ -172,7 +185,7 @@ namespace EduCore.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SeccionId = table.Column<int>(type: "int", nullable: false),
+                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
                     Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Descripcion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Porcentaje = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
@@ -183,11 +196,11 @@ namespace EduCore.API.Migrations
                 {
                     table.PrimaryKey("PK_Rubros", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Rubros_Secciones_SeccionId",
-                        column: x => x.SeccionId,
-                        principalTable: "Secciones",
+                        name: "FK_Rubros_GruposCursos_GrupoCursoId",
+                        column: x => x.GrupoCursoId,
+                        principalTable: "GruposCursos",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -196,7 +209,7 @@ namespace EduCore.API.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    SeccionId = table.Column<int>(type: "int", nullable: false),
+                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
                     Fecha = table.Column<DateTime>(type: "datetime2", nullable: false),
                     HoraInicio = table.Column<TimeSpan>(type: "time", nullable: false),
                     HoraFin = table.Column<TimeSpan>(type: "time", nullable: false),
@@ -208,11 +221,11 @@ namespace EduCore.API.Migrations
                 {
                     table.PrimaryKey("PK_Sesiones", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Sesiones_Secciones_SeccionId",
-                        column: x => x.SeccionId,
-                        principalTable: "Secciones",
+                        name: "FK_Sesiones_GruposCursos_GrupoCursoId",
+                        column: x => x.GrupoCursoId,
+                        principalTable: "GruposCursos",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -227,7 +240,9 @@ namespace EduCore.API.Migrations
                     Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
                     FechaModificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UsuarioModificacionId = table.Column<int>(type: "int", nullable: true)
+                    UsuarioModificacionId = table.Column<int>(type: "int", nullable: true),
+                    Recuperacion = table.Column<bool>(type: "bit", nullable: false),
+                    CalificacionOriginalId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -257,7 +272,9 @@ namespace EduCore.API.Migrations
                     Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Observaciones = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UsuarioRegistroId = table.Column<int>(type: "int", nullable: true)
+                    UsuarioRegistroId = table.Column<int>(type: "int", nullable: true),
+                    NotificacionEnviada = table.Column<bool>(type: "bit", nullable: false),
+                    FechaNotificacion = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -279,12 +296,13 @@ namespace EduCore.API.Migrations
             migrationBuilder.InsertData(
                 table: "Usuarios",
                 columns: new[] { "Id", "Activo", "DocenteId", "Email", "EstudianteId", "FechaCreacion", "NombreUsuario", "PasswordHash", "Rol", "UltimoAcceso" },
-                values: new object[] { 1, true, null, "admin@educore.com", null, new DateTime(2025, 10, 29, 0, 12, 40, 62, DateTimeKind.Utc).AddTicks(1562), "admin", "$2a$11$7bzxwONyHgESxYlC1byzTOj1gXXhIDbQVqSIN8QGHfpX2v6ymgUV2", "Admin", null });
+                values: new object[] { 1, true, null, "admin@educore.com", null, new DateTime(2025, 11, 24, 22, 35, 39, 512, DateTimeKind.Utc).AddTicks(2170), "admin", "$2a$11$EqZKuYYjJqisJurR4oJxe.X0QriEEk2ussVjmsGQIDjE8I3E..v9m", "Admin", null });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Asistencias_EstudianteId",
+                name: "IX_Asistencias_EstudianteId_SesionId",
                 table: "Asistencias",
-                column: "EstudianteId");
+                columns: new[] { "EstudianteId", "SesionId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Asistencias_SesionId",
@@ -292,9 +310,9 @@ namespace EduCore.API.Migrations
                 column: "SesionId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Calificaciones_EstudianteId",
+                name: "IX_Calificaciones_EstudianteId_RubroId",
                 table: "Calificaciones",
-                column: "EstudianteId");
+                columns: new[] { "EstudianteId", "RubroId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Calificaciones_RubroId",
@@ -332,40 +350,42 @@ namespace EduCore.API.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Inscripciones_EstudianteId",
-                table: "Inscripciones",
-                column: "EstudianteId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Inscripciones_SeccionId",
-                table: "Inscripciones",
-                column: "SeccionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Rubros_SeccionId",
-                table: "Rubros",
-                column: "SeccionId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Secciones_Codigo",
-                table: "Secciones",
+                name: "IX_GruposCursos_Codigo",
+                table: "GruposCursos",
                 column: "Codigo",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Secciones_CursoId",
-                table: "Secciones",
+                name: "IX_GruposCursos_CursoId",
+                table: "GruposCursos",
                 column: "CursoId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Secciones_DocenteId",
-                table: "Secciones",
+                name: "IX_GruposCursos_DocenteId",
+                table: "GruposCursos",
                 column: "DocenteId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Sesiones_SeccionId",
+                name: "IX_Inscripciones_EstudianteId_GrupoCursoId",
+                table: "Inscripciones",
+                columns: new[] { "EstudianteId", "GrupoCursoId" },
+                unique: true,
+                filter: "[Activo] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Inscripciones_GrupoCursoId",
+                table: "Inscripciones",
+                column: "GrupoCursoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Rubros_GrupoCursoId",
+                table: "Rubros",
+                column: "GrupoCursoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Sesiones_GrupoCursoId",
                 table: "Sesiones",
-                column: "SeccionId");
+                column: "GrupoCursoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Usuarios_DocenteId",
@@ -415,7 +435,7 @@ namespace EduCore.API.Migrations
                 name: "Estudiantes");
 
             migrationBuilder.DropTable(
-                name: "Secciones");
+                name: "GruposCursos");
 
             migrationBuilder.DropTable(
                 name: "Cursos");

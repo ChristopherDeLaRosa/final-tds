@@ -542,9 +542,9 @@ namespace EduCore.API.Migrations
                             Id = 1,
                             Activo = true,
                             Email = "admin@educore.com",
-                            FechaCreacion = new DateTime(2025, 11, 21, 1, 47, 28, 537, DateTimeKind.Utc).AddTicks(788),
+                            FechaCreacion = new DateTime(2025, 11, 24, 22, 35, 39, 512, DateTimeKind.Utc).AddTicks(2170),
                             NombreUsuario = "admin",
-                            PasswordHash = "$2a$11$FYuuWF.g0kV1evlLWk5FQ.0Ont0alv8wWC/fI9mX4hflxNM0aLOCS",
+                            PasswordHash = "$2a$11$EqZKuYYjJqisJurR4oJxe.X0QriEEk2ussVjmsGQIDjE8I3E..v9m",
                             Rol = "Admin"
                         });
                 });

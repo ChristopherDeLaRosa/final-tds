@@ -172,5 +172,6 @@ export const useCrud = (service, options = {}) => {
     remove,
     setData,
     setError,
+    setLoading,
   };
 };

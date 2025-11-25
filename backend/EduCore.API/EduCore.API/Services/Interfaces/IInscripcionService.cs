@@ -10,7 +10,11 @@ namespace EduCore.API.Services.Interfaces
         Task<InscripcionDto> CreateAsync(CreateInscripcionDto createDto);
         Task<InscripcionDto?> UpdateAsync(int id, UpdateInscripcionDto updateDto);
         Task<bool> DeleteAsync(int id);
-
+        Task<IEnumerable<InscripcionDto>> GetAllAsync(
+        string? periodo = null,
+        int? grado = null,
+        string? seccion = null,
+        string? estado = null);
         // Consultas por estudiante
         Task<IEnumerable<InscripcionDto>> GetByEstudianteAsync(int estudianteId);
         Task<HorarioEstudianteDto?> GetHorarioEstudianteAsync(int estudianteId, string periodo);
@@ -37,5 +41,6 @@ namespace EduCore.API.Services.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<bool> YaInscritoAsync(int estudianteId, int grupoCursoId);
         Task<bool> GrupoTieneCupoAsync(int grupoCursoId);
+
     }
 }

@@ -3,27 +3,38 @@ import axiosInstance from './axiosConfig';
 const API_URL = '/GruposCursos';
 
 const grupoCursoService = {
-  // Obtener todos los grupos-cursos
+  // Obtener todos los grupos
   getAll: async () => {
     const response = await axiosInstance.get(API_URL);
     return response.data;
   },
 
-  // Obtener solo grupos activos
-  getAllActivos: async () => {
-    const response = await axiosInstance.get(`${API_URL}/activos`);
-    return response.data;
-  },
-
-  // Obtener grupo-curso por ID
+  // Obtener grupo por ID
   getById: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}`);
     return response.data;
   },
 
-  // Obtener grupo-curso por código
-  getByCodigo: async (codigo) => {
-    const response = await axiosInstance.get(`${API_URL}/codigo/${codigo}`);
+  // Obtener detalle completo del grupo (incluye estudiantes)
+  getDetalle: async (id) => {
+    const response = await axiosInstance.get(`${API_URL}/${id}/detalle`);
+    return response.data;
+  },
+
+  // Obtener grupos por periodo
+  getByPeriodo: async (periodo) => {
+    const response = await axiosInstance.get(`${API_URL}/periodo/${periodo}`);
+    return response.data;
+  },
+
+  // Obtener grupos por grado y sección (periodo es REQUERIDO)
+  getByGradoSeccion: async (grado, seccion, periodo) => {
+    if (!periodo) {
+      throw new Error('El periodo es requerido');
+    }
+    const response = await axiosInstance.get(
+      `${API_URL}/grado/${grado}/seccion/${seccion}?periodo=${periodo}`
+    );
     return response.data;
   },
 
@@ -34,26 +45,19 @@ const grupoCursoService = {
   },
 
   // Obtener grupos por docente
-  getByDocente: async (docenteId, periodo = null) => {
-    const url = periodo 
-      ? `${API_URL}/docente/${docenteId}?periodo=${periodo}`
-      : `${API_URL}/docente/${docenteId}`;
-    const response = await axiosInstance.get(url);
+  getByDocente: async (docenteId) => {
+    const response = await axiosInstance.get(`${API_URL}/docente/${docenteId}`);
     return response.data;
   },
 
-  // Obtener grupos por grado y sección
-  getByGradoSeccion: async (grado, seccion, periodo = null) => {
-    const url = periodo
-      ? `${API_URL}/grado/${grado}/seccion/${seccion}?periodo=${periodo}`
-      : `${API_URL}/grado/${grado}/seccion/${seccion}`;
-    const response = await axiosInstance.get(url);
-    return response.data;
-  },
-
-  // Obtener grupos por período
-  getByPeriodo: async (periodo) => {
-    const response = await axiosInstance.get(`${API_URL}/periodo/${periodo}`);
+  // Obtener horario por grado y sección (periodo es REQUERIDO)
+  getHorario: async (grado, seccion, periodo) => {
+    if (!periodo) {
+      throw new Error('El periodo es requerido');
+    }
+    const response = await axiosInstance.get(
+      `${API_URL}/horario/grado/${grado}/seccion/${seccion}?periodo=${periodo}`
+    );
     return response.data;
   },
 
@@ -72,32 +76,6 @@ const grupoCursoService = {
   // Eliminar grupo-curso (soft delete)
   delete: async (id) => {
     const response = await axiosInstance.delete(`${API_URL}/${id}`);
-    return response.data;
-  },
-
-  // Verificar si el código existe
-  codigoExists: async (codigo) => {
-    try {
-      await axiosInstance.get(`${API_URL}/codigo/${codigo}`);
-      return true;
-    } catch (error) {
-      if (error.response?.status === 404) {
-        return false;
-      }
-      throw error;
-    }
-  },
-
-  // Obtener horario semanal de un grupo
-  getHorarioSemanal: async (id, fecha = new Date()) => {
-    const fechaISO = fecha.toISOString().split('T')[0];
-    const response = await axiosInstance.get(`${API_URL}/${id}/horario-semanal?fecha=${fechaISO}`);
-    return response.data;
-  },
-
-  // Obtener estadísticas del grupo
-  getEstadisticas: async (id) => {
-    const response = await axiosInstance.get(`${API_URL}/${id}/estadisticas`);
     return response.data;
   },
 };

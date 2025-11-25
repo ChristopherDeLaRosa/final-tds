@@ -3,6 +3,18 @@ import axiosInstance from './axiosConfig';
 const API_URL = '/Calificaciones';
 
 const calificacionService = {
+  // Obtener todas las calificaciones (necesario para useCrud)
+  getAll: async () => {
+    try {
+      // Como no hay endpoint getAll, retornamos array vacío
+      // Las calificaciones se obtienen por estudiante o por grupo
+      return [];
+    } catch (error) {
+      console.error('Error al obtener calificaciones:', error);
+      return [];
+    }
+  },
+
   // Obtener calificación por ID
   getById: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}`);
@@ -10,11 +22,16 @@ const calificacionService = {
   },
 
   // Obtener calificaciones de un estudiante
-  getByEstudiante: async (estudianteId, grupoCursoId = null) => {
-    const url = grupoCursoId
-      ? `${API_URL}/estudiante/${estudianteId}?grupoCursoId=${grupoCursoId}`
-      : `${API_URL}/estudiante/${estudianteId}`;
-    const response = await axiosInstance.get(url);
+  getByEstudiante: async (estudianteId) => {
+    const response = await axiosInstance.get(`${API_URL}/estudiante/${estudianteId}`);
+    return response.data;
+  },
+
+  // Obtener calificaciones de un estudiante en un grupo específico
+  getByEstudianteGrupoCurso: async (estudianteId, grupoCursoId) => {
+    const response = await axiosInstance.get(
+      `${API_URL}/estudiante/${estudianteId}/grupo/${grupoCursoId}`
+    );
     return response.data;
   },
 
@@ -24,21 +41,21 @@ const calificacionService = {
     return response.data;
   },
 
-  // Obtener calificaciones por grupo-curso
-  getByGrupoCurso: async (grupoCursoId) => {
+  // Obtener todas las calificaciones de un grupo-curso (libro de notas)
+  getCalificacionesGrupoCurso: async (grupoCursoId) => {
     const response = await axiosInstance.get(`${API_URL}/grupo/${grupoCursoId}`);
     return response.data;
   },
 
-  // Registrar calificación
+  // Registrar calificación individual
   create: async (calificacionData) => {
     const response = await axiosInstance.post(API_URL, calificacionData);
     return response.data;
   },
 
-  // Registrar múltiples calificaciones
-  createMultiple: async (calificacionesData) => {
-    const response = await axiosInstance.post(`${API_URL}/multiple`, calificacionesData);
+  // Registrar calificaciones para todo un grupo (libro de notas masivo)
+  registrarGrupo: async (registroGrupoData) => {
+    const response = await axiosInstance.post(`${API_URL}/grupo`, registroGrupoData);
     return response.data;
   },
 
@@ -54,31 +71,36 @@ const calificacionService = {
     return response.data;
   },
 
-  // Obtener boletín de calificaciones de un estudiante
-  getBoletin: async (estudianteId, grupoCursoId) => {
+  // Obtener boletín de calificaciones de un estudiante (reporte completo)
+  getBoletinEstudiante: async (estudianteId, periodo) => {
+    if (!periodo) {
+      throw new Error('El periodo es requerido');
+    }
     const response = await axiosInstance.get(
-      `${API_URL}/boletin/estudiante/${estudianteId}/grupo/${grupoCursoId}`
+      `${API_URL}/boletin/estudiante/${estudianteId}?periodo=${periodo}`
     );
     return response.data;
   },
 
-  // Obtener listado de calificaciones completo de un grupo
-  getListadoGrupo: async (grupoCursoId) => {
-    const response = await axiosInstance.get(`${API_URL}/listado/grupo/${grupoCursoId}`);
+  // Obtener estadísticas de calificaciones de un grupo-curso
+  getEstadisticasGrupoCurso: async (grupoCursoId) => {
+    const response = await axiosInstance.get(`${API_URL}/estadisticas/grupo/${grupoCursoId}`);
     return response.data;
   },
 
-  // Calcular promedio final de un estudiante en un grupo
-  calcularPromedioFinal: async (estudianteId, grupoCursoId) => {
+  // Calcular promedio de un estudiante en un grupo-curso específico
+  getPromedioEstudianteGrupoCurso: async (estudianteId, grupoCursoId) => {
     const response = await axiosInstance.get(
       `${API_URL}/promedio/estudiante/${estudianteId}/grupo/${grupoCursoId}`
     );
     return response.data;
   },
 
-  // Obtener estadísticas de calificaciones de un grupo
-  getEstadisticas: async (grupoCursoId) => {
-    const response = await axiosInstance.get(`${API_URL}/estadisticas/grupo/${grupoCursoId}`);
+  // Actualizar promedios de inscripción (recalcular después de cambios)
+  actualizarPromedios: async (estudianteId, grupoCursoId) => {
+    const response = await axiosInstance.post(
+      `${API_URL}/actualizar-promedios/estudiante/${estudianteId}/grupo/${grupoCursoId}`
+    );
     return response.data;
   },
 };

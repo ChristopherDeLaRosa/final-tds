@@ -30,6 +30,49 @@ namespace EduCore.API.Services.Implementations
             return inscripcion != null ? MapToDto(inscripcion) : null;
         }
 
+        public async Task<IEnumerable<InscripcionDto>> GetAllAsync(
+            string? periodo = null,
+            int? grado = null,
+            string? seccion = null,
+            string? estado = null)
+        {
+            var query = _context.Inscripciones
+                .Include(i => i.Estudiante)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Curso)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Docente)
+                .Where(i => i.Activo)
+                .AsQueryable();
+
+            // Aplicar filtros opcionales
+            if (!string.IsNullOrWhiteSpace(periodo))
+            {
+                query = query.Where(i => i.GrupoCurso.Periodo == periodo);
+            }
+
+            if (grado.HasValue)
+            {
+                query = query.Where(i => i.GrupoCurso.Grado == grado.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(seccion))
+            {
+                query = query.Where(i => i.GrupoCurso.Seccion == seccion);
+            }
+
+            if (!string.IsNullOrWhiteSpace(estado))
+            {
+                query = query.Where(i => i.Estado == estado);
+            }
+
+            var inscripciones = await query
+                .OrderByDescending(i => i.FechaInscripcion)
+                .ToListAsync();
+
+            return inscripciones.Select(i => MapToDto(i));
+        }
+
         public async Task<InscripcionDetalleDto?> GetDetalleByIdAsync(int id)
         {
             var inscripcion = await _context.Inscripciones

@@ -49,7 +49,17 @@ export default function Students() {
   // Calcular estadísticas
   const totalEstudiantes = estudiantes.length;
   const estudiantesActivos = estudiantes.filter(e => e.activo).length;
-  const estudiantesInactivos = estudiantes.filter(e => e.isActivo === false).length;
+  const estudiantesInactivos = estudiantes.filter(e => !e.activo).length;
+  
+  // Agrupar por grado
+  const porGrado = estudiantes.reduce((acc, est) => {
+    const grado = est.gradoActual;
+    acc[grado] = (acc[grado] || 0) + 1;
+    return acc;
+  }, {});
+  
+  const gradoConMasEstudiantes = Object.entries(porGrado)
+    .sort((a, b) => b[1] - a[1])[0];
 
   const stats = [
     {
@@ -66,6 +76,11 @@ export default function Students() {
       label: 'Estudiantes Inactivos',
       value: estudiantesInactivos,
       color: '#ef4444',
+    },
+    {
+      label: gradoConMasEstudiantes ? `Grado ${gradoConMasEstudiantes[0]}°` : 'Sin datos',
+      value: gradoConMasEstudiantes ? gradoConMasEstudiantes[1] : 0,
+      color: '#8b5cf6',
     },
   ];
 
@@ -111,6 +126,16 @@ export default function Students() {
       if (selectedEstudiante) {
         await update(selectedEstudiante.id, dataToSend);
       } else {
+        // Verificar si la matrícula ya existe
+        const matriculaExists = await estudianteService.matriculaExists(dataToSend.matricula);
+        if (matriculaExists) {
+          Toast.fire({
+            icon: 'error',
+            title: 'La matrícula ya existe',
+          });
+          setIsSubmitting(false);
+          return;
+        }
         await create(dataToSend);
       }
       

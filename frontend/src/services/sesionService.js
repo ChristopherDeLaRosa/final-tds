@@ -3,6 +3,29 @@ import axiosInstance from './axiosConfig';
 const API_URL = '/Sesiones';
 
 const sesionService = {
+  // Obtener todas las sesiones (necesario para useCrud)
+  getAll: async () => {
+    try {
+      // Como no hay endpoint getAll, obtenemos por rango de fechas amplio
+      const hoy = new Date();
+      const hace30dias = new Date();
+      hace30dias.setDate(hoy.getDate() - 30);
+      const en30dias = new Date();
+      en30dias.setDate(hoy.getDate() + 30);
+      
+      const fechaInicio = hace30dias.toISOString().split('T')[0];
+      const fechaFin = en30dias.toISOString().split('T')[0];
+      
+      const response = await axiosInstance.get(
+        `${API_URL}/rango-fechas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener sesiones:', error);
+      return [];
+    }
+  },
+
   // Obtener sesión por ID
   getById: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}`);
@@ -31,7 +54,8 @@ const sesionService = {
 
   // Obtener sesiones por fecha específica
   getByFecha: async (fecha) => {
-    const response = await axiosInstance.get(`${API_URL}/fecha/${fecha}`);
+    const fechaFormato = typeof fecha === 'string' ? fecha : fecha.toISOString().split('T')[0];
+    const response = await axiosInstance.get(`${API_URL}/fecha/${fechaFormato}`);
     return response.data;
   },
 
@@ -84,7 +108,7 @@ const sesionService = {
 
   // Obtener horario semanal de un grupo
   getHorarioSemanal: async (grupoCursoId, fecha = new Date()) => {
-    const fechaISO = fecha.toISOString().split('T')[0];
+    const fechaISO = fecha instanceof Date ? fecha.toISOString().split('T')[0] : fecha;
     const response = await axiosInstance.get(
       `${API_URL}/grupo/${grupoCursoId}/horario-semanal?fecha=${fechaISO}`
     );

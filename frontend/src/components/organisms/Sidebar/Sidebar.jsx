@@ -12,7 +12,10 @@ import {
   LogOut,
   Layers,
   Calendar,
-  icons
+  UserPlus,
+  ClipboardList,
+  FileText,
+  BookMarked
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -160,15 +163,32 @@ const Resizer = styled.div`
   }
 `;
 
-const menuItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { path: '/attendance', label: 'Asistencia', icon: CalendarCheck },
-  { path: '/courses', label: 'Materias', icon: BookOpen },
-  { path: '/sections', label: 'Secciones', icon: Layers },
-  { path: '/sessions', label: 'Sesiones', icon: Calendar },
-  { path: '/grades', label: 'Calificaciones', icon: GraduationCap },
-  { path: '/students', label: 'Estudiantes', icon: Users },
-  { path: '/teachers', label: 'Docentes', icon: UserCheck },
+const menuSections = [
+  {
+    title: 'Principal',
+    items: [
+      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    ]
+  },
+  {
+    title: 'Gestión Académica',
+    items: [
+      { path: '/estudiantes', label: 'Estudiantes', icon: Users },
+      { path: '/docentes', label: 'Docentes', icon: UserCheck },
+      { path: '/cursos', label: 'Cursos', icon: BookOpen },
+      { path: '/grupos-cursos', label: 'Grupos-Cursos', icon: Layers },
+      { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
+      { path: '/rubros', label: 'Rubros', icon: BookMarked },
+    ]
+  },
+  {
+    title: 'Gestión de Clases',
+    items: [
+      { path: '/sesiones', label: 'Sesiones', icon: Calendar },
+      { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
+      { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+    ]
+  }
 ];
 
 export const Sidebar = () => {
@@ -266,9 +286,19 @@ export const Sidebar = () => {
     };
   }, [isResizing]);
 
-  const filteredItems = menuItems.filter(item =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filtrar items por búsqueda
+  const getFilteredSections = () => {
+    if (!searchQuery) return menuSections;
+
+    return menuSections.map(section => ({
+      ...section,
+      items: section.items.filter(item =>
+        item.label.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    })).filter(section => section.items.length > 0);
+  };
+
+  const filteredSections = getFilteredSections();
 
   // Rol en español
   const getRoleLabel = (role) => {
@@ -320,15 +350,24 @@ export const Sidebar = () => {
 
       <SidebarContent>
         <NavigationSection>
-          <SectionHeader collapsed={collapsed}>Menú Principal</SectionHeader>
-          {filteredItems.map(item => (
-            <NavItem
-              key={item.path}
-              to={item.path}
-              icon={item.icon}
-              label={item.label}
-              collapsed={collapsed}
-            />
+          {filteredSections.map((section, index) => (
+            <div key={section.title}>
+              {!collapsed && index > 0 && (
+                <div style={{ margin: '16px 0' }} />
+              )}
+              <SectionHeader collapsed={collapsed}>
+                {section.title}
+              </SectionHeader>
+              {section.items.map(item => (
+                <NavItem
+                  key={item.path}
+                  to={item.path}
+                  icon={item.icon}
+                  label={item.label}
+                  collapsed={collapsed}
+                />
+              ))}
+            </div>
           ))}
         </NavigationSection>
 

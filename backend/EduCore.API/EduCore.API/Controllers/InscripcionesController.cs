@@ -361,5 +361,27 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+
+        /// <summary>
+        /// Obtener todas las inscripciones con filtros opcionales
+        /// </summary>
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<InscripcionDto>>> GetAll(
+            [FromQuery] string? periodo = null,
+            [FromQuery] int? grado = null,
+            [FromQuery] string? seccion = null,
+            [FromQuery] string? estado = null)
+        {
+            try
+            {
+                var inscripciones = await _inscripcionService.GetAllAsync(periodo, grado, seccion, estado);
+                return Ok(inscripciones);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener inscripciones");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
     }
 }
