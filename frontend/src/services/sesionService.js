@@ -6,15 +6,9 @@ const sesionService = {
   // Obtener todas las sesiones (necesario para useCrud)
   getAll: async () => {
     try {
-      // Como no hay endpoint getAll, obtenemos por rango de fechas amplio
-      const hoy = new Date();
-      const hace30dias = new Date();
-      hace30dias.setDate(hoy.getDate() - 30);
-      const en30dias = new Date();
-      en30dias.setDate(hoy.getDate() + 30);
-      
-      const fechaInicio = hace30dias.toISOString().split('T')[0];
-      const fechaFin = en30dias.toISOString().split('T')[0];
+      // Obtener sesiones entre 2020 y 2030
+      const fechaInicio = '2020-08-01'; 
+      const fechaFin = '2030-07-31';
       
       const response = await axiosInstance.get(
         `${API_URL}/rango-fechas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
@@ -22,29 +16,27 @@ const sesionService = {
       return response.data;
     } catch (error) {
       console.error('Error al obtener sesiones:', error);
+      // Si falla, intenta obtener por grupo
       return [];
     }
   },
 
-  // Obtener sesión por ID
+  // Resto del código igual...
   getById: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}`);
     return response.data;
   },
 
-  // Obtener detalle completo de sesión con asistencias
   getDetalle: async (id) => {
     const response = await axiosInstance.get(`${API_URL}/${id}/detalle`);
     return response.data;
   },
 
-  // Obtener sesiones por grupo-curso
   getByGrupoCurso: async (grupoCursoId) => {
     const response = await axiosInstance.get(`${API_URL}/grupo/${grupoCursoId}`);
     return response.data;
   },
 
-  // Obtener sesiones por grupo-curso y rango de fechas
   getByGrupoCursoFechas: async (grupoCursoId, fechaInicio, fechaFin) => {
     const response = await axiosInstance.get(
       `${API_URL}/grupo/${grupoCursoId}/fechas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
@@ -52,14 +44,12 @@ const sesionService = {
     return response.data;
   },
 
-  // Obtener sesiones por fecha específica
   getByFecha: async (fecha) => {
     const fechaFormato = typeof fecha === 'string' ? fecha : fecha.toISOString().split('T')[0];
     const response = await axiosInstance.get(`${API_URL}/fecha/${fechaFormato}`);
     return response.data;
   },
 
-  // Obtener sesiones en rango de fechas
   getByRangoFechas: async (fechaInicio, fechaFin) => {
     const response = await axiosInstance.get(
       `${API_URL}/rango-fechas?fechaInicio=${fechaInicio}&fechaFin=${fechaFin}`
@@ -67,7 +57,6 @@ const sesionService = {
     return response.data;
   },
 
-  // Obtener sesiones de un docente
   getByDocente: async (docenteId, fecha = null) => {
     const url = fecha
       ? `${API_URL}/docente/${docenteId}?fecha=${fecha}`
@@ -76,37 +65,31 @@ const sesionService = {
     return response.data;
   },
 
-  // Crear nueva sesión
   create: async (sesionData) => {
     const response = await axiosInstance.post(API_URL, sesionData);
     return response.data;
   },
 
-  // Crear sesiones recurrentes (múltiples sesiones automáticamente)
   createRecurrentes: async (recurrenteData) => {
     const response = await axiosInstance.post(`${API_URL}/recurrentes`, recurrenteData);
     return response.data;
   },
 
-  // Actualizar sesión
   update: async (id, sesionData) => {
     const response = await axiosInstance.put(`${API_URL}/${id}`, sesionData);
     return response.data;
   },
 
-  // Eliminar sesión
   delete: async (id) => {
     const response = await axiosInstance.delete(`${API_URL}/${id}`);
     return response.data;
   },
 
-  // Marcar sesión como realizada
   marcarRealizada: async (id) => {
     const response = await axiosInstance.patch(`${API_URL}/${id}/marcar-realizada`);
     return response.data;
   },
 
-  // Obtener horario semanal de un grupo
   getHorarioSemanal: async (grupoCursoId, fecha = new Date()) => {
     const fechaISO = fecha instanceof Date ? fecha.toISOString().split('T')[0] : fecha;
     const response = await axiosInstance.get(
@@ -115,7 +98,6 @@ const sesionService = {
     return response.data;
   },
 
-  // Obtener calendario mensual por grado y sección
   getCalendarioMensual: async (grado, seccion, anio, mes) => {
     const response = await axiosInstance.get(
       `${API_URL}/calendario/grado/${grado}/seccion/${seccion}?anio=${anio}&mes=${mes}`
@@ -123,7 +105,6 @@ const sesionService = {
     return response.data;
   },
 
-  // Obtener estadísticas de sesiones de un grupo
   getEstadisticas: async (grupoCursoId, periodo = null) => {
     const url = periodo
       ? `${API_URL}/grupo/${grupoCursoId}/estadisticas?periodo=${periodo}`
