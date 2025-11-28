@@ -16,7 +16,8 @@ import {
   ClipboardList,
   FileText,
   BookMarked,
-  BarChart3
+  BarChart3,
+  History
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -188,6 +189,7 @@ const menuSections = [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
       { path: '/pase-lista', label: 'Pase de Lista', icon: ClipboardList },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
+      { path: '/historial-asistencias', label: 'Historial', icon: History },
       { path: '/reportes-asistencia', label: 'Reportes', icon: BarChart3 },
       { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
     ]

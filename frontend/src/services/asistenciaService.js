@@ -147,6 +147,17 @@ const inscripcionService = {
       throw error;
     }
   },
+
+  // Obtener asistencias por sesión
+  getBySesion: async (sesionId) => {
+    try {
+      const response = await axiosInstance.get(`/Asistencias/sesion/${sesionId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener asistencias por sesión:', error);
+      throw error;
+    }
+  },
 };
 
 export default inscripcionService;

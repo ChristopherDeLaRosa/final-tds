@@ -9,6 +9,7 @@ import GruposCursos from "../pages/GruposCursos/GruposCursos.jsx";
 import Inscripciones from "../pages/Inscripciones/Inscripciones.jsx";
 import Sesiones from "../pages/Sesiones/Sesiones.jsx";
 import ReportesAsistencia from "../pages/ReportesAsistencia/ReportesAsistencia.jsx";
+import HistorialAsistencias from "../pages/HistorialAsistencias/HistorialAsistencias.jsx";
 import PaseLista from "../pages/PaseLista/PaseLista.jsx";
 import Asistencias from "../pages/Asistencias/Asistencias.jsx";
 import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
@@ -57,6 +58,7 @@ export default function AppRouter() {
           <Route path="sesiones" element={<Sesiones />} />
           <Route path="pase-lista" element={<PaseLista />} /> 
           <Route path="reportes-asistencia" element={<ReportesAsistencia />} />
+          <Route path="historial-asistencias" element={<HistorialAsistencias />} />
           <Route path="asistencias" element={<Asistencias />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           
