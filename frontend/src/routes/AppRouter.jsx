@@ -8,6 +8,8 @@ import Cursos from "../pages/Cursos/Cursos.jsx";
 import GruposCursos from "../pages/GruposCursos/GruposCursos.jsx";
 import Inscripciones from "../pages/Inscripciones/Inscripciones.jsx";
 import Sesiones from "../pages/Sesiones/Sesiones.jsx";
+import ReportesAsistencia from "../pages/ReportesAsistencia/ReportesAsistencia.jsx";
+import PaseLista from "../pages/PaseLista/PaseLista.jsx";
 import Asistencias from "../pages/Asistencias/Asistencias.jsx";
 import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
 import Rubros from "../pages/Rubros/Rubros.jsx";
@@ -53,6 +55,8 @@ export default function AppRouter() {
           
           {/* Gestión de Clases */}
           <Route path="sesiones" element={<Sesiones />} />
+          <Route path="pase-lista" element={<PaseLista />} /> 
+          <Route path="reportes-asistencia" element={<ReportesAsistencia />} />
           <Route path="asistencias" element={<Asistencias />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           

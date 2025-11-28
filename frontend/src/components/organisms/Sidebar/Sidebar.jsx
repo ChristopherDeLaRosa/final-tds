@@ -15,7 +15,8 @@ import {
   UserPlus,
   ClipboardList,
   FileText,
-  BookMarked
+  BookMarked,
+  BarChart3
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -185,7 +186,9 @@ const menuSections = [
     title: 'Gestión de Clases',
     items: [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
+      { path: '/pase-lista', label: 'Pase de Lista', icon: ClipboardList },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
+      { path: '/reportes-asistencia', label: 'Reportes', icon: BarChart3 },
       { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
     ]
   }

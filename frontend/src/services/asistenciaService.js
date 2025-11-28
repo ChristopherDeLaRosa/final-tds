@@ -118,6 +118,35 @@ const inscripcionService = {
     const response = await axiosInstance.get(`${API_URL}/estadisticas?periodo=${periodo}`);
     return response.data;
   },
+
+  getReporteEstudiante: async (estudianteId, grupoCursoId = null) => {
+    try {
+      const url = grupoCursoId 
+        ? `/Asistencias/reporte/estudiante/${estudianteId}?grupoCursoId=${grupoCursoId}`
+        : `/Asistencias/reporte/estudiante/${estudianteId}`;
+      
+      const response = await axiosInstance.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener reporte de estudiante:', error);
+      throw error;
+    }
+  },
+
+  // Reporte de grupo-curso
+  getReporteGrupoCurso: async (grupoCursoId, periodo = null) => {
+    try {
+      const url = periodo
+        ? `/Asistencias/reporte/grupo/${grupoCursoId}?periodo=${periodo}`
+        : `/Asistencias/reporte/grupo/${grupoCursoId}`;
+      
+      const response = await axiosInstance.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Error al obtener reporte de grupo:', error);
+      throw error;
+    }
+  },
 };
 
 export default inscripcionService;
