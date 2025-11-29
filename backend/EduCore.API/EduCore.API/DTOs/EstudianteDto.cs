@@ -74,6 +74,8 @@ namespace EduCore.API.DTOs
 
         [MaxLength(500, ErrorMessage = "Las observaciones médicas no pueden exceder 500 caracteres")]
         public string? ObservacionesMedicas { get; set; }
+
+        public int? AulaId { get; set; }
     }
 
     public class UpdateEstudianteDto
@@ -122,6 +124,7 @@ namespace EduCore.API.DTOs
         public string? ObservacionesMedicas { get; set; }
 
         public bool Activo { get; set; } = true;
+        public int? AulaId { get; set; }
     }
 
     public class EstudianteHistorialDto

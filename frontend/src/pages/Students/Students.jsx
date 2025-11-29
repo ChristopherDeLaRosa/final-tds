@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { theme } from '../../styles';
 import estudianteService from '../../services/estudianteService';
+import aulaService from '../../services/aulaService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -45,6 +46,30 @@ export default function Students() {
   // Estados del formulario
   const [formData, setFormData] = useState(getInitialStudentFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estado para aulas disponibles
+  const [aulas, setAulas] = useState([]);
+  const [aulasLoading, setAulasLoading] = useState(false);
+
+  // Cargar aulas disponibles al montar el componente
+  useEffect(() => {
+    const loadAulas = async () => {
+      try {
+        setAulasLoading(true);
+        const aulasData = await aulaService.getAll();
+        setAulas(aulasData);
+      } catch (error) {
+        console.error('Error al cargar aulas:', error);
+        Toast.fire({
+          icon: 'warning',
+          title: 'No se pudieron cargar las aulas disponibles',
+        });
+      } finally {
+        setAulasLoading(false);
+      }
+    };
+    loadAulas();
+  }, []);
 
   // Calcular estadísticas
   const totalEstudiantes = estudiantes.length;
@@ -84,6 +109,65 @@ export default function Students() {
     },
   ];
 
+  // Filtrar aulas según grado y sección seleccionados
+  const getAulasOptions = () => {
+    const baseOption = { value: '', label: 'Sin asignar - Asignar después' };
+    
+    if (!formData.gradoActual || !formData.seccionActual) {
+      return [baseOption];
+    }
+
+    const aulasCompatibles = aulas
+      .filter(a => 
+        a.grado === parseInt(formData.gradoActual) &&
+        a.seccion === formData.seccionActual &&
+        a.activo
+      )
+      .map(a => ({
+        value: a.id,
+        label: `${a.periodo} (${a.anio}) - ${a.cuposDisponibles || 0} cupos disponibles`
+      }));
+
+    if (aulasCompatibles.length === 0) {
+      return [
+        baseOption,
+        { 
+          value: '', 
+          label: `No hay aulas disponibles para ${formData.gradoActual}° ${formData.seccionActual}`,
+          disabled: true 
+        }
+      ];
+    }
+
+    return [baseOption, ...aulasCompatibles];
+  };
+
+  // Actualizar formFields dinámicamente con las aulas
+  const formFieldsWithAulas = getStudentsFormFields(!!selectedEstudiante).map(field => {
+    if (Array.isArray(field)) {
+      return field.map(f => {
+        if (f.name === 'aulaId') {
+          return { 
+            ...f, 
+            options: getAulasOptions(),
+            disabled: aulasLoading || (!formData.gradoActual || !formData.seccionActual)
+          };
+        }
+        return f;
+      });
+    }
+    
+    if (field.name === 'aulaId') {
+      return { 
+        ...field, 
+        options: getAulasOptions(),
+        disabled: aulasLoading || (!formData.gradoActual || !formData.seccionActual)
+      };
+    }
+    
+    return field;
+  });
+
   // Handler para abrir modal de crear
   const handleAddStudent = () => {
     setFormData(getInitialStudentFormData());
@@ -101,10 +185,20 @@ export default function Students() {
   // Handler para cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      };
+
+      // Si cambia el grado o sección, resetear el aulaId
+      if (name === 'gradoActual' || name === 'seccionActual') {
+        newData.aulaId = '';
+      }
+
+      return newData;
+    });
     
     // Limpiar error del campo cuando el usuario escribe
     if (formErrors[name]) {
@@ -124,6 +218,7 @@ export default function Students() {
       const dataToSend = formatStudentDataForAPI(formData);
 
       if (selectedEstudiante) {
+        // Actualizar estudiante existente
         await update(selectedEstudiante.id, dataToSend);
       } else {
         // Verificar si la matrícula ya existe
@@ -136,11 +231,32 @@ export default function Students() {
           setIsSubmitting(false);
           return;
         }
-        await create(dataToSend);
+
+        // Crear nuevo estudiante
+        const nuevoEstudiante = await create(dataToSend);
+
+        // Si se seleccionó un aula, asignar el estudiante
+        if (formData.aulaId && nuevoEstudiante?.id) {
+          try {
+            await aulaService.asignarEstudiante(formData.aulaId, nuevoEstudiante.id);
+            Toast.fire({
+              icon: 'success',
+              title: 'Estudiante creado y asignado al aula',
+            });
+          } catch (err) {
+            console.error('Error al asignar a aula:', err);
+            Toast.fire({
+              icon: 'warning',
+              title: 'Estudiante creado pero no se pudo asignar al aula',
+            });
+          }
+        }
       }
       
       closeModal();
       setFormData(getInitialStudentFormData());
+      await fetchAll(); // Recargar lista
+      
     } catch (err) {
       console.error('Error saving estudiante:', err);
     } finally {
@@ -210,7 +326,7 @@ export default function Students() {
       // Modal
       isModalOpen={isModalOpen}
       modalTitle={selectedEstudiante ? 'Editar Estudiante' : 'Nuevo Estudiante'}
-      formFields={getStudentsFormFields(!!selectedEstudiante)}
+      formFields={formFieldsWithAulas}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting}
