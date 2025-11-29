@@ -164,16 +164,6 @@ export default function GruposCursos() {
       if (selectedGrupoCurso) {
         await update(selectedGrupoCurso.id, dataToSend);
       } else {
-        // Verificar si el código ya existe
-        const codigoExists = await grupoCursoService.codigoExists(dataToSend.codigo);
-        if (codigoExists) {
-          Toast.fire({
-            icon: 'error',
-            title: 'El código ya existe',
-          });
-          setIsSubmitting(false);
-          return;
-        }
         await create(dataToSend);
       }
       
