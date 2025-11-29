@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduCore.API.Models
 {
@@ -35,6 +36,11 @@ namespace EduCore.API.Models
 
         public DateTime FechaIngreso { get; set; } = DateTime.UtcNow;
 
+        [ForeignKey("AulaId")]
+        public int? AulaId { get; set; } // FK al aula asignada
+
+        public virtual Aula? Aula { get; set; }
+
         [Required]
         [Range(1, 12)]
         public int GradoActual { get; set; } // 1-12 (grado actual del estudiante)
@@ -61,5 +67,6 @@ namespace EduCore.API.Models
         public virtual ICollection<Inscripcion> Inscripciones { get; set; } = new List<Inscripcion>();
         public virtual ICollection<Calificacion> Calificaciones { get; set; } = new List<Calificacion>();
         public virtual ICollection<Asistencia> Asistencias { get; set; } = new List<Asistencia>();
+        
     }
 }

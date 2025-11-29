@@ -56,6 +56,7 @@ builder.Services.AddScoped<ICalificacionService, CalificacionService>();
 builder.Services.AddScoped<ISesionService, SesionService>();
 builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
 builder.Services.AddScoped<IInscripcionService, InscripcionService>();
+builder.Services.AddScoped<IAulaService, AulaService>();
 
 
 // Configuración de Controllers

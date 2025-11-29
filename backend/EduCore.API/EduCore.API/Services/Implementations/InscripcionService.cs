@@ -81,6 +81,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Aula)
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (inscripcion == null)
@@ -142,7 +144,8 @@ namespace EduCore.API.Services.Implementations
                     Seccion = inscripcion.GrupoCurso.Seccion,
                     Anio = inscripcion.GrupoCurso.Anio,
                     Periodo = inscripcion.GrupoCurso.Periodo,
-                    Aula = inscripcion.GrupoCurso.Aula,
+                    AulaId = inscripcion.GrupoCurso.AulaId,
+                    AulaFisica = inscripcion.GrupoCurso.Aula?.AulaFisica,
                     Horario = inscripcion.GrupoCurso.Horario,
                     CapacidadMaxima = inscripcion.GrupoCurso.CapacidadMaxima,
                     CantidadEstudiantes = inscripcion.GrupoCurso.CantidadEstudiantes,

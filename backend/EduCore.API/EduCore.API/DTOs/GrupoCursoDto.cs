@@ -16,7 +16,9 @@ namespace EduCore.API.DTOs
         public string Seccion { get; set; } = string.Empty;
         public int Anio { get; set; }
         public string Periodo { get; set; } = string.Empty;
-        public string? Aula { get; set; }
+        public int? AulaId { get; set; }
+        public string? AulaFisica { get; set; }
+
         public string? Horario { get; set; }
         public int CapacidadMaxima { get; set; }
         public int CantidadEstudiantes { get; set; }
@@ -50,8 +52,8 @@ namespace EduCore.API.DTOs
         [MaxLength(20)]
         public string Periodo { get; set; } = string.Empty;
 
-        [MaxLength(50)]
-        public string? Aula { get; set; }
+        public int? AulaId { get; set; }
+
 
         [MaxLength(200)]
         public string? Horario { get; set; }
@@ -66,8 +68,8 @@ namespace EduCore.API.DTOs
         [Required]
         public int DocenteId { get; set; }
 
-        [MaxLength(50)]
-        public string? Aula { get; set; }
+        public int? AulaId { get; set; }
+
 
         [MaxLength(200)]
         public string? Horario { get; set; }
@@ -89,7 +91,8 @@ namespace EduCore.API.DTOs
         public string Seccion { get; set; } = string.Empty;
         public int Anio { get; set; }
         public string Periodo { get; set; } = string.Empty;
-        public string? Aula { get; set; }
+        public int? AulaId { get; set; }
+        public string? AulaFisica { get; set; }
         public string? Horario { get; set; }
         public int CapacidadMaxima { get; set; }
         public int CantidadEstudiantes { get; set; }
@@ -125,7 +128,8 @@ namespace EduCore.API.DTOs
         public string NombreCurso { get; set; } = string.Empty;
         public string AreaConocimiento { get; set; } = string.Empty;
         public string Docente { get; set; } = string.Empty;
-        public string? Aula { get; set; }
+        public int? AulaId { get; set; }
+        public string? AulaFisica { get; set; }
         public string? Horario { get; set; }
     }
 }

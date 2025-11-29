@@ -17,7 +17,8 @@ import {
   FileText,
   BookMarked,
   BarChart3,
-  History
+  History,
+  Building2
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -178,6 +179,7 @@ const menuSections = [
       { path: '/estudiantes', label: 'Estudiantes', icon: Users },
       { path: '/docentes', label: 'Docentes', icon: UserCheck },
       { path: '/cursos', label: 'Cursos', icon: BookOpen },
+      { path: '/aulas', label: 'Aulas', icon: Building2 },
       { path: '/grupos-cursos', label: 'Grupos-Cursos', icon: Layers },
       { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
       { path: '/rubros', label: 'Rubros', icon: BookMarked },

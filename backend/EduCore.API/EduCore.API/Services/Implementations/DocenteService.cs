@@ -55,6 +55,8 @@ namespace EduCore.API.Services.Implementations
             var docente = await _context.Docentes
                 .Include(d => d.GrupoCursos)
                     .ThenInclude(g => g.Curso)
+                .Include(d => d.GrupoCursos)
+                    .ThenInclude(g => g.Aula) 
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (docente == null)
@@ -76,7 +78,7 @@ namespace EduCore.API.Services.Implementations
                     Periodo = g.Periodo,
                     CantidadEstudiantes = g.CantidadEstudiantes,
                     CapacidadMaxima = g.CapacidadMaxima,
-                    Aula = g.Aula,
+                    Aula = g.Aula?.AulaFisica,
                     Horario = g.Horario
                 })
                 .ToList();
@@ -313,6 +315,8 @@ namespace EduCore.API.Services.Implementations
             var sesiones = await _context.Sesiones
                 .Include(s => s.GrupoCurso)
                     .ThenInclude(g => g.Curso)
+                .Include(s => s.GrupoCurso)
+                    .ThenInclude(g => g.Aula)
                 .Where(s => gruposIds.Contains(s.GrupoCursoId) &&
                            s.Fecha >= inicioSemana &&
                            s.Fecha <= finSemana)
@@ -333,7 +337,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = s.GrupoCurso.Grado,
                 Seccion = s.GrupoCurso.Seccion,
                 Tema = s.Tema,
-                Aula = s.GrupoCurso.Aula,
+                Aula = s.GrupoCurso.Aula?.AulaFisica,
                 Realizada = s.Realizada
             }).ToList();
 
@@ -400,6 +404,7 @@ namespace EduCore.API.Services.Implementations
             var query = _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.DocenteId == docenteId && g.Activo);
 
             if (!string.IsNullOrWhiteSpace(periodo))
@@ -427,14 +432,14 @@ namespace EduCore.API.Services.Implementations
                 Seccion = g.Seccion,
                 Anio = g.Anio,
                 Periodo = g.Periodo,
-                Aula = g.Aula,
+                AulaId = g.AulaId,
+                AulaFisica = g.Aula?.AulaFisica,
                 Horario = g.Horario,
                 CapacidadMaxima = g.CapacidadMaxima,
                 CantidadEstudiantes = g.CantidadEstudiantes,
                 Activo = g.Activo
             });
         }
-
         public async Task<CargaAcademicaDocenteDto?> GetCargaAcademicaAsync(int docenteId, string periodo)
         {
             var docente = await _context.Docentes.FindAsync(docenteId);

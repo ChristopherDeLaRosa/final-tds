@@ -164,6 +164,8 @@ namespace EduCore.API.Services.Implementations
             var cursos = await _context.Cursos
                 .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo == periodo))
                     .ThenInclude(g => g.Docente)
+                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo == periodo))
+                    .ThenInclude(g => g.Aula)
                 .Where(c => c.Activo && c.NivelGrado == grado)
                 .OrderBy(c => c.Orden)
                 .ThenBy(c => c.Nombre)
@@ -189,7 +191,7 @@ namespace EduCore.API.Services.Implementations
                         Codigo = g.Codigo,
                         Seccion = g.Seccion,
                         Horario = g.Horario ?? string.Empty,
-                        Aula = g.Aula,
+                        Aula = g.Aula?.AulaFisica,
                         Docente = $"{g.Docente.Nombres} {g.Docente.Apellidos}",
                         CantidadEstudiantes = g.CantidadEstudiantes,
                         CapacidadMaxima = g.CapacidadMaxima,

@@ -39,9 +39,9 @@ namespace EduCore.API.Models
         [Required]
         [MaxLength(20)]
         public string Periodo { get; set; } = string.Empty; // "2024-2025"
-
-        [MaxLength(50)]
-        public string? Aula { get; set; }
+        [ForeignKey("AulaId")]
+        public int? AulaId { get; set; }
+        public virtual Aula? Aula { get; set; }
 
         [MaxLength(200)]
         public string? Horario { get; set; } // Ej: "Lun-Mie-Vie 8:00-9:00"

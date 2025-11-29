@@ -14,6 +14,8 @@ import PaseLista from "../pages/PaseLista/PaseLista.jsx";
 import Asistencias from "../pages/Asistencias/Asistencias.jsx";
 import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
 import Rubros from "../pages/Rubros/Rubros.jsx";
+import Aulas from "../pages/Aulas/Aulas.jsx";
+import ConfigurarAula from "../pages/Aulas/ConfigurarAula.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
@@ -50,6 +52,8 @@ export default function AppRouter() {
           <Route path="estudiantes" element={<Students />} />
           <Route path="docentes" element={<Docentes />} />
           <Route path="cursos" element={<Cursos />} />
+          <Route path="aulas" element={<Aulas />} />
+          <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />
           <Route path="grupos-cursos" element={<GruposCursos />} />
           <Route path="inscripciones" element={<Inscripciones />} />
           <Route path="rubros" element={<Rubros />} />
@@ -62,7 +66,7 @@ export default function AppRouter() {
           <Route path="asistencias" element={<Asistencias />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           
-          {/* Rutas antiguas redirigidas (compatibilidad) */}
+          {/* Rutas */}
           <Route path="students" element={<Navigate to="/estudiantes" replace />} />
           <Route path="teachers" element={<Navigate to="/docentes" replace />} />
           <Route path="courses" element={<Navigate to="/cursos" replace />} />
@@ -112,3 +116,4 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
+
