@@ -19,14 +19,15 @@ import {
   formatGrupoCursoDataForAPI,
 } from './gruposCursosConfig';
 
+import { Layers, CheckCircle, Users, AlertTriangle } from 'lucide-react';
+
 export default function GruposCursos() {
   const { 
     data: gruposCursos, 
     loading, 
     error, 
     create, 
-    update, 
-    remove,
+    update,
     fetchAll,
   } = useCrud(grupoCursoService);
 
@@ -46,17 +47,16 @@ export default function GruposCursos() {
 
   const [formData, setFormData] = useState(getInitialGrupoCursoFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showFormFields, setShowFormFields] = useState(false);
-  const [gradoSeleccionado, setGradoSeleccionado] = useState(null);
 
   const [cursos, setCursos] = useState([]);
   const [docentes, setDocentes] = useState([]);
   const [aulas, setAulas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
-  // -----------------------------------------------------------------------------
-  // Cargar cursos, docentes y aulas
-  // -----------------------------------------------------------------------------
+  const [showFormFields, setShowFormFields] = useState(false);
+  const [gradoSeleccionado, setGradoSeleccionado] = useState(null);
+
+  // Cargar listas relacionadas
   useEffect(() => {
     const fetchRelatedData = async () => {
       try {
@@ -70,11 +70,6 @@ export default function GruposCursos() {
         setCursos(cursosData.filter(c => c.activo));
         setDocentes(docentesData.filter(d => d.activo));
         setAulas(aulasData.filter(a => a.activo));
-      } catch (err) {
-        console.error('Error al cargar datos relacionados:', err);
-        Toast.fire({
-          title: 'Error al cargar cursos, docentes y aulas',
-        });
       } finally {
         setLoadingRelated(false);
       }
@@ -83,24 +78,40 @@ export default function GruposCursos() {
     fetchRelatedData();
   }, []);
 
-  // -----------------------------------------------------------------------------
-  // Estadísticas dashboard
-  // -----------------------------------------------------------------------------
+  // Estadísticas
   const totalGrupos = gruposCursos.length;
   const gruposActivos = gruposCursos.filter(g => g.activo).length;
   const totalEstudiantes = gruposCursos.reduce((sum, g) => sum + (g.cantidadEstudiantes || 0), 0);
   const gruposCompletos = gruposCursos.filter(g => g.cantidadEstudiantes >= g.capacidadMaxima).length;
 
   const stats = [
-    { label: 'Total Grupos', value: totalGrupos, color: theme.colors.accent },
-    { label: 'Grupos Activos', value: gruposActivos, color: '#10b981' },
-    { label: 'Total Estudiantes', value: totalEstudiantes, color: '#3b82f6' },
-    { label: 'Grupos Llenos', value: gruposCompletos, color: '#ef4444' },
+    {
+      label: 'Total Grupos',
+      value: totalGrupos,
+      color: theme.colors.accent,
+      icon: <Layers size={28} />
+    },
+    {
+      label: 'Activos',
+      value: gruposActivos,
+      color: theme.colors.success,
+      icon: <CheckCircle size={28} />
+    },
+    {
+      label: 'Total Estudiantes',
+      value: totalEstudiantes,
+      color: theme.colors.info,
+      icon: <Users size={28} />
+    },
+    {
+      label: 'Grupos Llenos',
+      value: gruposCompletos,
+      color: theme.colors.error,
+      icon: <AlertTriangle size={28} />
+    },
   ];
 
-  // -----------------------------------------------------------------------------
-  // Abrir modal crear
-  // -----------------------------------------------------------------------------
+  // Crear
   const handleAddGrupoCurso = () => {
     if (loadingRelated) {
       Toast.fire({ title: 'Cargando datos...' });
@@ -113,31 +124,26 @@ export default function GruposCursos() {
     openModal(null);
   };
 
-  // -----------------------------------------------------------------------------
-  // Abrir modal editar
-  // -----------------------------------------------------------------------------
+  // Editar
   const handleEditGrupoCurso = (grupoCurso) => {
     if (loadingRelated) {
       Toast.fire({ title: 'Cargando datos...' });
       return;
     }
     setFormData(formatGrupoCursoForForm(grupoCurso));
-    setShowFormFields(!!grupoCurso.aulaId);
+    setShowFormFields(true);
     setGradoSeleccionado(grupoCurso.grado);
     clearAllErrors();
     openModal(grupoCurso);
   };
 
-  // -----------------------------------------------------------------------------
-  // AUTOGENERAR CÓDIGO (lógica completa)
-  // -----------------------------------------------------------------------------
+  // Cambios en inputs
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    // --- Cuando cambia el AULA ---
+    // Selección de aula → auto-completar datos
     if (name === 'aulaId' && value) {
       const aulaSel = aulas.find(a => a.id === parseInt(value));
-
       if (aulaSel) {
         setFormData(prev => ({
           ...prev,
@@ -149,7 +155,7 @@ export default function GruposCursos() {
           aula: aulaSel.aulaFisica || '',
           capacidadMaxima: aulaSel.capacidadMaxima || 30,
           cursoId: '',
-          codigo: '' // resetear código
+          codigo: ''
         }));
 
         setGradoSeleccionado(aulaSel.grado);
@@ -158,72 +164,80 @@ export default function GruposCursos() {
       }
     }
 
-    // ---AUTOGENERAR CÓDIGO CUANDO SE ELIGE CURSO ---
+    // Selección de curso → autogenerar código
     if (name === 'cursoId' && value) {
       const cursoSel = cursos.find(c => c.id === parseInt(value));
       const grado = formData.grado;
       const seccion = formData.seccion;
 
       if (cursoSel && grado && seccion) {
-        const codigoGenerado = `${grado}${seccion.toUpperCase()}-${cursoSel.codigo}`;
-
-        setFormData(prev => ({
-          ...prev,
-          cursoId: value,
-          codigo: codigoGenerado
-        }));
-
+        const codigo = `${grado}${seccion.toUpperCase()}-${cursoSel.codigo}`;
+        setFormData(prev => ({ ...prev, cursoId: value, codigo }));
         return;
       }
     }
 
-    // Default handler
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
 
-    if (formErrors[name]) {
-      clearError(name);
-    }
+    if (formErrors[name]) clearError(name);
   };
 
-  // -----------------------------------------------------------------------------
-  // Guardar (crear / editar)
-  // -----------------------------------------------------------------------------
+  // Guardar
   const handleSaveGrupoCurso = async () => {
     if (!validate(formData)) return;
 
     setIsSubmitting(true);
 
     try {
-      const dataToSend = formatGrupoCursoDataForAPI(formData);
+      const data = formatGrupoCursoDataForAPI(formData);
 
       if (selectedGrupoCurso) {
-        await update(selectedGrupoCurso.id, dataToSend);
+        await update(selectedGrupoCurso.id, data);
       } else {
-        await create(dataToSend);
+        await create(data);
       }
 
       closeModal();
       setFormData(getInitialGrupoCursoFormData());
-    } catch (err) {
-      console.error('Error saving grupo-curso:', err);
+      fetchAll();
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // -----------------------------------------------------------------------------
-  // Eliminar
-  // -----------------------------------------------------------------------------
-  const handleDeleteGrupoCurso = async (grupoCurso) => {
-    await remove(grupoCurso.id, grupoCurso.codigo || 'este grupo');
+  // Activar/Desactivar (misma lógica del resto del sistema)
+  const handleToggleStatus = async (grupo) => {
+    const action = grupo.activo ? 'desactivar' : 'activar';
+    const actionPast = grupo.activo ? 'desactivado' : 'activado';
+
+    const result = await MySwal.fire({
+      title: `¿Deseas ${action} este grupo?`,
+      text: grupo.codigo,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563EB',
+      cancelButtonColor: '#6B7280',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const updated = { ...grupo, activo: !grupo.activo };
+      await grupoCursoService.update(grupo.id, updated);
+
+      Toast.fire({ icon: 'success', title: `Grupo ${actionPast}` });
+      fetchAll();
+    } catch {
+      Toast.fire({ icon: 'error', title: `Error al ${action} grupo` });
+    }
   };
 
-  // -----------------------------------------------------------------------------
   // Cancelar modal
-  // -----------------------------------------------------------------------------
   const handleCancelModal = () => {
     if (!isSubmitting) {
       closeModal();
@@ -234,24 +248,25 @@ export default function GruposCursos() {
     }
   };
 
-  // -----------------------------------------------------------------------------
-  // Reintentar cargar lista
-  // -----------------------------------------------------------------------------
+  // Reintento
   const handleRetry = async () => {
     try {
-      MySwal.fire({ title: 'Recargando...', didOpen: () => MySwal.showLoading() });
+      MySwal.fire({
+        title: 'Recargando...',
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+      });
+
       await fetchAll();
       MySwal.close();
-      Toast.fire({ title: 'Lista actualizada' });
+      Toast.fire({ icon: 'success', title: 'Lista actualizada' });
+
     } catch {
       MySwal.close();
-      MySwal.fire({ title: 'No se pudo recargar' });
+      MySwal.fire({ icon: 'error', title: 'No se pudo recargar' });
     }
   };
 
-  // -----------------------------------------------------------------------------
-  // Render del componente CRUD
-  // -----------------------------------------------------------------------------
   return (
     <CrudPage
       title="Gestión de Grupos-Cursos"
@@ -259,12 +274,15 @@ export default function GruposCursos() {
       addButtonText="Agregar Grupo-Curso"
       emptyMessage="No hay grupos registrados"
       loadingMessage="Cargando grupos..."
+
       data={gruposCursos}
       loading={loading}
       error={error}
       stats={stats}
+
       columns={gruposCursosColumns}
       searchFields={gruposCursosSearchFields}
+
       isModalOpen={isModalOpen}
       modalTitle={selectedGrupoCurso ? 'Editar Grupo-Curso' : 'Nuevo Grupo-Curso'}
       formFields={getGruposCursosFormFields(
@@ -278,9 +296,10 @@ export default function GruposCursos() {
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}
+
       onAdd={handleAddGrupoCurso}
       onEdit={handleEditGrupoCurso}
-      onDelete={handleDeleteGrupoCurso}
+      onDelete={handleToggleStatus}
       onSave={handleSaveGrupoCurso}
       onCancel={handleCancelModal}
       onInputChange={handleInputChange}

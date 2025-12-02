@@ -1,7 +1,7 @@
- import { useEffect } from 'react';
+import { useEffect } from 'react';
 import { SearchField, FilterSelect, PaginationButtons } from '../../molecules';
 import { Text } from '../../atoms';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Power } from 'lucide-react';
 import { 
   TableContainer, 
   TableToolbar, 
@@ -70,10 +70,10 @@ const DataTable = ({
             {onDelete && (
               <ActionButton 
                 onClick={() => onDelete(row)}
-                title="Eliminar"
+                title="Desactivar"
                 type="delete"
               >
-                <Trash2 size={18} />
+                <Power size={18} />
               </ActionButton>
             )}
             {/*Renderizar acciones personalizadas */}
@@ -102,7 +102,7 @@ const DataTable = ({
         {searchFields.length > 0 && (
           <SearchField
             label="Buscar"
-            placeholder={`Buscar en ${searchFields.join(', ')}`}
+            placeholder="Buscar..."
             value={searchTerm}
             onChange={setSearchTerm}
           />
@@ -181,3 +181,4 @@ const DataTable = ({
 };
 
 export default DataTable;
+

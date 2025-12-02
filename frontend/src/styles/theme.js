@@ -91,4 +91,6 @@ export const theme = {
     normal: 'all 0.2s ease',
     slow: 'all 0.3s ease'
   }
+
+  
 };

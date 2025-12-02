@@ -3,20 +3,20 @@ import { theme } from '../../../styles/theme';
 
 export const TableContainer = styled.div`
   width: 100%;
-  background: ${theme.colors.bg};
-  border-radius: ${theme.borderRadius.lg};
+  background: ${theme.colors.white};
+  border-radius: ${theme.borderRadius.xl};
   border: 1px solid ${theme.colors.border};
   overflow: hidden;
-  box-shadow: ${theme.shadows.lg};
+  box-shadow: ${theme.shadows.md};
 `;
 
 export const TableToolbar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  padding: ${theme.spacing.xl};
-  background: ${theme.colors.bgDark};
-  border-bottom: 1px solid ${theme.colors.border};
+  padding: 1.25rem;
+  background: ${theme.colors.card};
+  border-bottom: 1px solid ${theme.colors.borderLight};
   gap: ${theme.spacing.lg};
   flex-wrap: wrap;
 
@@ -41,27 +41,24 @@ export const FilterControls = styled.div`
 
 export const StyledTable = styled.table`
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
+  font-size: 0.875rem;
 `;
 
 export const TableHead = styled.thead`
-  background: ${theme.colors.bgDark};
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  background: ${theme.colors.card};
+  border-bottom: 2px solid ${theme.colors.borderLight};
 `;
 
 export const TableHeaderCell = styled.th`
-  padding: ${theme.spacing.lg} ${theme.spacing.md};
+  padding: 0.875rem 1rem;
   text-align: left;
-  background: ${theme.colors.bgDark};
-  border-bottom: 2px solid ${theme.colors.border};
+  background: ${theme.colors.card};
   font-weight: 600;
-  color: ${theme.colors.text};
-  font-size: ${theme.fontSize.sm};
+  color: ${theme.colors.textSecondary};
+  font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
   white-space: nowrap;
   
   &:first-child {
@@ -73,24 +70,26 @@ export const TableHeaderCell = styled.th`
   }
 `;
 
-export const TableBody = styled.tbody``;
+export const TableBody = styled.tbody`
+  background-color: ${theme.colors.white};
+`;
 
 export const TableRow = styled.tr`
-  background: ${theme.colors.bg};
-  transition: ${theme.transition};
+  background: ${theme.colors.white};
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid ${theme.colors.borderLight};
   
   &:hover {
-    background: ${theme.colors.bgHover};
-    transform: scale(1.001);
+    background: ${theme.colors.card};
   }
   
-  &:not(:last-child) td {
-    border-bottom: 1px solid ${theme.colors.border};
+  &:last-child {
+    border-bottom: none;
   }
 `;
 
 export const TableCell = styled.td`
-  padding: ${theme.spacing.lg} ${theme.spacing.md};
+  padding: 1rem;
   font-size: ${theme.fontSize.sm};
   color: ${theme.colors.text};
   vertical-align: middle;
@@ -106,9 +105,9 @@ export const TableCell = styled.td`
 `;
 
 export const TableFooter = styled.div`
-  padding: ${theme.spacing.lg} ${theme.spacing.xl};
-  background: ${theme.colors.bgDark};
-  border-top: 1px solid ${theme.colors.border};
+  padding: 1rem 1.25rem;
+  background: ${theme.colors.card};
+  border-top: 1px solid ${theme.colors.borderLight};
   display: flex;
   justify-content: center;
   align-items: center;
@@ -118,36 +117,40 @@ export const TableFooter = styled.div`
 
 export const EmptyState = styled.div`
   text-align: center;
-  padding: ${theme.spacing.xxxl} ${theme.spacing.xl};
+  padding: 3rem 1rem;
   color: ${theme.colors.textMuted};
+  font-size: 0.875rem;
   
   svg {
     width: 64px;
     height: 64px;
     margin-bottom: ${theme.spacing.lg};
     opacity: 0.3;
+    color: ${theme.colors.textLight};
   }
   
   h3 {
     font-size: ${theme.fontSize.lg};
     margin-bottom: ${theme.spacing.sm};
     color: ${theme.colors.text};
+    font-weight: 600;
   }
   
   p {
     font-size: ${theme.fontSize.sm};
+    color: ${theme.colors.textMuted};
   }
 `;
 
 export const LoadingState = styled.div`
   text-align: center;
-  padding: ${theme.spacing.xxxl} ${theme.spacing.xl};
+  padding: 3rem 1rem;
   color: ${theme.colors.textMuted};
   
   .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid ${theme.colors.border};
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid ${theme.colors.borderLight};
     border-top-color: ${theme.colors.accent};
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
@@ -161,7 +164,7 @@ export const LoadingState = styled.div`
 
 export const ActionButtons = styled.div`
   display: flex;
-  gap: ${theme.spacing.sm};
+  gap: 0.25rem;
   justify-content: center;
   align-items: center;
 `;
@@ -176,39 +179,39 @@ export const ActionButton = styled.button`
   border: none;
   border-radius: ${theme.borderRadius.md};
   cursor: pointer;
-  transition: ${theme.transition};
+  transition: all 0.15s ease;
   background-color: ${props => 
     props.type === 'delete' 
-      ? 'rgba(220, 38, 38, 0.1)' 
+      ? 'rgba(239, 68, 68, 0.1)' 
       : props.type === 'edit'
-      ? 'rgba(79, 140, 255, 0.1)'
+      ? 'rgba(37, 99, 235, 0.1)'
       : 'rgba(139, 146, 168, 0.1)'
   };
   color: ${props => 
     props.type === 'delete' 
-      ? '#ef4444' 
+      ? theme.colors.danger
       : props.type === 'edit'
       ? theme.colors.accent
       : theme.colors.textMuted
   };
   border: 1px solid ${props => 
     props.type === 'delete' 
-      ? 'rgba(220, 38, 38, 0.2)' 
+      ? 'rgba(239, 68, 68, 0.2)' 
       : props.type === 'edit'
-      ? 'rgba(79, 140, 255, 0.2)'
+      ? 'rgba(37, 99, 235, 0.2)'
       : 'rgba(139, 146, 168, 0.2)'
   };
 
   &:hover:not(:disabled) {
     background-color: ${props => 
       props.type === 'delete' 
-        ? 'rgba(220, 38, 38, 0.2)' 
+        ? 'rgba(239, 68, 68, 0.15)' 
         : props.type === 'edit'
-        ? 'rgba(79, 140, 255, 0.2)'
-        : 'rgba(139, 146, 168, 0.2)'
+        ? 'rgba(37, 99, 235, 0.15)'
+        : 'rgba(139, 146, 168, 0.15)'
     };
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 
   &:active:not(:disabled) {
@@ -233,37 +236,45 @@ export const Badge = styled.span`
   align-items: center;
   padding: ${theme.spacing.xs} ${theme.spacing.md};
   border-radius: ${theme.borderRadius.md};
-  font-size: ${theme.fontSize.xs};
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
   
   ${props => {
     switch(props.variant) {
       case 'success':
         return `
-          background: rgba(34, 197, 94, 0.1);
-          color: #22c55e;
-          border: 1px solid rgba(34, 197, 94, 0.2);
+          background: rgba(16, 185, 129, 0.1);
+          color: ${theme.colors.success};
+          border: 1px solid rgba(16, 185, 129, 0.2);
         `;
       case 'warning':
         return `
-          background: rgba(251, 191, 36, 0.1);
-          color: #fbbf24;
-          border: 1px solid rgba(251, 191, 36, 0.2);
+          background: rgba(245, 158, 11, 0.1);
+          color: ${theme.colors.warning};
+          border: 1px solid rgba(245, 158, 11, 0.2);
         `;
       case 'danger':
         return `
           background: rgba(239, 68, 68, 0.1);
-          color: #ef4444;
+          color: ${theme.colors.danger};
           border: 1px solid rgba(239, 68, 68, 0.2);
+        `;
+      case 'info':
+        return `
+          background: rgba(59, 130, 246, 0.1);
+          color: ${theme.colors.info};
+          border: 1px solid rgba(59, 130, 246, 0.2);
         `;
       default:
         return `
-          background: rgba(139, 146, 168, 0.1);
+          background: rgba(100, 116, 139, 0.1);
           color: ${theme.colors.textMuted};
-          border: 1px solid rgba(139, 146, 168, 0.2);
+          border: 1px solid rgba(100, 116, 139, 0.2);
         `;
     }
   }}
 `;
+

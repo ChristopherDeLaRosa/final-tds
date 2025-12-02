@@ -1,5 +1,6 @@
 import { theme } from '../../styles';
 import styled from 'styled-components';
+import { Users, UserCheck, BookOpen, GraduationCap } from 'lucide-react';
 
 const Badge = styled.span`
   display: inline-block;
@@ -16,36 +17,66 @@ const Badge = styled.span`
 const CodigoBadge = styled.span`
   display: inline-block;
   font-weight: 600;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 10px;
+  border-radius: ${theme.borderRadius.md};
   background: rgba(139, 92, 246, 0.1);
   color: #8b5cf6;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  font-size: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  font-size: ${theme.fontSize.xs};
+  letter-spacing: 0.025em;
+`;
+
+const DocenteName = styled.div`
+  font-weight: 600;
+  color: ${theme.colors.text};
+  margin-bottom: 2px;
+`;
+
+const DocenteEspecialidad = styled.div`
+  font-size: ${theme.fontSize.xs};
+  color: ${theme.colors.textMuted};
 `;
 
 // Columnas de la tabla
 export const docentesColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { 
     key: 'codigo', 
     title: 'Código',
     width: '120px',
     render: (value) => <CodigoBadge>{value}</CodigoBadge>
   },
-  { key: 'nombreCompleto', title: 'Nombre Completo' },
-  { key: 'especialidad', title: 'Especialidad' },
-  { key: 'email', title: 'Correo Electrónico' },
-  { key: 'telefono', title: 'Teléfono', width: '130px' },
+  { 
+    key: 'nombreCompleto', 
+    title: 'Nombre Completo',
+    render: (value, row) => (
+      <div>
+        <DocenteName>{value}</DocenteName>
+        {row.especialidad && (
+          <DocenteEspecialidad>{row.especialidad}</DocenteEspecialidad>
+        )}
+      </div>
+    )
+  },
+  { 
+    key: 'email', 
+    title: 'Correo Electrónico',
+    render: (value) => value || <span style={{ color: theme.colors.textLight, fontStyle: 'italic' }}>-</span>
+  },
+  { 
+    key: 'telefono', 
+    title: 'Teléfono', 
+    width: '130px',
+    render: (value) => value || <span style={{ color: theme.colors.textLight, fontStyle: 'italic' }}>-</span>
+  },
   { 
     key: 'cantidadGrupos', 
     title: 'Grupos', 
-    width: '80px',
+    width: '100px',
     render: (value) => (
       <Badge
-        $bgColor="rgba(59, 130, 246, 0.15)"
-        $textColor="#3b82f6"
-        $borderColor="rgba(59, 130, 246, 0.3)"
+        $bgColor="rgba(59, 130, 246, 0.1)"
+        $textColor={theme.colors.info}
+        $borderColor="rgba(59, 130, 246, 0.25)"
       >
         {value || 0}
       </Badge>
@@ -57,9 +88,9 @@ export const docentesColumns = [
     width: '100px',
     render: (value) => (
       <Badge
-        $bgColor={value ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}
-        $textColor={value ? '#10b981' : '#ef4444'}
-        $borderColor={value ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}
+        $bgColor={value ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)'}
+        $textColor={value ? theme.colors.success : theme.colors.textMuted}
+        $borderColor={value ? 'rgba(16, 185, 129, 0.25)' : 'rgba(100, 116, 139, 0.25)'}
       >
         {value ? 'Activo' : 'Inactivo'}
       </Badge>
@@ -216,3 +247,39 @@ export const formatDocenteDataForAPI = (formData) => ({
   fechaContratacion: formData.fechaContratacion ? `${formData.fechaContratacion}T00:00:00` : null,
   activo: formData.activo,
 });
+
+// Función para obtener stats con iconos
+export const getDocentesStats = (docentes) => {
+  const totalDocentes = docentes.length;
+  const docentesActivos = docentes.filter(d => d.activo).length;
+  const docentesConGrupos = docentes.filter(d => (d.cantidadGrupos || 0) > 0).length;
+  const totalEstudiantes = docentes.reduce((sum, d) => sum + (d.cantidadEstudiantes || 0), 0);
+
+  return [
+    {
+      label: 'Total Docentes',
+      value: totalDocentes,
+      color: theme.colors.accent,
+      icon: <Users size={28} />,
+    },
+    {
+      label: 'Docentes Activos',
+      value: docentesActivos,
+      color: theme.colors.success,
+      icon: <UserCheck size={28} />,
+    },
+    {
+      label: 'Con Grupos Asignados',
+      value: docentesConGrupos,
+      color: theme.colors.info,
+      icon: <BookOpen size={28} />,
+    },
+    {
+      label: 'Total Estudiantes',
+      value: totalEstudiantes,
+      color: '#8b5cf6',
+      icon: <GraduationCap size={28} />,
+    },
+  ];
+};
+

@@ -7,21 +7,23 @@ import CrudStats from './CrudStats';
 import CrudForm from './CrudForm';
 
 const PageContainer = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
   padding: ${theme.spacing.xl};
-  background: ${theme.colors.bg};
+  background: ${theme.colors.background};
   min-height: 100vh;
 `;
 
 const Header = styled.div`
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: ${theme.spacing.xl};
+  align-items: flex-start;
+  margin-bottom: ${theme.spacing.xxl};
   gap: ${theme.spacing.lg};
   
   @media (max-width: 768px) {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
   }
 `;
 
@@ -29,15 +31,17 @@ const HeaderContent = styled.div``;
 
 const Title = styled.h1`
   color: ${theme.colors.text};
-  font-size: ${theme.fontSize.xxl};
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
   margin: 0 0 ${theme.spacing.sm} 0;
+  line-height: 1.2;
 `;
 
 const Subtitle = styled.p`
   color: ${theme.colors.textMuted};
-  font-size: ${theme.fontSize.sm};
+  font-size: ${theme.fontSize.md};
   margin: 0;
+  line-height: 1.5;
 `;
 
 const AddButton = styled.button`
@@ -46,20 +50,20 @@ const AddButton = styled.button`
   gap: ${theme.spacing.sm};
   padding: ${theme.spacing.md} ${theme.spacing.xl};
   background: ${theme.colors.accent};
-  color: ${theme.colors.text};
+  color: ${theme.colors.white};
   border: none;
-  border-radius: ${theme.borderRadius.md};
+  border-radius: ${theme.borderRadius.lg};
   font-size: ${theme.fontSize.sm};
   font-weight: 600;
   cursor: pointer;
-  transition: ${theme.transition};
-  box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
   white-space: nowrap;
 
   &:hover {
     background: ${theme.colors.accentHover};
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(79, 140, 255, 0.4);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
   }
 
   &:active {
@@ -83,8 +87,8 @@ const AddButton = styled.button`
 `;
 
 const TableCard = styled.div`
-  background: ${theme.colors.bgDark};
-  border-radius: ${theme.borderRadius.lg};
+  background: ${theme.colors.white};
+  border-radius: ${theme.borderRadius.xl};
   border: 1px solid ${theme.colors.border};
   overflow: hidden;
   box-shadow: ${theme.shadows.lg};
@@ -92,74 +96,122 @@ const TableCard = styled.div`
 
 const LoadingOverlay = styled.div`
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: ${theme.spacing.xxl};
+  padding: ${theme.spacing.xxxl} ${theme.spacing.xl};
   color: ${theme.colors.textMuted};
-  font-size: ${theme.fontSize.lg};
+  font-size: ${theme.fontSize.md};
+  gap: ${theme.spacing.lg};
+  
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid ${theme.colors.borderLight};
+    border-top-color: ${theme.colors.accent};
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
 `;
 
 const ErrorMessage = styled.div`
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-left: 4px solid #ef4444;
-  color: #ef4444;
-  padding: ${theme.spacing.lg};
-  border-radius: ${theme.borderRadius.md};
+  background: ${theme.colors.dangerLight};
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-left: 4px solid ${theme.colors.danger};
+  color: ${theme.colors.danger};
+  padding: ${theme.spacing.lg} ${theme.spacing.xl};
+  border-radius: ${theme.borderRadius.lg};
   margin-bottom: ${theme.spacing.xl};
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: ${theme.spacing.md};
+  box-shadow: ${theme.shadows.sm};
   
   &::before {
     content: '⚠';
-    font-size: 24px;
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const ErrorContent = styled.div`
+  flex: 1;
+  
+  strong {
+    font-weight: 600;
+    display: block;
+    margin-bottom: ${theme.spacing.xs};
+  }
+`;
+
+const RetryButton = styled.button`
+  margin-top: ${theme.spacing.sm};
+  background: transparent;
+  border: 1px solid ${theme.colors.danger};
+  color: ${theme.colors.danger};
+  padding: ${theme.spacing.sm} ${theme.spacing.lg};
+  border-radius: ${theme.borderRadius.md};
+  cursor: pointer;
+  font-size: ${theme.fontSize.sm};
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${theme.colors.danger};
+    color: ${theme.colors.white};
   }
 `;
 
 const ModalButton = styled.button`
   padding: ${theme.spacing.md} ${theme.spacing.xl};
-  border-radius: ${theme.borderRadius.md};
+  border-radius: ${theme.borderRadius.lg};
   font-size: ${theme.fontSize.sm};
   font-weight: 600;
   cursor: pointer;
-  transition: ${theme.transition};
+  transition: all 0.2s ease;
   border: none;
   
   ${props => props.$variant === 'primary' && `
     background: ${theme.colors.accent};
-    color: ${theme.colors.text};
+    color: ${theme.colors.white};
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2);
     
-    &:hover {
+    &:hover:not(:disabled) {
       background: ${theme.colors.accentHover};
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(79, 140, 255, 0.4);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
     }
     
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
       transform: none;
     }
   `}
   
   ${props => props.$variant === 'secondary' && `
-    background: transparent;
-    color: ${theme.colors.textMuted};
+    background: ${theme.colors.white};
+    color: ${theme.colors.textSecondary};
     border: 1px solid ${theme.colors.border};
     
-    &:hover {
-      background: ${theme.colors.bgHover};
+    &:hover:not(:disabled) {
+      background: ${theme.colors.backgroundAlt};
       color: ${theme.colors.text};
+      border-color: ${theme.colors.borderDark};
     }
     
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.6;
       cursor: not-allowed;
     }
   `}
   
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(0);
   }
 `;
@@ -204,6 +256,7 @@ export default function CrudPage({
     return (
       <PageContainer>
         <LoadingOverlay>
+          <div className="spinner" />
           <div>{loadingMessage}</div>
         </LoadingOverlay>
       </PageContainer>
@@ -215,27 +268,15 @@ export default function CrudPage({
       {/* Error Message */}
       {error && (
         <ErrorMessage>
-          <div>
-            <strong>Error:</strong> {error}
+          <ErrorContent>
+            <strong>Error</strong>
+            <div>{error}</div>
             {onRetry && (
-              <div style={{ marginTop: '8px' }}>
-                <button 
-                  onClick={onRetry}
-                  style={{
-                    background: 'transparent',
-                    border: '1px solid #ef4444',
-                    color: '#ef4444',
-                    padding: '4px 12px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  Reintentar
-                </button>
-              </div>
+              <RetryButton onClick={onRetry}>
+                Reintentar
+              </RetryButton>
             )}
-          </div>
+          </ErrorContent>
         </ErrorMessage>
       )}
 

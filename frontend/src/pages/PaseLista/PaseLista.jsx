@@ -189,62 +189,30 @@ export default function PaseLista() {
     try {
       setLoading(true);
       
-      // Obtener fecha actual en República Dominicana (UTC-4)
       const hoy = new Date();
-      
-      // IMPORTANTE: Formatear la fecha correctamente para el backend
-      // El backend espera formato ISO: YYYY-MM-DD
       const year = hoy.getFullYear();
       const month = String(hoy.getMonth() + 1).padStart(2, '0');
       const day = String(hoy.getDate()).padStart(2, '0');
       const fechaHoy = `${year}-${month}-${day}`;
       
-      console.log('🔍 DEBUG - Fecha de hoy:', fechaHoy);
-      console.log('🔍 DEBUG - Fecha objeto:', hoy);
-      
-      // Llamar al servicio con la misma fecha para inicio y fin
       const sesionesData = await sesionService.getByRangoFechas(fechaHoy, fechaHoy);
       
-      console.log('📚 Sesiones recibidas del backend:', sesionesData);
-      console.log('📊 Total sesiones recibidas:', sesionesData?.length || 0);
-      
-      // El backend ya debería filtrar por fecha, pero validamos por seguridad
       const sesionesFiltradas = sesionesData.filter(s => {
-        // Convertir la fecha de la sesión a formato comparable
         const fechaSesion = new Date(s.fecha);
         const fechaSesionStr = fechaSesion.toISOString().split('T')[0];
-        
-        console.log('🔍 Comparando:', {
-          fechaSesion: fechaSesionStr,
-          fechaBuscada: fechaHoy,
-          coincide: fechaSesionStr === fechaHoy
-        });
-        
         return fechaSesionStr === fechaHoy;
       });
-      
-      console.log('✅ Sesiones después del filtro:', sesionesFiltradas);
-      console.log('📈 Total para mostrar:', sesionesFiltradas.length);
       
       setSesiones(sesionesFiltradas);
       
       if (sesionesFiltradas.length === 0) {
-        console.log('⚠️ No se encontraron sesiones para hoy');
         Toast.fire({
-          icon: 'info',
           title: 'No hay sesiones programadas para hoy',
         });
-      } else {
-        console.log(`✅ ${sesionesFiltradas.length} sesiones encontradas para hoy`);
       }
       
     } catch (error) {
-      console.error('❌ Error completo al cargar sesiones:', error);
-      console.error('❌ Error response:', error.response?.data);
-      console.error('❌ Error status:', error.response?.status);
-      
       Toast.fire({
-        icon: 'error',
         title: 'Error al cargar las sesiones del día',
         text: error.response?.data?.message || error.message,
       });
@@ -266,17 +234,13 @@ export default function PaseLista() {
       setLoadingEstudiantes(true);
       
       const sesion = sesiones.find(s => s.id === parseInt(sesionId));
-      console.log('📝 Sesión seleccionada:', sesion);
       setSesionSeleccionada(sesion);
 
       const yaRegistrada = await paseListaService.verificarListaRegistrada(sesionId);
-      console.log('✅ Lista ya registrada:', yaRegistrada);
       setListaYaRegistrada(yaRegistrada);
 
       if (yaRegistrada) {
         const asistenciasExistentes = await paseListaService.getAsistenciasSesion(sesionId);
-        console.log('📋 Asistencias existentes:', asistenciasExistentes);
-        
         const asistenciasMap = {};
         asistenciasExistentes.forEach(a => {
           asistenciasMap[a.estudianteId] = {
@@ -292,8 +256,6 @@ export default function PaseLista() {
       const estudiantesData = await paseListaService.getEstudiantesParaPaseLista(
         sesion.grupoCursoId
       );
-      console.log('👥 Estudiantes obtenidos:', estudiantesData);
-      console.log('📊 Total estudiantes:', estudiantesData.length);
       
       setEstudiantes(estudiantesData);
 
@@ -309,14 +271,11 @@ export default function PaseLista() {
       }
 
       Toast.fire({
-        icon: 'success',
         title: `${estudiantesData.length} estudiantes cargados`,
       });
 
     } catch (error) {
-      console.error('❌ Error al cargar estudiantes:', error);
       Toast.fire({
-        icon: 'error',
         title: 'Error al cargar la lista de estudiantes',
         text: error.response?.data?.message || error.message,
       });
@@ -356,7 +315,6 @@ export default function PaseLista() {
     setAsistencias(nuevasAsistencias);
     
     Toast.fire({
-      icon: 'success',
       title: `Todos marcados como ${estado}`,
     });
   };
@@ -368,7 +326,6 @@ export default function PaseLista() {
 
     if (estudiantesSinRegistro.length > 0) {
       Toast.fire({
-        icon: 'warning',
         title: 'Todos los estudiantes deben tener un estado de asistencia',
       });
       return false;
@@ -380,7 +337,6 @@ export default function PaseLista() {
   const handleGuardarPaseLista = async () => {
     if (!sesionSeleccionada) {
       Toast.fire({
-        icon: 'warning',
         title: 'Debes seleccionar una sesión',
       });
       return;
@@ -400,7 +356,6 @@ export default function PaseLista() {
           <p><strong>Total estudiantes:</strong> ${estudiantes.length}</p>
         </div>
       `,
-      icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, guardar',
       cancelButtonText: 'Cancelar',
@@ -430,12 +385,9 @@ export default function PaseLista() {
         asistencias: asistenciasArray,
       };
 
-      console.log('💾 Guardando asistencias:', data);
-
       await paseListaService.registrarPaseListaCompleto(data);
 
       MySwal.fire({
-        icon: 'success',
         title: '¡Pase de lista guardado!',
         text: `Se registró la asistencia de ${estudiantes.length} estudiantes`,
         timer: 3000,
@@ -448,9 +400,7 @@ export default function PaseLista() {
       await cargarSesionesDelDia();
 
     } catch (error) {
-      console.error('❌ Error al guardar pase de lista:', error);
       MySwal.fire({
-        icon: 'error',
         title: 'Error al guardar',
         text: error.response?.data?.message || 'No se pudo guardar el pase de lista',
       });
