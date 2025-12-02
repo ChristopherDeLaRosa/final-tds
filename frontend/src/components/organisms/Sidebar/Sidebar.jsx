@@ -180,7 +180,7 @@ const menuSections = [
       { path: '/docentes', label: 'Docentes', icon: UserCheck },
       { path: '/cursos', label: 'Asignaturas', icon: BookOpen },
       { path: '/aulas', label: 'Aulas', icon: Building2 },
-      { path: '/grupos-cursos', label: 'Grupos Académicos', icon: Layers },
+      { path: '/grupos-cursos', label: 'Secciones Académicas', icon: Layers },
       { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
       { path: '/rubros', label: 'Rubros', icon: BookMarked },
     ]

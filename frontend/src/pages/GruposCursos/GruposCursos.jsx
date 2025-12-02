@@ -3,6 +3,7 @@ import { theme } from '../../styles';
 import grupoCursoService from '../../services/grupoCursoService';
 import cursoService from '../../services/cursoService';
 import docenteService from '../../services/docenteService';
+import aulaService from '../../services/aulaService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -47,30 +48,35 @@ export default function GruposCursos() {
   // Estados del formulario
   const [formData, setFormData] = useState(getInitialGrupoCursoFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showFormFields, setShowFormFields] = useState(false); // Controla visibilidad de campos
+  const [gradoSeleccionado, setGradoSeleccionado] = useState(null); // Grado del aula seleccionada
 
   // Estados para datos relacionados
   const [cursos, setCursos] = useState([]);
   const [docentes, setDocentes] = useState([]);
+  const [aulas, setAulas] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
-  // Cargar cursos y docentes al montar el componente
+  // Cargar cursos, docentes y aulas al montar el componente
   useEffect(() => {
     const fetchRelatedData = async () => {
       try {
         setLoadingRelated(true);
-        const [cursosData, docentesData] = await Promise.all([
+        const [cursosData, docentesData, aulasData] = await Promise.all([
           cursoService.getAll(),
           docenteService.getAll(),
+          aulaService.getAll(),
         ]);
         
         // Filtrar solo activos
         setCursos(cursosData.filter(c => c.activo));
         setDocentes(docentesData.filter(d => d.activo));
+        setAulas(aulasData.filter(a => a.activo));
       } catch (err) {
         console.error('Error al cargar datos relacionados:', err);
         Toast.fire({
           icon: 'error',
-          title: 'Error al cargar cursos y docentes',
+          title: 'Error al cargar cursos, docentes y aulas',
         });
       } finally {
         setLoadingRelated(false);
@@ -114,11 +120,13 @@ export default function GruposCursos() {
     if (loadingRelated) {
       Toast.fire({
         icon: 'warning',
-        title: 'Cargando cursos y docentes...',
+        title: 'Cargando cursos, docentes y aulas...',
       });
       return;
     }
     setFormData(getInitialGrupoCursoFormData());
+    setShowFormFields(false); // Ocultar campos hasta que se seleccione aula
+    setGradoSeleccionado(null); // Resetear grado
     clearAllErrors();
     openModal(null);
   };
@@ -128,11 +136,13 @@ export default function GruposCursos() {
     if (loadingRelated) {
       Toast.fire({
         icon: 'warning',
-        title: 'Cargando cursos y docentes...',
+        title: 'Cargando cursos, docentes y aulas...',
       });
       return;
     }
     setFormData(formatGrupoCursoForForm(grupoCurso));
+    setShowFormFields(!!grupoCurso.aulaId); // Mostrar campos si tiene aula
+    setGradoSeleccionado(grupoCurso.grado); // Establecer grado del aula
     clearAllErrors();
     openModal(grupoCurso);
   };
@@ -140,6 +150,56 @@ export default function GruposCursos() {
   // Handler para cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Si se selecciona un aula, auto-completar campos relacionados
+    if (name === 'aulaId' && value) {
+      const aulaSeleccionada = aulas.find(a => a.id === parseInt(value, 10));
+      
+      if (aulaSeleccionada) {
+        setFormData(prev => ({
+          ...prev,
+          aulaId: value,
+          grado: aulaSeleccionada.grado,
+          seccion: aulaSeleccionada.seccion,
+          anio: aulaSeleccionada.anio,
+          periodo: aulaSeleccionada.periodo,
+          aula: aulaSeleccionada.aulaFisica || '',
+          capacidadMaxima: aulaSeleccionada.capacidadMaxima || 30,
+          cursoId: '', // Limpiar curso seleccionado al cambiar de aula
+        }));
+        
+        // Establecer grado para filtrar cursos
+        setGradoSeleccionado(aulaSeleccionada.grado);
+        
+        // Mostrar el resto de campos
+        setShowFormFields(true);
+        
+        // Contar cursos disponibles para este grado
+        const cursosDisponibles = cursos.filter(c => c.nivelGrado === aulaSeleccionada.grado).length;
+        
+        Toast.fire({
+          icon: 'success',
+          title: 'Datos del aula cargados',
+          text: `${aulaSeleccionada.grado}° ${aulaSeleccionada.seccion} - ${cursosDisponibles} cursos disponibles`,
+          timer: 2500,
+        });
+        
+        // Limpiar errores de campos auto-completados
+        ['grado', 'seccion', 'anio', 'periodo', 'cursoId'].forEach(field => clearError(field));
+        
+        return;
+      }
+    }
+    
+    // Si se deselecciona el aula, ocultar campos
+    if (name === 'aulaId' && !value) {
+      setShowFormFields(false);
+      setGradoSeleccionado(null);
+      setFormData(getInitialGrupoCursoFormData());
+      clearAllErrors();
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -187,6 +247,8 @@ export default function GruposCursos() {
     if (!isSubmitting) {
       closeModal();
       setFormData(getInitialGrupoCursoFormData());
+      setShowFormFields(false); // Resetear visibilidad
+      setGradoSeleccionado(null); // Resetear grado
       clearAllErrors();
     }
   };
@@ -235,7 +297,7 @@ export default function GruposCursos() {
       // Modal
       isModalOpen={isModalOpen}
       modalTitle={selectedGrupoCurso ? 'Editar Grupo-Curso' : 'Nuevo Grupo-Curso'}
-      formFields={getGruposCursosFormFields(!!selectedGrupoCurso, cursos, docentes)}
+      formFields={getGruposCursosFormFields(!!selectedGrupoCurso, cursos, docentes, aulas, showFormFields, gradoSeleccionado)}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}

@@ -83,109 +83,70 @@ export const gruposCursosSearchFields = [
   'aula'
 ];
 
-// Campos del formulario (necesita cursos y docentes para los selects)
-export const getGruposCursosFormFields = (isEditing, cursos = [], docentes = []) => [
-  {
-    name: 'codigo',
-    label: `Código del Grupo ${isEditing ? '(No editable)' : ''}`,
-    type: 'text',
-    placeholder: 'Ej: 8A-MAT',
-    required: true,
-    disabled: isEditing,
-    maxLength: 20,
-  },
-  {
-    name: 'cursoId',
-    label: 'Curso',
-    type: 'select',
-    required: true,
-    options: [
-      { value: '', label: 'Selecciona un curso' },
-      ...cursos.map(c => ({
-        value: c.id,
-        label: `${c.codigo} - ${c.nombre} (${c.nivelGrado}°)`
-      }))
-    ],
-  },
-  {
-    name: 'docenteId',
-    label: 'Docente',
-    type: 'select',
-    required: true,
-    options: [
-      { value: '', label: 'Selecciona un docente' },
-      ...docentes.map(d => ({
-        value: d.id,
-        label: `${d.codigo} - ${d.nombreCompleto || `${d.nombres} ${d.apellidos}`}`
-      }))
-    ],
-  },
-  [
+// Campos del formulario (necesita cursos, docentes y aulas para los selects)
+// showAutoFilledFields determina si se muestran los campos auto-completados
+// gradoSeleccionado filtra los cursos por el grado del aula
+export const getGruposCursosFormFields = (isEditing, cursos = [], docentes = [], aulas = [], showAutoFilledFields = false, gradoSeleccionado = null) => {
+  const baseFields = [
     {
-      name: 'grado',
-      label: 'Grado',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '', label: 'Selecciona grado' },
-        { value: 1, label: '1°' },
-        { value: 2, label: '2°' },
-        { value: 3, label: '3°' },
-        { value: 4, label: '4°' },
-        { value: 5, label: '5°' },
-        { value: 6, label: '6°' },
-        { value: 7, label: '7°' },
-        { value: 8, label: '8°' },
-        { value: 9, label: '9°' },
-        { value: 10, label: '10°' },
-        { value: 11, label: '11°' },
-        { value: 12, label: '12°' },
-      ],
-    },
-    {
-      name: 'seccion',
-      label: 'Sección',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '', label: 'Selecciona sección' },
-        { value: 'A', label: 'A' },
-        { value: 'B', label: 'B' },
-        { value: 'C', label: 'C' },
-        { value: 'D', label: 'D' },
-      ],
-    },
-  ],
-  [
-    {
-      name: 'anio',
-      label: 'Año',
-      type: 'number',
-      placeholder: '2024',
-      required: true,
-      min: 2020,
-      max: 2030,
-    },
-    {
-      name: 'periodo',
-      label: 'Período',
-      type: 'select',
-      required: true,
-      options: [
-        { value: '', label: 'Selecciona período' },
-        { value: '2024-2025', label: '2024-2025' },
-        { value: '2025-2026', label: '2025-2026' },
-        { value: '2026-2027', label: '2026-2027' },
-      ],
-    },
-  ],
-  [
-    {
-      name: 'aula',
+      name: 'aulaId',
       label: 'Aula',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: 'Selecciona un aula' },
+        ...aulas.map(a => ({
+          value: a.id,
+          label: `${a.grado}° ${a.seccion} - ${a.periodo} (${a.aulaFisica || 'Sin aula física'})`
+        }))
+      ],
+      helper: 'Selecciona el aula para cargar automáticamente los datos de grado, sección y período'
+    },
+  ];
+
+  // Filtrar cursos por el grado del aula seleccionada
+  const cursosFiltrados = gradoSeleccionado 
+    ? cursos.filter(c => c.nivelGrado === gradoSeleccionado)
+    : cursos;
+
+  // Campos que solo se muestran después de seleccionar aula
+  const autoFilledFields = showAutoFilledFields ? [
+    {
+      name: 'codigo',
+      label: `Código del Grupo ${isEditing ? '(No editable)' : ''}`,
       type: 'text',
-      placeholder: 'Ej: A-101',
-      maxLength: 50,
+      placeholder: 'Ej: 8A-MAT',
+      required: true,
+      disabled: isEditing,
+      maxLength: 20,
+    },
+    {
+      name: 'cursoId',
+      label: `Curso (Solo grado ${gradoSeleccionado}°)`,
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: cursosFiltrados.length > 0 ? 'Selecciona un curso' : `No hay cursos para ${gradoSeleccionado}°` },
+        ...cursosFiltrados.map(c => ({
+          value: c.id,
+          label: `${c.codigo} - ${c.nombre}`
+        }))
+      ],
+      disabled: cursosFiltrados.length === 0,
+      helper: cursosFiltrados.length === 0 ? `No hay cursos disponibles para el grado ${gradoSeleccionado}°` : undefined
+    },
+    {
+      name: 'docenteId',
+      label: 'Docente',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: 'Selecciona un docente' },
+        ...docentes.map(d => ({
+          value: d.id,
+          label: `${d.codigo} - ${d.nombreCompleto || `${d.nombres} ${d.apellidos}`}`
+        }))
+      ],
     },
     {
       name: 'capacidadMaxima',
@@ -196,21 +157,23 @@ export const getGruposCursosFormFields = (isEditing, cursos = [], docentes = [])
       min: 1,
       max: 50,
     },
-  ],
-  {
-    name: 'horario',
-    label: 'Horario',
-    type: 'textarea',
-    placeholder: 'Ej: Lunes 8:00-9:30, Miércoles 10:00-11:30',
-    maxLength: 200,
-    rows: 3,
-  },
-  {
-    name: 'activo',
-    label: 'Activo',
-    type: 'checkbox',
-  },
-];
+    {
+      name: 'horario',
+      label: 'Horario',
+      type: 'textarea',
+      placeholder: 'Ej: Lunes 8:00-9:30, Miércoles 10:00-11:30',
+      maxLength: 200,
+      rows: 3,
+    },
+    {
+      name: 'activo',
+      label: 'Activo',
+      type: 'checkbox',
+    },
+  ] : [];
+
+  return [...baseFields, ...autoFilledFields];
+};
 
 // Reglas de validación
 export const gruposCursosValidationRules = {
@@ -220,6 +183,15 @@ export const gruposCursosValidationRules = {
     pattern: {
       value: /^[A-Z0-9-]+$/,
       message: 'Solo letras mayúsculas, números y guiones',
+    },
+  },
+  aulaId: {
+    required: { message: 'El aula es requerida' },
+    validate: (value) => {
+      if (!value || value === '') {
+        return 'Debes seleccionar un aula';
+      }
+      return true;
     },
   },
   cursoId: {
@@ -287,12 +259,13 @@ export const gruposCursosValidationRules = {
 // Datos iniciales del formulario
 export const getInitialGrupoCursoFormData = () => ({
   codigo: '',
+  aulaId: '',
   cursoId: '',
   docenteId: '',
   grado: '',
   seccion: '',
   anio: new Date().getFullYear(),
-  periodo: '2024-2025',
+  periodo: '',
   aula: '',
   horario: '',
   capacidadMaxima: 30,
@@ -302,6 +275,7 @@ export const getInitialGrupoCursoFormData = () => ({
 // Formatear grupo-curso para el formulario
 export const formatGrupoCursoForForm = (grupoCurso) => ({
   codigo: grupoCurso.codigo || '',
+  aulaId: grupoCurso.aulaId || '',
   cursoId: grupoCurso.cursoId || '',
   docenteId: grupoCurso.docenteId || '',
   grado: grupoCurso.grado || '',
@@ -317,6 +291,7 @@ export const formatGrupoCursoForForm = (grupoCurso) => ({
 // Formatear datos para enviar a la API
 export const formatGrupoCursoDataForAPI = (formData) => ({
   codigo: formData.codigo.trim().toUpperCase(),
+  aulaId: parseInt(formData.aulaId, 10),
   cursoId: parseInt(formData.cursoId, 10),
   docenteId: parseInt(formData.docenteId, 10),
   grado: parseInt(formData.grado, 10),
@@ -328,3 +303,4 @@ export const formatGrupoCursoDataForAPI = (formData) => ({
   capacidadMaxima: parseInt(formData.capacidadMaxima, 10),
   activo: formData.activo,
 });
+
