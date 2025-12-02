@@ -986,5 +986,105 @@ namespace EduCore.API.Services.Implementations
         }
 
         #endregion
+
+        #region Aulas Masivas
+        public async Task<ResultadoCreacionMasivaDto> CrearAulasMasivasAsync(CrearAulasMasivasDto dto)
+        {
+            var resultado = new ResultadoCreacionMasivaDto();
+
+            try
+            {
+                foreach (var gradoConfig in dto.Grados)
+                {
+                    foreach (var seccion in gradoConfig.Secciones)
+                    {
+                        try
+                        {
+                            // Verificar si ya existe
+                            var existe = await _context.Aulas
+                                .AnyAsync(a => a.Grado == gradoConfig.Grado &&
+                                              a.Seccion == seccion &&
+                                              a.Periodo == dto.Periodo &&
+                                              a.Activo);
+
+                            if (existe)
+                            {
+                                resultado.AulasExistentes++;
+                                resultado.Errores.Add(
+                                    $"El aula {gradoConfig.Grado}° {seccion} ya existe para el periodo {dto.Periodo}"
+                                );
+                                continue;
+                            }
+
+                            // Crear código
+                            var codigo = $"{gradoConfig.Grado}{seccion}-{dto.Anio}";
+
+                            // Determinar aula física
+                            var aulaFisica = string.IsNullOrWhiteSpace(gradoConfig.AulaFisicaBase)
+                                ? $"Aula {gradoConfig.Grado}{seccion}"
+                                : $"{gradoConfig.AulaFisicaBase} - {gradoConfig.Grado}{seccion}";
+
+                            // Determinar capacidad
+                            var capacidad = gradoConfig.CapacidadMaxima ?? dto.CapacidadMaximaPorDefecto;
+
+                            var aula = new Aula
+                            {
+                                Codigo = codigo,
+                                Grado = gradoConfig.Grado,
+                                Seccion = seccion,
+                                Anio = dto.Anio,
+                                Periodo = dto.Periodo,
+                                AulaFisica = aulaFisica,
+                                CapacidadMaxima = capacidad,
+                                FechaInicio = dto.FechaInicio.Date,
+                                FechaFin = dto.FechaFin.Date,
+                                CantidadEstudiantes = 0,
+                                Activo = true
+                            };
+
+                            _context.Aulas.Add(aula);
+                            resultado.AulasCreadas++;
+
+                            // Agregar a la lista de aulas nuevas
+                            resultado.AulasNuevas.Add(MapToDto(aula));
+
+                            _logger.LogInformation(
+                                "Aula masiva creada: {Codigo} - {Grado}° {Seccion}",
+                                aula.Codigo, aula.Grado, aula.Seccion
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            resultado.Errores.Add(
+                                $"Error al crear {gradoConfig.Grado}° {seccion}: {ex.Message}"
+                            );
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                resultado.Exitoso = resultado.AulasCreadas > 0;
+                resultado.Mensaje = resultado.Exitoso
+                    ? $"Se crearon {resultado.AulasCreadas} aulas exitosamente. {resultado.AulasExistentes} ya existían."
+                    : "No se pudo crear ninguna aula";
+
+                _logger.LogInformation(
+                    "Creación masiva completada: {Creadas} creadas, {Existentes} existentes, {Errores} errores",
+                    resultado.AulasCreadas, resultado.AulasExistentes, resultado.Errores.Count
+                );
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en creación masiva de aulas");
+                resultado.Errores.Add($"Error general: {ex.Message}");
+                resultado.Exitoso = false;
+                return resultado;
+            }
+        }
+
+        #endregion
     }
 }

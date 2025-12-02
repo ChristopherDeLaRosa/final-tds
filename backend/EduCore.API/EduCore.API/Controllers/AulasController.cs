@@ -512,5 +512,36 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+        /// <summary>
+        /// Crear Aulas automáticamente para un periodo académico
+        /// </summary>
+        [HttpPost("crear-masivas")]
+        public async Task<ActionResult<ResultadoCreacionMasivaDto>> CrearAulasMasivas(
+            [FromBody] CrearAulasMasivasDto dto)
+        {
+            try
+            {
+                var resultado = await _aulaService.CrearAulasMasivasAsync(dto);
+
+                if (resultado.Exitoso)
+                {
+                    return Ok(resultado);
+                }
+                else
+                {
+                    return BadRequest(resultado);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear aulas masivas");
+                return StatusCode(500, new
+                {
+                    message = "Error al crear las aulas",
+                    error = ex.Message
+                });
+            }
+        }
+
     }
 }

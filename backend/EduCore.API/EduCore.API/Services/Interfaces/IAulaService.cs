@@ -34,5 +34,8 @@ namespace EduCore.API.Services.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<bool> TieneCupoAsync(int aulaId);
         Task<bool> ExisteConflictoHorarioAsync(int aulaId, DayOfWeek dia, TimeSpan horaInicio, TimeSpan horaFin, int? horarioId = null);
+
+        // Crear Aulas por Lotes
+        Task<ResultadoCreacionMasivaDto> CrearAulasMasivasAsync(CrearAulasMasivasDto dto);
     }
 }

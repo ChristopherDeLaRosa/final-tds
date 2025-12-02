@@ -1,4 +1,6 @@
-﻿namespace EduCore.API.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace EduCore.API.DTOs
 {
     public class AulaDto
     {
@@ -111,5 +113,50 @@
         public List<string> Errores { get; set; } = new();
         public bool Exitoso { get; set; }
         public string Mensaje { get; set; } = string.Empty;
+    }
+
+    public class CrearAulasMasivasDto
+    {
+        [Required]
+        public int Anio { get; set; }
+
+        [Required]
+        [MaxLength(20)]
+        public string Periodo { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime FechaInicio { get; set; }
+
+        [Required]
+        public DateTime FechaFin { get; set; }
+
+        [Range(1, 50)]
+        public int CapacidadMaximaPorDefecto { get; set; } = 35;
+
+        public List<ConfiguracionGradoDto> Grados { get; set; } = new();
+    }
+
+    public class ConfiguracionGradoDto
+    {
+        [Required]
+        [Range(1, 12)]
+        public int Grado { get; set; }
+
+        [Required]
+        public List<string> Secciones { get; set; } = new();
+
+        public int? CapacidadMaxima { get; set; }
+
+        public string? AulaFisicaBase { get; set; } // Ej: "Edificio A"
+    }
+
+    public class ResultadoCreacionMasivaDto
+    {
+        public bool Exitoso { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
+        public int AulasCreadas { get; set; }
+        public int AulasExistentes { get; set; }
+        public List<string> Errores { get; set; } = new();
+        public List<AulaDto> AulasNuevas { get; set; } = new();
     }
 }

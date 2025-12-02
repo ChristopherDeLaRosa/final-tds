@@ -46,6 +46,11 @@ const aulaService = {
     return response.data;
   },
 
+  async crearMasivas(data) {
+  const response = await axiosInstance.post('/aulas/crear-masivas', data);
+  return response.data;
+},
+
   // ==================== HORARIOS ====================
 
   async getHorarios(aulaId) {

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Plus, Settings, Trash2, Edit, Users, Calendar } from 'lucide-react';
+import { Plus, Settings, Trash2, Edit, Users, Calendar, Zap } from 'lucide-react';
 import aulaService from '../../services/aulaService';
 import { aulasConfig } from './aulasConfig';
+import CrearAulasMasivas from './CrearAulasMasivas';
+import { Toast } from '../../utils/alerts'; 
 
 const Aulas = () => {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ const Aulas = () => {
   const [error, setError] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingAula, setEditingAula] = useState(null);
+  const [showMasivaModal, setShowMasivaModal] = useState(false);
   const [formData, setFormData] = useState({
     grado: '',
     seccion: '',
@@ -168,10 +171,19 @@ const Aulas = () => {
       <Header>
         <Title>Gestión de Aulas</Title>
         {!showForm && (
-          <ButtonPrimary onClick={() => setShowForm(true)}>
-            <Plus size={20} />
-            Nueva Aula
-          </ButtonPrimary>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <ButtonPrimary 
+              onClick={() => setShowMasivaModal(true)}
+              style={{ background: '#10b981' }}
+            >
+              <Zap size={20} />
+              Crear Año Completo
+            </ButtonPrimary>
+            <ButtonPrimary onClick={() => setShowForm(true)}>
+              <Plus size={20} />
+              Nueva Aula
+            </ButtonPrimary>
+          </div>
         )}
       </Header>
 
@@ -390,6 +402,17 @@ const Aulas = () => {
           )}
         </AulasGrid>
       )}
+      <CrearAulasMasivas
+        isOpen={showMasivaModal}
+        onClose={() => setShowMasivaModal(false)}
+        onSuccess={() => {
+          loadAulas();
+          Toast.fire({
+            icon: 'success',
+            title: 'Aulas creadas exitosamente'
+          });
+        }}
+      />
     </Container>
   );
 };
