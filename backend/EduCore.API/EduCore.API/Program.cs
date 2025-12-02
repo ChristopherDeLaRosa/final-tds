@@ -61,12 +61,6 @@ builder.Services.AddScoped<IAulaService, AulaService>();
 
 
 // Configuración de Controllers
-//builder.Services.AddControllers()
-//    .AddJsonOptions(options =>
-//    {
-//        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-//        options.JsonSerializerOptions.DictionaryKeyPolicy = JsonNamingPolicy.CamelCase;
-//    });
 builder.Services.AddControllers();
 
 // Configuración de CORS
