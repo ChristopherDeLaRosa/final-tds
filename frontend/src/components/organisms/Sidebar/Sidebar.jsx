@@ -178,9 +178,9 @@ const menuSections = [
     items: [
       { path: '/estudiantes', label: 'Estudiantes', icon: Users },
       { path: '/docentes', label: 'Docentes', icon: UserCheck },
-      { path: '/cursos', label: 'Cursos', icon: BookOpen },
+      { path: '/cursos', label: 'Asignaturas', icon: BookOpen },
       { path: '/aulas', label: 'Aulas', icon: Building2 },
-      { path: '/grupos-cursos', label: 'Grupos-Cursos', icon: Layers },
+      { path: '/grupos-cursos', label: 'Secciones', icon: Layers },
       { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
       { path: '/rubros', label: 'Rubros', icon: BookMarked },
     ]

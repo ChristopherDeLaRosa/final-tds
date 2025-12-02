@@ -64,7 +64,8 @@ const Aulas = () => {
         capacidadMaxima: parseInt(formData.capacidadMaxima),
         aulaFisica: formData.aulaFisica,
         fechaInicio: formData.fechaInicio,
-        fechaFin: formData.fechaFin
+        fechaFin: formData.fechaFin,
+        activo: formData.activo !== false
       };
 
       if (editingAula) {
@@ -82,7 +83,8 @@ const Aulas = () => {
         capacidadMaxima: '',
         aulaFisica: '',
         fechaInicio: '',
-        fechaFin: ''
+        fechaFin: '',
+        activo: true
       });
       setShowForm(false);
       setEditingAula(null);
@@ -107,7 +109,8 @@ const Aulas = () => {
       capacidadMaxima: aula.capacidadMaxima.toString(),
       aulaFisica: aula.aulaFisica || '',
       fechaInicio: aula.fechaInicio?.split('T')[0] || '',
-      fechaFin: aula.fechaFin?.split('T')[0] || ''
+      fechaFin: aula.fechaFin?.split('T')[0] || '',
+      activo: aula.activo !== false
     });
     setShowForm(true);
   };
@@ -147,7 +150,8 @@ const Aulas = () => {
       capacidadMaxima: '',
       aulaFisica: '',
       fechaInicio: '',
-      fechaFin: ''
+      fechaFin: '',
+      activo: true
     });
   };
 
