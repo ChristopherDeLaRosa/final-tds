@@ -26,7 +26,6 @@ const MatriculaBadge = styled.span`
 
 // Columnas de la tabla
 export const studentsColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { 
     key: 'matricula', 
     title: 'Matrícula',

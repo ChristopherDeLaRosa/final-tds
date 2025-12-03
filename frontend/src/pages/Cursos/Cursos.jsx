@@ -16,15 +16,15 @@ import {
   formatCursoDataForAPI,
 } from './cursosConfig';
 
+import { BookOpen, CheckCircle, Layers, GraduationCap } from 'lucide-react';
+
 export default function Cursos() {
-  // Custom Hooks
   const { 
     data: cursos, 
     loading, 
     error, 
     create, 
-    update, 
-    remove,
+    update,
     fetchAll,
   } = useCrud(cursoService);
 
@@ -42,109 +42,137 @@ export default function Cursos() {
     close: closeModal 
   } = useModal();
 
-  // Estados del formulario
   const [formData, setFormData] = useState(getInitialCursoFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calcular estadísticas
+  // Estadísticas
   const totalCursos = cursos.length;
   const cursosActivos = cursos.filter(c => c.activo).length;
-  const cursosPrimaria = cursos.filter(c => c.nivel === 'Primaria').length;
-  const cursosSecundaria = cursos.filter(c => c.nivel === 'Secundaria').length;
+  const totalPrimaria = cursos.filter(c => c.nivel === 'Primaria').length;
+  const totalSecundaria = cursos.filter(c => c.nivel === 'Secundaria').length;
 
   const stats = [
     {
       label: 'Total Cursos',
       value: totalCursos,
       color: theme.colors.accent,
+      icon: <BookOpen size={28} />,
     },
     {
-      label: 'Cursos Activos',
+      label: 'Activos',
       value: cursosActivos,
-      color: '#10b981',
+      color: theme.colors.success,
+      icon: <CheckCircle size={28} />,
     },
     {
       label: 'Primaria',
-      value: cursosPrimaria,
-      color: '#3b82f6',
+      value: totalPrimaria,
+      color: theme.colors.info,
+      icon: <Layers size={28} />,
     },
     {
       label: 'Secundaria',
-      value: cursosSecundaria,
+      value: totalSecundaria,
       color: '#8b5cf6',
+      icon: <GraduationCap size={28} />,
     },
   ];
 
-  // Handler para abrir modal de crear
+  // Crear
   const handleAddCurso = () => {
     setFormData(getInitialCursoFormData());
     clearAllErrors();
     openModal(null);
   };
 
-  // Handler para abrir modal de editar
+  // Editar
   const handleEditCurso = (curso) => {
     setFormData(formatCursoForForm(curso));
     clearAllErrors();
     openModal(curso);
   };
 
-  // Handler para cambios en el formulario
+  // Cambios en inputs
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
-    if (formErrors[name]) {
-      clearError(name);
-    }
+
+    if (formErrors[name]) clearError(name);
   };
 
-  // Handler para guardar curso
+  // Guardar
   const handleSaveCurso = async () => {
-    if (!validate(formData)) {
-      return;
-    }
-    
+    if (!validate(formData)) return;
+
     setIsSubmitting(true);
-    
+
     try {
       const dataToSend = formatCursoDataForAPI(formData);
 
       if (selectedCurso) {
         await update(selectedCurso.id, dataToSend);
       } else {
-        // Verificar si el código ya existe
-        const codigoExists = await cursoService.codigoExists(dataToSend.codigo);
-        if (codigoExists) {
-          Toast.fire({
-            icon: 'error',
-            title: 'El código ya existe',
-          });
+        const exists = await cursoService.codigoExists(dataToSend.codigo);
+        if (exists) {
+          Toast.fire({ icon: 'error', title: 'El código ya existe' });
           setIsSubmitting(false);
           return;
         }
         await create(dataToSend);
       }
-      
+
       closeModal();
       setFormData(getInitialCursoFormData());
-    } catch (err) {
-      console.error('Error saving curso:', err);
+      fetchAll();
+
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handler para eliminar curso
-  const handleDeleteCurso = async (curso) => {
-    const nombre = curso?.nombre || 'este curso';
-    await remove(curso.id, nombre);
+  // Activar / Desactivar (misma lógica que Docentes y Students)
+  const handleToggleStatus = async (curso) => {
+    const action = curso.activo ? 'desactivar' : 'activar';
+    const actionPast = curso.activo ? 'desactivado' : 'activado';
+
+    const result = await MySwal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} curso?`,
+      text: `¿Confirmas que deseas ${action} "${curso.nombre}"?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563EB',
+      cancelButtonColor: '#6B7280',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      const updatedData = { ...curso, activo: !curso.activo };
+
+      await cursoService.update(curso.id, updatedData);
+
+      Toast.fire({
+        icon: 'success',
+        title: `Curso ${actionPast} correctamente`,
+      });
+
+      fetchAll();
+
+    } catch {
+      Toast.fire({
+        icon: 'error',
+        title: `Error al ${action} curso`,
+      });
+    }
   };
 
-  // Handler para cerrar modal
+  // Cancelar modal
   const handleCancelModal = () => {
     if (!isSubmitting) {
       closeModal();
@@ -153,59 +181,51 @@ export default function Cursos() {
     }
   };
 
-  // Handler para reintentar cargar datos
+  // Reintento
   const handleRetry = async () => {
     try {
       MySwal.fire({
         title: 'Recargando...',
         didOpen: () => MySwal.showLoading(),
         allowOutsideClick: false,
-        allowEscapeKey: false,
       });
+
       await fetchAll();
       MySwal.close();
       Toast.fire({ icon: 'success', title: 'Lista actualizada' });
+
     } catch {
       MySwal.close();
-      MySwal.fire({
-        icon: 'error',
-        title: 'No se pudo recargar',
-        text: 'Verifica tu conexión.',
-      });
+      MySwal.fire({ icon: 'error', title: 'No se pudo recargar' });
     }
   };
 
   return (
     <CrudPage
-      // Títulos y mensajes
       title="Gestión de Cursos"
       subtitle="Catálogo de materias - EduCore"
       addButtonText="Agregar Curso"
-      emptyMessage="No hay cursos registrados. ¡Agrega el primero!"
+      emptyMessage="No hay cursos registrados. Agrega uno nuevo."
       loadingMessage="Cargando cursos..."
-      
-      // Datos
+
       data={cursos}
       loading={loading}
       error={error}
       stats={stats}
-      
-      // Tabla
+
       columns={cursosColumns}
       searchFields={cursosSearchFields}
-      
-      // Modal
+
       isModalOpen={isModalOpen}
       modalTitle={selectedCurso ? 'Editar Curso' : 'Nuevo Curso'}
       formFields={getCursosFormFields(!!selectedCurso)}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting}
-      
-      // Handlers
+
       onAdd={handleAddCurso}
       onEdit={handleEditCurso}
-      onDelete={handleDeleteCurso}
+      onDelete={handleToggleStatus}
       onSave={handleSaveCurso}
       onCancel={handleCancelModal}
       onInputChange={handleInputChange}
@@ -213,3 +233,4 @@ export default function Cursos() {
     />
   );
 }
+

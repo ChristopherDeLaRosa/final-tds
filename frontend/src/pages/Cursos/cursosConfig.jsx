@@ -26,7 +26,6 @@ const CodigoBadge = styled.span`
 
 // Columnas de la tabla
 export const cursosColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { 
     key: 'codigo', 
     title: 'Código',

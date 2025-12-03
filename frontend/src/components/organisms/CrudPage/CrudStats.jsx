@@ -3,59 +3,83 @@ import { theme } from '../../../styles';
 
 const StatsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${theme.spacing.lg};
-  margin-bottom: ${theme.spacing.xl};
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: ${theme.spacing.xl};
+  margin-bottom: ${theme.spacing.xxl};
 `;
 
 const StatCard = styled.div`
-  background: ${theme.colors.bgDark};
-  padding: ${theme.spacing.xl};
-  border-radius: ${theme.borderRadius.lg};
+  background: ${theme.colors.white};
   border: 1px solid ${theme.colors.border};
-  border-left: 4px solid ${props => props.$accentColor || theme.colors.accent};
-  transition: ${theme.transition};
+  border-radius: ${theme.borderRadius.xl};
+  padding: ${theme.spacing.xl};
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.lg};
+  box-shadow: ${theme.shadows.md};
+  transition: all 0.2s ease;
   
   &:hover {
-    background: ${theme.colors.bgHover};
-    transform: translateY(-2px);
+    transform: translateY(-4px);
     box-shadow: ${theme.shadows.lg};
   }
 `;
 
-const StatLabel = styled.p`
-  margin: 0 0 ${theme.spacing.sm} 0;
-  font-size: ${theme.fontSize.sm};
-  color: ${theme.colors.textMuted};
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 500;
+const StatIcon = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: ${theme.borderRadius.lg};
+  flex-shrink: 0;
+  background: ${props => props.$color ? `${props.$color}15` : theme.colors.accentLight};
+  
+  svg {
+    color: ${props => props.$color || theme.colors.accent};
+    width: 28px;
+    height: 28px;
+  }
 `;
 
-const StatValue = styled.p`
-  margin: 0;
-  font-size: 32px;
+const StatContent = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const StatValue = styled.div`
+  font-size: 2rem;
   font-weight: 700;
   color: ${theme.colors.text};
+  line-height: 1;
+  margin-bottom: ${theme.spacing.xs};
 `;
 
-const StatIcon = styled.div`
-  font-size: 24px;
-  margin-bottom: ${theme.spacing.sm};
+const StatLabel = styled.div`
+  font-size: ${theme.fontSize.sm};
+  color: ${theme.colors.textMuted};
+  font-weight: 500;
+  line-height: 1.3;
 `;
 
-export default function CrudStats({ stats = [] }) {
+const CrudStats = ({ stats }) => {
   if (!stats || stats.length === 0) return null;
 
   return (
     <StatsGrid>
       {stats.map((stat, index) => (
-        <StatCard key={index} $accentColor={stat.color}>
-          {stat.icon && <StatIcon>{stat.icon}</StatIcon>}
-          <StatLabel>{stat.label}</StatLabel>
-          <StatValue>{stat.value}</StatValue>
+        <StatCard key={index}>
+          <StatIcon $color={stat.color}>
+            {stat.icon}
+          </StatIcon>
+          <StatContent>
+            <StatValue>{stat.value?.toLocaleString() || 0}</StatValue>
+            <StatLabel>{stat.label}</StatLabel>
+          </StatContent>
         </StatCard>
       ))}
     </StatsGrid>
   );
-}
+};
+
+export default CrudStats;

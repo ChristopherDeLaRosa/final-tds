@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import styled from 'styled-components';
 
-// ── Tokens locales (sin theme) ────────────────────────────────────────────────
+// ── Tokens locales (sin theme) ───────────────────────────────────────────────
 const TOKENS = {
   spacing: { xs: '4px', sm: '8px', md: '12px', lg: '16px', xl: '24px' },
   radius: { md: '8px', lg: '12px' },

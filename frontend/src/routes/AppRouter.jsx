@@ -16,6 +16,7 @@ import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
 import Rubros from "../pages/Rubros/Rubros.jsx";
 import Aulas from "../pages/Aulas/Aulas.jsx";
 import ConfigurarAula from "../pages/Aulas/ConfigurarAula.jsx";
+// import ConfigurarAula from "../pages/Aulas/Configuraraulanew.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
@@ -54,6 +55,7 @@ export default function AppRouter() {
           <Route path="cursos" element={<Cursos />} />
           <Route path="aulas" element={<Aulas />} />
           <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />
+          {/* <Route path="/aulas/:id/configurar" element={<ConfigurarAulaNew />} /> */}
           <Route path="grupos-cursos" element={<GruposCursos />} />
           <Route path="inscripciones" element={<Inscripciones />} />
           <Route path="rubros" element={<Rubros />} />

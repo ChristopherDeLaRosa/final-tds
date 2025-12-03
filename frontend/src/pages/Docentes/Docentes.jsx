@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { theme } from '../../styles';
 import docenteService from '../../services/docenteService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
@@ -14,6 +13,7 @@ import {
   getInitialDocenteFormData,
   formatDocenteForForm,
   formatDocenteDataForAPI,
+  getDocentesStats,
 } from './docentesConfig';
 
 export default function Docentes() {
@@ -46,34 +46,8 @@ export default function Docentes() {
   const [formData, setFormData] = useState(getInitialDocenteFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calcular estadísticas
-  const totalDocentes = docentes.length;
-  const docentesActivos = docentes.filter(d => d.activo).length;
-  const docentesConGrupos = docentes.filter(d => d.cantidadGrupos > 0).length;
-  const totalEstudiantes = docentes.reduce((sum, d) => sum + (d.cantidadEstudiantes || 0), 0);
-
-  const stats = [
-    {
-      label: 'Total Docentes',
-      value: totalDocentes,
-      color: theme.colors.accent,
-    },
-    {
-      label: 'Docentes Activos',
-      value: docentesActivos,
-      color: '#10b981',
-    },
-    {
-      label: 'Con Grupos Asignados',
-      value: docentesConGrupos,
-      color: '#3b82f6',
-    },
-    {
-      label: 'Total Estudiantes',
-      value: totalEstudiantes,
-      color: '#8b5cf6',
-    },
-  ];
+  // Calcular estadísticas con iconos
+  const stats = getDocentesStats(docentes);
 
   // Handler para abrir modal de crear
   const handleAddDocente = () => {
@@ -138,13 +112,53 @@ export default function Docentes() {
     }
   };
 
-  // Handler para eliminar docente
-  const handleDeleteDocente = async (docente) => {
-    const nombre = docente?.nombreCompleto || 
-                   `${docente?.nombres} ${docente?.apellidos}` || 
-                   'este docente';
+  // Handler para desactivar/activar docente
+  const handleToggleStatus = async (docente) => {
+    const action = docente.activo ? 'desactivar' : 'activar';
+    const actionPast = docente.activo ? 'desactivado' : 'activado';
     
-    await remove(docente.id, nombre);
+    // Mostrar confirmación con MySwal
+    const result = await MySwal.fire({
+      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} docente?`,
+      text: `¿Está seguro de ${action} a ${docente.nombreCompleto}?`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: `Sí, ${action}`,
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563EB',
+      cancelButtonColor: '#6B7280',
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      // Actualizar el campo 'activo', NO eliminar
+      const updatedData = {
+        nombres: docente.nombres,
+        apellidos: docente.apellidos,
+        email: docente.email,
+        telefono: docente.telefono,
+        especialidad: docente.especialidad,
+        fechaContratacion: docente.fechaContratacion,
+        activo: !docente.activo  // Solo cambiar el estado
+      };
+
+      await docenteService.update(docente.id, updatedData);
+      
+      // Mostrar éxito
+      Toast.fire({
+        icon: 'success',
+        title: `Docente ${actionPast} exitosamente`,
+      });
+      
+      fetchAll(); // Recargar datos
+    } catch (error) {
+      // Mostrar error
+      Toast.fire({
+        icon: 'error',
+        title: error.message || `Error al ${action} docente`,
+      });
+    }
   };
 
   // Handler para cerrar modal
@@ -208,7 +222,7 @@ export default function Docentes() {
       // Handlers
       onAdd={handleAddDocente}
       onEdit={handleEditDocente}
-      onDelete={handleDeleteDocente}
+      onDelete={handleToggleStatus}
       onSave={handleSaveDocente}
       onCancel={handleCancelModal}
       onInputChange={handleInputChange}
@@ -216,3 +230,4 @@ export default function Docentes() {
     />
   );
 }
+
