@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import styled from 'styled-components';
-import { ClipboardList, School, CheckCircle, Users, ArchiveRestore, Layers } from 'lucide-react';
+import { CheckCircle, Users, ArchiveRestore, Layers, UserPen, UserPlus, UserPlus2 } from 'lucide-react';
 import { theme } from '../../styles';
 import inscripcionService from '../../services/inscripcionService';
 import estudianteService from '../../services/estudianteService';
@@ -19,45 +18,9 @@ import {
   formatInscripcionForForm,
   formatInscripcionDataForAPI,
 } from './inscripcionesConfig';
-import InscripcionMasivaTab from './InscripcionMasivaTab';
-
-// Tabs
-const TabsContainer = styled.div`
-  background: white;
-  border-radius: ${theme.borderRadius.lg};
-  box-shadow: ${theme.shadows.md};
-  margin-bottom: ${theme.spacing.lg};
-  overflow: hidden;
-`;
-
-const TabsList = styled.div`
-  display: flex;
-  border-bottom: 2px solid ${theme.colors.border};
-`;
-
-const Tab = styled.button`
-  flex: 1;
-  padding: ${theme.spacing.lg} ${theme.spacing.xl};
-  background: ${props => props.$active ? theme.colors.primary : 'transparent'};
-  color: ${props => props.$active ? 'white' : theme.colors.textSecondary};
-  border: none;
-  font-weight: 600;
-  font-size: ${theme.fontSize.md};
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: ${theme.spacing.sm};
-`;
-
-const TabContent = styled.div`
-  display: ${props => props.$active ? 'block' : 'none'};
-`;
+import InscripcionMasivaModal from './Inscripcionmasivamodal';
 
 export default function Inscripciones() {
-  const [activeTab, setActiveTab] = useState('individual');
-
   const { 
     data: inscripciones, 
     loading, 
@@ -83,6 +46,9 @@ export default function Inscripciones() {
     close: closeModal 
   } = useModal();
 
+  // Modal de inscripción masiva
+  const [isInscripcionMasivaOpen, setIsInscripcionMasivaOpen] = useState(false);
+
   const [formData, setFormData] = useState(getInitialInscripcionFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -98,7 +64,7 @@ export default function Inscripciones() {
       setInscripciones(data);
     } catch {
       setError('Error al cargar inscripciones');
-      Toast.fire({ title: 'Error al cargar inscripciones' });
+      Toast.fire({ icon: 'error', title: 'Error al cargar inscripciones' });
     } finally {
       setLoading(false);
     }
@@ -163,7 +129,7 @@ export default function Inscripciones() {
   // Crear
   const handleAddInscripcion = () => {
     if (loadingRelated) {
-      Toast.fire({ title: 'Cargando estudiantes y grupos...' });
+      Toast.fire({ icon: 'info', title: 'Cargando estudiantes y grupos...' });
       return;
     }
     setFormData(getInitialInscripcionFormData());
@@ -174,7 +140,7 @@ export default function Inscripciones() {
   // Editar
   const handleEditInscripcion = (inscripcion) => {
     if (loadingRelated) {
-      Toast.fire({ title: 'Cargando estudiantes y grupos...' });
+      Toast.fire({ icon: 'info', title: 'Cargando estudiantes y grupos...' });
       return;
     }
     setFormData(formatInscripcionForForm(inscripcion));
@@ -213,14 +179,14 @@ export default function Inscripciones() {
       setFormData(getInitialInscripcionFormData());
     } catch (err) {
       if (err.response?.data?.message?.includes('inscrito')) {
-        Toast.fire({ title: 'El estudiante ya está inscrito en este grupo' });
+        Toast.fire({ icon: 'error', title: 'El estudiante ya está inscrito en este grupo' });
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Activar/Desactivar (reemplaza eliminar)
+  // Activar/Desactivar
   const handleToggleStatus = async (inscripcion) => {
     const action = inscripcion.activo ? 'desactivar' : 'activar';
     const past = inscripcion.activo ? 'desactivada' : 'activada';
@@ -276,66 +242,59 @@ export default function Inscripciones() {
 
   return (
     <>
-      <TabsContainer>
-        <TabsList>
-          <Tab 
-            $active={activeTab === 'individual'} 
-            onClick={() => setActiveTab('individual')}
-          >
-            <ClipboardList size={18} />
-            Inscripciones Individuales
-          </Tab>
+      <CrudPage
+        title="Gestión de Inscripciones"
+        subtitle="Matrícula de estudiantes en grupos-cursos - EduCore"
+        addButtonText="Agregar Inscripción"
+        emptyMessage="No hay inscripciones registradas"
+        loadingMessage="Cargando inscripciones..."
+        
+        data={inscripciones}
+        loading={loading}
+        error={error}
+        stats={stats}
 
-          <Tab 
-            $active={activeTab === 'masiva'} 
-            onClick={() => setActiveTab('masiva')}
-          >
-            <School size={18} />
-            Inscripción Masiva por Aula
-          </Tab>
-        </TabsList>
-      </TabsContainer>
+        columns={inscripcionesColumns}
+        searchFields={inscripcionesSearchFields}
 
-      <TabContent $active={activeTab === 'individual'}>
-        <CrudPage
-          title="Gestión de Inscripciones"
-          subtitle="Matrícula de estudiantes en grupos-cursos - EduCore"
-          addButtonText="Agregar Inscripción"
-          emptyMessage="No hay inscripciones registradas"
-          loadingMessage="Cargando inscripciones..."
-          
-          data={inscripciones}
-          loading={loading}
-          error={error}
-          stats={stats}
+        isModalOpen={isModalOpen}
+        modalTitle={selectedInscripcion ? 'Editar Inscripción' : 'Nueva Inscripción'}
+        formFields={getInscripcionesFormFields(
+          !!selectedInscripcion, 
+          estudiantes, 
+          gruposCursos
+        )}
+        formData={formData}
+        formErrors={formErrors}
+        isSubmitting={isSubmitting || loadingRelated}
 
-          columns={inscripcionesColumns}
-          searchFields={inscripcionesSearchFields}
+        onAdd={handleAddInscripcion}
+        onEdit={handleEditInscripcion}
+        onDelete={handleToggleStatus}
+        onSave={handleSaveInscripcion}
+        onCancel={handleCancelModal}
+        onInputChange={handleInputChange}
+        onRetry={handleRetry}
 
-          isModalOpen={isModalOpen}
-          modalTitle={selectedInscripcion ? 'Editar Inscripción' : 'Nueva Inscripción'}
-          formFields={getInscripcionesFormFields(
-            !!selectedInscripcion, 
-            estudiantes, 
-            gruposCursos
-          )}
-          formData={formData}
-          formErrors={formErrors}
-          isSubmitting={isSubmitting || loadingRelated}
+        // Botón adicional para inscripción masiva
+        additionalActions={[
+          {
+            label: 'Inscripción Masiva',
+            onClick: () => setIsInscripcionMasivaOpen(true),
+            variant: 'secondary',
+            icon: <UserPlus2 size={18} />
+          }
+        ]}
+      />
 
-          onAdd={handleAddInscripcion}
-          onEdit={handleEditInscripcion}
-          onDelete={handleToggleStatus}
-          onSave={handleSaveInscripcion}
-          onCancel={handleCancelModal}
-          onInputChange={handleInputChange}
-          onRetry={handleRetry}
-        />
-      </TabContent>
-
-      <TabContent $active={activeTab === 'masiva'}>
-        <InscripcionMasivaTab onInscripcionCompleted={() => fetchInscripciones()} />
-      </TabContent>
+      <InscripcionMasivaModal
+        isOpen={isInscripcionMasivaOpen}
+        onClose={() => setIsInscripcionMasivaOpen(false)}
+        onSuccess={() => {
+          fetchInscripciones();
+          setIsInscripcionMasivaOpen(false);
+        }}
+      />
     </>
   );
 }

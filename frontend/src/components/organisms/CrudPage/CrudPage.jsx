@@ -44,6 +44,17 @@ const Subtitle = styled.p`
   line-height: 1.5;
 `;
 
+const ActionButtons = styled.div`
+  display: flex;
+  gap: ${theme.spacing.md};
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    flex-direction: column;
+  }
+`;
+
 const AddButton = styled.button`
   display: flex;
   align-items: center;
@@ -64,6 +75,47 @@ const AddButton = styled.button`
     background: ${theme.colors.accentHover};
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  svg {
+    flex-shrink: 0;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.md} ${theme.spacing.xl};
+  background: ${theme.colors.white};
+  color: ${theme.colors.accent};
+  border: 2px solid ${theme.colors.accent};
+  border-radius: ${theme.borderRadius.lg};
+  font-size: ${theme.fontSize.sm};
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: ${theme.colors.accent}08;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
   }
 
   &:active {
@@ -251,6 +303,9 @@ export default function CrudPage({
   onInputChange,
   onRetry,
   customActions,
+  
+  // Botones adicionales
+  additionalActions = [],
 }) {
   if (loading) {
     return (
@@ -287,12 +342,27 @@ export default function CrudPage({
           {subtitle && <Subtitle>{subtitle}</Subtitle>}
         </HeaderContent>
         
-        {onAdd && (
-          <AddButton onClick={onAdd} disabled={loading}>
-            <Plus size={20} />
-            {addButtonText}
-          </AddButton>
-        )}
+        <ActionButtons>
+          {/* Botones adicionales */}
+          {additionalActions.map((action, index) => (
+            <SecondaryButton 
+              key={index}
+              onClick={action.onClick}
+              disabled={loading}
+            >
+              {action.icon}
+              {action.label}
+            </SecondaryButton>
+          ))}
+          
+          {/* Botón principal de agregar */}
+          {onAdd && (
+            <AddButton onClick={onAdd} disabled={loading}>
+              <Plus size={20} />
+              {addButtonText}
+            </AddButton>
+          )}
+        </ActionButtons>
       </Header>
 
       {/* Stats */}
@@ -352,4 +422,3 @@ export default function CrudPage({
     </PageContainer>
   );
 }
-
