@@ -11,13 +11,20 @@ namespace EduCore.API.Controllers
     public class AulasController : ControllerBase
     {
         private readonly IAulaService _aulaService;
+        private readonly IHorarioAulaService _horarioService;
         private readonly ILogger<AulasController> _logger;
 
-        public AulasController(IAulaService aulaService, ILogger<AulasController> logger)
+        public AulasController(
+            IAulaService aulaService,
+            IHorarioAulaService horarioService,
+            ILogger<AulasController> logger)
         {
             _aulaService = aulaService;
+            _horarioService = horarioService;
             _logger = logger;
         }
+
+        #region CRUD Aulas
 
         /// <summary>
         /// Obtener todas las aulas activas
@@ -211,7 +218,41 @@ namespace EduCore.API.Controllers
             }
         }
 
-        // ==================== GESTIÓN DE HORARIOS ====================
+        /// <summary>
+        /// Crear Aulas automáticamente para un periodo académico
+        /// </summary>
+        [HttpPost("crear-masivas")]
+        [Authorize(Roles = "Admin,Coordinador")]
+        public async Task<ActionResult<ResultadoCreacionMasivaDto>> CrearAulasMasivas(
+            [FromBody] CrearAulasMasivasDto dto)
+        {
+            try
+            {
+                var resultado = await _aulaService.CrearAulasMasivasAsync(dto);
+
+                if (resultado.Exitoso)
+                {
+                    return Ok(resultado);
+                }
+                else
+                {
+                    return BadRequest(resultado);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear aulas masivas");
+                return StatusCode(500, new
+                {
+                    message = "Error al crear las aulas",
+                    error = ex.Message
+                });
+            }
+        }
+
+        #endregion
+
+        #region GESTIÓN DE HORARIOS
 
         /// <summary>
         /// Obtener horarios de un aula
@@ -221,12 +262,34 @@ namespace EduCore.API.Controllers
         {
             try
             {
-                var horarios = await _aulaService.GetHorariosAulaAsync(id);
+                var horarios = await _horarioService.GetHorariosAulaAsync(id);
                 return Ok(horarios);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error al obtener horarios del aula {Id}", id);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obtener un horario específico por ID
+        /// </summary>
+        [HttpGet("horarios/{horarioId}")]
+        public async Task<ActionResult<HorarioAulaDto>> GetHorarioById(int horarioId)
+        {
+            try
+            {
+                var horario = await _horarioService.GetHorarioByIdAsync(horarioId);
+
+                if (horario == null)
+                    return NotFound(new { message = "Horario no encontrado" });
+
+                return Ok(horario);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al obtener horario {HorarioId}", horarioId);
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
@@ -243,7 +306,7 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var horario = await _aulaService.CreateHorarioAsync(createDto);
+                var horario = await _horarioService.CreateHorarioAsync(createDto);
                 return Ok(horario);
             }
             catch (InvalidOperationException ex)
@@ -271,7 +334,7 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                var horario = await _aulaService.UpdateHorarioAsync(horarioId, updateDto);
+                var horario = await _horarioService.UpdateHorarioAsync(horarioId, updateDto);
 
                 if (horario == null)
                     return NotFound(new { message = "Horario no encontrado" });
@@ -298,7 +361,7 @@ namespace EduCore.API.Controllers
         {
             try
             {
-                var result = await _aulaService.DeleteHorarioAsync(horarioId);
+                var result = await _horarioService.DeleteHorarioAsync(horarioId);
 
                 if (!result)
                     return NotFound(new { message = "Horario no encontrado" });
@@ -329,7 +392,7 @@ namespace EduCore.API.Controllers
                 // Asegurar que el AulaId coincida
                 configDto.AulaId = id;
 
-                var resultado = await _aulaService.ConfigurarHorarioCompletoAsync(configDto);
+                var resultado = await _horarioService.ConfigurarHorarioCompletoAsync(configDto);
 
                 if (!resultado.Exitoso)
                 {
@@ -350,7 +413,9 @@ namespace EduCore.API.Controllers
             }
         }
 
-        // ==================== AUTO-GENERACIÓN ====================
+        #endregion
+
+        #region AUTO-GENERACIÓN
 
         /// <summary>
         /// Generar grupos-cursos desde el horario del aula
@@ -361,7 +426,7 @@ namespace EduCore.API.Controllers
         {
             try
             {
-                var resultado = await _aulaService.GenerarGruposCursosDesdeHorarioAsync(id);
+                var resultado = await _horarioService.GenerarGruposCursosDesdeHorarioAsync(id);
 
                 if (!resultado.Exitoso)
                 {
@@ -391,7 +456,7 @@ namespace EduCore.API.Controllers
         {
             try
             {
-                var resultado = await _aulaService.GenerarSesionesParaAulaAsync(id);
+                var resultado = await _horarioService.GenerarSesionesParaAulaAsync(id);
 
                 if (!resultado.Exitoso)
                 {
@@ -412,7 +477,9 @@ namespace EduCore.API.Controllers
             }
         }
 
-        // ==================== GESTIÓN DE ESTUDIANTES ====================
+        #endregion
+
+        #region GESTIÓN DE ESTUDIANTES
 
         /// <summary>
         /// Asignar estudiante a aula
@@ -493,7 +560,9 @@ namespace EduCore.API.Controllers
             }
         }
 
-        // ==================== VALIDACIONES ====================
+        #endregion
+
+        #region VALIDACIONES
 
         /// <summary>
         /// Verificar si el aula tiene cupos disponibles
@@ -512,36 +581,8 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
-        /// <summary>
-        /// Crear Aulas automáticamente para un periodo académico
-        /// </summary>
-        [HttpPost("crear-masivas")]
-        public async Task<ActionResult<ResultadoCreacionMasivaDto>> CrearAulasMasivas(
-            [FromBody] CrearAulasMasivasDto dto)
-        {
-            try
-            {
-                var resultado = await _aulaService.CrearAulasMasivasAsync(dto);
 
-                if (resultado.Exitoso)
-                {
-                    return Ok(resultado);
-                }
-                else
-                {
-                    return BadRequest(resultado);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error al crear aulas masivas");
-                return StatusCode(500, new
-                {
-                    message = "Error al crear las aulas",
-                    error = ex.Message
-                });
-            }
-        }
-
+        #endregion
     }
 }
+

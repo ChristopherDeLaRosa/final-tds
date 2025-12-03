@@ -1,4 +1,4 @@
-import axiosInstance from '../services/axiosConfig';
+import axiosInstance from './axiosConfig';
 
 const aulaService = {
   // ==================== CRUD BÁSICO ====================
@@ -47,14 +47,19 @@ const aulaService = {
   },
 
   async crearMasivas(data) {
-  const response = await axiosInstance.post('/aulas/crear-masivas', data);
-  return response.data;
-},
+    const response = await axiosInstance.post('/aulas/crear-masivas', data);
+    return response.data;
+  },
 
   // ==================== HORARIOS ====================
 
   async getHorarios(aulaId) {
     const response = await axiosInstance.get(`/aulas/${aulaId}/horarios`);
+    return response.data;
+  },
+
+  async getHorarioById(horarioId) {
+    const response = await axiosInstance.get(`/aulas/horarios/${horarioId}`);
     return response.data;
   },
 
@@ -112,7 +117,7 @@ const aulaService = {
   async inscribirEstudiantes(aulaId, estudiantesIds) {
     const response = await axiosInstance.post(
       `/aulas/${aulaId}/inscribir-estudiantes`,
-      { estudiantesIds }
+      estudiantesIds  // Enviar directamente el array, no como objeto
     );
     return response.data;
   },
@@ -126,3 +131,4 @@ const aulaService = {
 };
 
 export default aulaService;
+
