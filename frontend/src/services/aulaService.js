@@ -71,6 +71,11 @@ const aulaService = {
     return response.data;
   },
 
+  async updateHorarioCascada(horarioId, data) {
+    const response = await axiosInstance.put(`/aulas/horarios/${horarioId}/cascada`, data);
+    return response.data;
+  },
+
   async deleteHorario(horarioId) {
     const response = await axiosInstance.delete(`/aulas/horarios/${horarioId}`);
     return response.data;
@@ -131,4 +136,3 @@ const aulaService = {
 };
 
 export default aulaService;
-

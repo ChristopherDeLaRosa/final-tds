@@ -585,6 +585,36 @@ namespace EduCore.API.Controllers
         #endregion
 
         /// <summary>
+        /// Actualizar horario y todos los datos relacionados (grupos, sesiones futuras)
+        /// </summary>
+        [HttpPut("horarios/{horarioId}/cascada")]
+        [Authorize(Roles = "Admin,Coordinador")]
+        public async Task<ActionResult<ResultadoEdicionHorarioDto>> UpdateHorarioCascada(
+            int horarioId,
+            [FromBody] UpdateHorarioAulaDto updateDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var resultado = await _horarioService.UpdateHorarioConCascadaAsync(horarioId, updateDto);
+
+                if (!resultado.Exitoso)
+                {
+                    return BadRequest(new { message = resultado.Mensaje });
+                }
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar horario {HorarioId} en cascada", horarioId);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Eliminar horario y todos los datos relacionados (grupos, sesiones, inscripciones)
         /// </summary>
         [HttpDelete("horarios/{horarioId}/cascada")]

@@ -11,6 +11,7 @@ namespace EduCore.API.Services.Interfaces
         // CRUD de horarios individuales
         Task<HorarioAulaDto> CreateHorarioAsync(CreateHorarioAulaDto createDto);
         Task<HorarioAulaDto?> UpdateHorarioAsync(int horarioId, UpdateHorarioAulaDto updateDto);
+        Task<ResultadoEdicionHorarioDto> UpdateHorarioConCascadaAsync(int horarioId, UpdateHorarioAulaDto updateDto);
         Task<bool> DeleteHorarioAsync(int horarioId);
         Task<ResultadoEliminacionHorarioDto> DeleteHorarioConCascadaAsync(int horarioId);
 

@@ -502,6 +502,8 @@ namespace EduCore.API.Services.Implementations
 
         #endregion
 
+        #region Para eliminar en cascada
+
         public async Task<ResultadoEliminacionHorarioDto> DeleteHorarioConCascadaAsync(int horarioId)
         {
             var resultado = new ResultadoEliminacionHorarioDto();
@@ -592,6 +594,123 @@ namespace EduCore.API.Services.Implementations
                 return resultado;
             }
         }
+
+        #endregion
+
+        #region Para editar en cascada
+        public async Task<ResultadoEdicionHorarioDto> UpdateHorarioConCascadaAsync(int horarioId, UpdateHorarioAulaDto updateDto)
+        {
+            var resultado = new ResultadoEdicionHorarioDto();
+
+            try
+            {
+                var horario = await _context.HorariosAulas
+                    .Include(h => h.Curso)
+                    .Include(h => h.Docente)
+                    .Include(h => h.Aula)
+                    .FirstOrDefaultAsync(h => h.Id == horarioId);
+
+                if (horario == null)
+                {
+                    resultado.Exitoso = false;
+                    resultado.Mensaje = "Horario no encontrado";
+                    return resultado;
+                }
+
+                // Validar conflicto de horario
+                if (await ExisteConflictoHorarioAsync(
+                    horario.AulaId,
+                    horario.DiaSemana,
+                    updateDto.HoraInicio,
+                    updateDto.HoraFin,
+                    horarioId))
+                {
+                    resultado.Exitoso = false;
+                    resultado.Mensaje = "Ya existe un horario en ese día y hora para esta aula";
+                    return resultado;
+                }
+
+                if (updateDto.HoraFin <= updateDto.HoraInicio)
+                {
+                    resultado.Exitoso = false;
+                    resultado.Mensaje = "La hora de fin debe ser posterior a la hora de inicio";
+                    return resultado;
+                }
+
+                var docenteAnterior = horario.DocenteId;
+                var horaInicioAnterior = horario.HoraInicio;
+                var horaFinAnterior = horario.HoraFin;
+
+                // Actualizar horario
+                horario.DocenteId = updateDto.DocenteId;
+                horario.HoraInicio = updateDto.HoraInicio;
+                horario.HoraFin = updateDto.HoraFin;
+                horario.Orden = updateDto.Orden;
+                horario.Activo = updateDto.Activo;
+
+                await _context.SaveChangesAsync();
+
+                // Buscar grupo-curso asociado
+                var grupoCurso = await _context.GruposCursos
+                    .FirstOrDefaultAsync(g =>
+                        g.AulaId == horario.AulaId &&
+                        g.CursoId == horario.CursoId &&
+                        g.DocenteId == docenteAnterior &&
+                        g.Activo);
+
+                if (grupoCurso != null)
+                {
+                    // Actualizar docente del grupo
+                    grupoCurso.DocenteId = updateDto.DocenteId;
+                    resultado.GruposCursosActualizados = 1;
+                    resultado.Detalles.Add($"Grupo-curso actualizado: {grupoCurso.Codigo}");
+
+                    // Actualizar sesiones futuras
+                    var hoy = DateTime.UtcNow.Date;
+                    var sesionesFuturas = await _context.Sesiones
+                        .Where(s => s.GrupoCursoId == grupoCurso.Id &&
+                                   s.Fecha >= hoy &&
+                                   s.HoraInicio == horaInicioAnterior &&
+                                   s.HoraFin == horaFinAnterior &&
+                                   !s.Realizada)
+                        .ToListAsync();
+
+                    foreach (var sesion in sesionesFuturas)
+                    {
+                        sesion.HoraInicio = updateDto.HoraInicio;
+                        sesion.HoraFin = updateDto.HoraFin;
+                    }
+
+                    resultado.SesionesFuturasActualizadas = sesionesFuturas.Count;
+                    resultado.Detalles.Add($"Sesiones futuras actualizadas: {resultado.SesionesFuturasActualizadas}");
+
+                    await _context.SaveChangesAsync();
+                }
+
+                // Recargar horario con relaciones
+                await _context.Entry(horario).Reference(h => h.Docente).LoadAsync();
+
+                var culture = new CultureInfo("es-DO");
+                resultado.HorarioActualizado = MapToDto(horario, culture);
+                resultado.Exitoso = true;
+                resultado.Mensaje = "Horario y datos relacionados actualizados correctamente";
+
+                _logger.LogInformation(
+                    "Horario {HorarioId} actualizado en cascada: {Grupos} grupos, {Sesiones} sesiones",
+                    horarioId, resultado.GruposCursosActualizados, resultado.SesionesFuturasActualizadas
+                );
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al actualizar horario {HorarioId} en cascada", horarioId);
+                resultado.Exitoso = false;
+                resultado.Mensaje = $"Error al actualizar: {ex.Message}";
+                return resultado;
+            }
+        }
+        #endregion
 
         #region Mapper
 
