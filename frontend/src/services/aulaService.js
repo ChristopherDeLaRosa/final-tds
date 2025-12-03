@@ -1,8 +1,7 @@
 import axiosInstance from './axiosConfig';
 
 const aulaService = {
-  // ==================== CRUD BÁSICO ====================
-
+  // CRUD BÁSICO
   async getAll() {
     const response = await axiosInstance.get('/aulas');
     return response.data;
@@ -51,8 +50,7 @@ const aulaService = {
     return response.data;
   },
 
-  // ==================== HORARIOS ====================
-
+  // HORARIOS
   async getHorarios(aulaId) {
     const response = await axiosInstance.get(`/aulas/${aulaId}/horarios`);
     return response.data;
@@ -78,6 +76,11 @@ const aulaService = {
     return response.data;
   },
 
+  async deleteHorarioCascada(horarioId) {
+    const response = await axiosInstance.delete(`/aulas/horarios/${horarioId}/cascada`);
+    return response.data;
+  },
+
   async configurarHorarioCompleto(aulaId, data) {
     const response = await axiosInstance.post(
       `/aulas/${aulaId}/configurar-horario-completo`,
@@ -86,8 +89,7 @@ const aulaService = {
     return response.data;
   },
 
-  // ==================== AUTO-GENERACIÓN ====================
-
+  // AUTO-GENERACIÓN
   async generarGrupos(aulaId) {
     const response = await axiosInstance.post(`/aulas/${aulaId}/generar-grupos`);
     return response.data;
@@ -98,8 +100,7 @@ const aulaService = {
     return response.data;
   },
 
-  // ==================== ESTUDIANTES ====================
-
+  // ESTUDIANTES
   async asignarEstudiante(aulaId, estudianteId) {
     const response = await axiosInstance.post(
       `/aulas/${aulaId}/asignar-estudiante/${estudianteId}`
@@ -117,13 +118,12 @@ const aulaService = {
   async inscribirEstudiantes(aulaId, estudiantesIds) {
     const response = await axiosInstance.post(
       `/aulas/${aulaId}/inscribir-estudiantes`,
-      estudiantesIds  // Enviar directamente el array, no como objeto
+      estudiantesIds
     );
     return response.data;
   },
 
-  // ==================== VALIDACIONES ====================
-
+  // VALIDACIONES
   async tieneCupo(aulaId) {
     const response = await axiosInstance.get(`/aulas/${aulaId}/tiene-cupo`);
     return response.data;

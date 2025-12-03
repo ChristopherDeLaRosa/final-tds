@@ -583,6 +583,31 @@ namespace EduCore.API.Controllers
         }
 
         #endregion
+
+        /// <summary>
+        /// Eliminar horario y todos los datos relacionados (grupos, sesiones, inscripciones)
+        /// </summary>
+        [HttpDelete("horarios/{horarioId}/cascada")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<ResultadoEliminacionHorarioDto>> DeleteHorarioCascada(int horarioId)
+        {
+            try
+            {
+                var resultado = await _horarioService.DeleteHorarioConCascadaAsync(horarioId);
+
+                if (!resultado.Exitoso)
+                {
+                    return NotFound(new { message = resultado.Mensaje });
+                }
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar horario {HorarioId} en cascada", horarioId);
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
     }
 }
 

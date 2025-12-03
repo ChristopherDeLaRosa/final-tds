@@ -98,6 +98,16 @@ namespace EduCore.API.DTOs
         public bool GenerarSesionesAutomaticamente { get; set; } = true;
     }
 
+    public class ResultadoEliminacionHorarioDto
+    {
+        public bool Exitoso { get; set; }
+        public string Mensaje { get; set; } = string.Empty;
+        public int GruposCursosEliminados { get; set; }
+        public int SesionesEliminadas { get; set; }
+        public int InscripcionesEliminadas { get; set; }
+        public List<string> Detalles { get; set; } = new();
+    }
+
     public class InscribirEstudianteEnAulaDto
     {
         public int EstudianteId { get; set; }

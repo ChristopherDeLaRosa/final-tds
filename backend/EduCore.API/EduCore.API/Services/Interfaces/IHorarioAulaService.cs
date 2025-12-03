@@ -12,6 +12,7 @@ namespace EduCore.API.Services.Interfaces
         Task<HorarioAulaDto> CreateHorarioAsync(CreateHorarioAulaDto createDto);
         Task<HorarioAulaDto?> UpdateHorarioAsync(int horarioId, UpdateHorarioAulaDto updateDto);
         Task<bool> DeleteHorarioAsync(int horarioId);
+        Task<ResultadoEliminacionHorarioDto> DeleteHorarioConCascadaAsync(int horarioId);
 
         // Configuración completa
         Task<ResultadoConfiguracionAulaDto> ConfigurarHorarioCompletoAsync(

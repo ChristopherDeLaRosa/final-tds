@@ -502,6 +502,97 @@ namespace EduCore.API.Services.Implementations
 
         #endregion
 
+        public async Task<ResultadoEliminacionHorarioDto> DeleteHorarioConCascadaAsync(int horarioId)
+        {
+            var resultado = new ResultadoEliminacionHorarioDto();
+
+            try
+            {
+                var horario = await _context.HorariosAulas
+                    .Include(h => h.Aula)
+                    .Include(h => h.Curso)
+                    .Include(h => h.Docente)
+                    .FirstOrDefaultAsync(h => h.Id == horarioId);
+
+                if (horario == null)
+                {
+                    resultado.Exitoso = false;
+                    resultado.Mensaje = "Horario no encontrado";
+                    return resultado;
+                }
+
+                // Buscar grupo-curso asociado
+                var grupoCurso = await _context.GruposCursos
+                    .FirstOrDefaultAsync(g =>
+                        g.AulaId == horario.AulaId &&
+                        g.CursoId == horario.CursoId &&
+                        g.DocenteId == horario.DocenteId &&
+                        g.Activo);
+
+                if (grupoCurso != null)
+                {
+                    // Contar inscripciones antes de eliminar
+                    var inscripciones = await _context.Inscripciones
+                        .Where(i => i.GrupoCursoId == grupoCurso.Id)
+                        .ToListAsync();
+
+                    resultado.InscripcionesEliminadas = inscripciones.Count;
+
+                    // Contar sesiones antes de eliminar
+                    var sesiones = await _context.Sesiones
+                        .Where(s => s.GrupoCursoId == grupoCurso.Id)
+                        .ToListAsync();
+
+                    resultado.SesionesEliminadas = sesiones.Count;
+
+                    // Eliminar inscripciones
+                    _context.Inscripciones.RemoveRange(inscripciones);
+
+                    // Eliminar asistencias de las sesiones
+                    foreach (var sesion in sesiones)
+                    {
+                        var asistencias = await _context.Asistencias
+                            .Where(a => a.SesionId == sesion.Id)
+                            .ToListAsync();
+                        _context.Asistencias.RemoveRange(asistencias);
+                    }
+
+                    // Eliminar sesiones
+                    _context.Sesiones.RemoveRange(sesiones);
+
+                    // Eliminar grupo-curso
+                    _context.GruposCursos.Remove(grupoCurso);
+                    resultado.GruposCursosEliminados = 1;
+
+                    resultado.Detalles.Add($"Grupo-curso eliminado: {grupoCurso.Codigo}");
+                    resultado.Detalles.Add($"Sesiones eliminadas: {resultado.SesionesEliminadas}");
+                    resultado.Detalles.Add($"Inscripciones eliminadas: {resultado.InscripcionesEliminadas}");
+                }
+
+                // Eliminar el horario
+                _context.HorariosAulas.Remove(horario);
+
+                await _context.SaveChangesAsync();
+
+                resultado.Exitoso = true;
+                resultado.Mensaje = "Horario y datos relacionados eliminados correctamente";
+
+                _logger.LogInformation(
+                    "Horario {HorarioId} eliminado en cascada: {Grupos} grupos, {Sesiones} sesiones, {Inscripciones} inscripciones",
+                    horarioId, resultado.GruposCursosEliminados, resultado.SesionesEliminadas, resultado.InscripcionesEliminadas
+                );
+
+                return resultado;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al eliminar horario {HorarioId} en cascada", horarioId);
+                resultado.Exitoso = false;
+                resultado.Mensaje = $"Error al eliminar: {ex.Message}";
+                return resultado;
+            }
+        }
+
         #region Mapper
 
         private HorarioAulaDto MapToDto(HorarioAula horario, CultureInfo culture)

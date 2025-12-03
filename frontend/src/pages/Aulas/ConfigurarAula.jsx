@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import styled from 'styled-components';
+import { useState, useEffect } from "react";
+import React from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import styled from "styled-components";
 import {
   ArrowLeft,
   Calendar,
@@ -20,15 +20,15 @@ import {
   List,
   Eye,
   EyeOff,
-} from 'lucide-react';
-import { theme } from '../../styles';
-import aulaService from '../../services/aulaService';
-import cursoService from '../../services/cursoService';
-import docenteService from '../../services/docenteService';
-import { MySwal, Toast } from '../../utils/alerts';
-import Button from '../../components/atoms/Button/Button';
-import Select from '../../components/atoms/Select/Select';
-import Input from '../../components/atoms/Input/Input';
+} from "lucide-react";
+import { theme } from "../../styles";
+import aulaService from "../../services/aulaService";
+import cursoService from "../../services/cursoService";
+import docenteService from "../../services/docenteService";
+import { MySwal, Toast } from "../../utils/alerts";
+import Button from "../../components/atoms/Button/Button";
+import Select from "../../components/atoms/Select/Select";
+import Input from "../../components/atoms/Input/Input";
 
 // Styled Components (igual que antes)
 const Container = styled.div`
@@ -68,10 +68,10 @@ const Subtitle = styled.p`
 `;
 
 const Card = styled.div`
-  background: ${theme.colors.bg || '#ffffff'};
-  border: 1px solid ${theme.colors.border || '#e5e7eb'};
-  border-radius: ${theme.borderRadius?.md || '8px'};
-  padding: ${theme.spacing?.lg || '1.5rem'};
+  background: ${theme.colors.bg || "#ffffff"};
+  border: 1px solid ${theme.colors.border || "#e5e7eb"};
+  border-radius: ${theme.borderRadius?.md || "8px"};
+  padding: ${theme.spacing?.lg || "1.5rem"};
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   margin-bottom: ${theme.spacing.lg};
 `;
@@ -103,7 +103,7 @@ const StatsGrid = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: ${props => props.$bgColor || theme.colors.bg};
+  background: ${(props) => props.$bgColor || theme.colors.bg};
   border: 1px solid ${theme.colors.border};
   border-radius: ${theme.borderRadius.md};
   padding: ${theme.spacing.lg};
@@ -116,8 +116,8 @@ const StatIcon = styled.div`
   width: 48px;
   height: 48px;
   border-radius: ${theme.borderRadius.md};
-  background: ${props => props.$color}20;
-  color: ${props => props.$color};
+  background: ${(props) => props.$color}20;
+  color: ${(props) => props.$color};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -152,8 +152,9 @@ const ViewButton = styled.button`
   align-items: center;
   gap: ${theme.spacing.xs};
   padding: ${theme.spacing.sm} ${theme.spacing.md};
-  background: ${props => props.$active ? theme.colors.primary : 'transparent'};
-  color: ${props => props.$active ? 'white' : theme.colors.text};
+  background: ${(props) =>
+    props.$active ? theme.colors.primary : "transparent"};
+  color: ${(props) => (props.$active ? "white" : theme.colors.text)};
   border: none;
   border-radius: ${theme.borderRadius.sm};
   font-size: 14px;
@@ -162,7 +163,8 @@ const ViewButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    background: ${props => props.$active ? theme.colors.primary : 'rgba(0,0,0,0.05)'};
+    background: ${(props) =>
+      props.$active ? theme.colors.primary : "rgba(0,0,0,0.05)"};
   }
 `;
 
@@ -198,10 +200,13 @@ const DayHeader = styled.div`
 `;
 
 const ClassSlot = styled.div`
-  background: ${props => props.$hasClass ? props.$color || theme.colors.primary + '20' : theme.colors.bg};
+  background: ${(props) =>
+    props.$hasClass
+      ? props.$color || theme.colors.primary + "20"
+      : theme.colors.bg};
   padding: ${theme.spacing.sm};
   min-height: 80px;
-  cursor: ${props => props.$hasClass ? 'pointer' : 'default'};
+  cursor: ${(props) => (props.$hasClass ? "pointer" : "default")};
   position: relative;
   transition: all 0.2s;
   display: flex;
@@ -209,14 +214,18 @@ const ClassSlot = styled.div`
   gap: 4px;
 
   &:hover {
-    ${props => props.$hasClass && `
+    ${(props) =>
+      props.$hasClass &&
+      `
       transform: scale(1.02);
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       z-index: 1;
     `}
   }
 
-  ${props => !props.$hasClass && `
+  ${(props) =>
+    !props.$hasClass &&
+    `
     border: 2px dashed transparent;
     &:hover {
       border-color: ${theme.colors.border};
@@ -318,7 +327,7 @@ const CloseButton = styled.button`
   justify-content: center;
   cursor: pointer;
   color: ${theme.colors.text};
-  
+
   &:hover {
     background: ${theme.colors.border};
   }
@@ -345,12 +354,14 @@ const TemplateGrid = styled.div`
 `;
 
 const TemplateCard = styled.div`
-  border: 2px solid ${props => props.$selected ? theme.colors.primary : theme.colors.border};
+  border: 2px solid
+    ${(props) => (props.$selected ? theme.colors.primary : theme.colors.border)};
   border-radius: ${theme.borderRadius.md};
   padding: ${theme.spacing.md};
   cursor: pointer;
   transition: all 0.2s;
-  background: ${props => props.$selected ? theme.colors.primary + '10' : 'transparent'};
+  background: ${(props) =>
+    props.$selected ? theme.colors.primary + "10" : "transparent"};
 
   &:hover {
     border-color: ${theme.colors.primary};
@@ -378,9 +389,16 @@ const ActionsBar = styled.div`
 `;
 
 const AlertBox = styled.div`
-  background: ${props => props.$type === 'warning' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(59, 130, 246, 0.1)'};
-  border: 1px solid ${props => props.$type === 'warning' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(59, 130, 246, 0.3)'};
-  color: ${props => props.$type === 'warning' ? '#f59e0b' : '#3b82f6'};
+  background: ${(props) =>
+    props.$type === "warning"
+      ? "rgba(245, 158, 11, 0.1)"
+      : "rgba(59, 130, 246, 0.1)"};
+  border: 1px solid
+    ${(props) =>
+      props.$type === "warning"
+        ? "rgba(245, 158, 11, 0.3)"
+        : "rgba(59, 130, 246, 0.3)"};
+  color: ${(props) => (props.$type === "warning" ? "#f59e0b" : "#3b82f6")};
   padding: ${theme.spacing.md};
   border-radius: ${theme.borderRadius.md};
   display: flex;
@@ -400,8 +418,12 @@ const LoadingSpinner = styled.div`
   animation: spin 0.8s linear infinite;
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
 `;
 
@@ -419,58 +441,64 @@ const ConflictBadge = styled.div`
 
 // Datos
 const DIAS_SEMANA = [
-  { value: 1, label: 'Lunes', short: 'L' },
-  { value: 2, label: 'Martes', short: 'M' },
-  { value: 3, label: 'Miércoles', short: 'X' },
-  { value: 4, label: 'Jueves', short: 'J' },
-  { value: 5, label: 'Viernes', short: 'V' },
+  { value: 1, label: "Lunes", short: "L" },
+  { value: 2, label: "Martes", short: "M" },
+  { value: 3, label: "Miércoles", short: "X" },
+  { value: 4, label: "Jueves", short: "J" },
+  { value: 5, label: "Viernes", short: "V" },
 ];
 
 const HORAS_DIA = [
-  { value: '08:00', label: '8:00 AM' },
-  { value: '09:00', label: '9:00 AM' },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '11:00', label: '11:00 AM' },
-  { value: '12:00', label: '12:00 PM' },
-  { value: '13:00', label: '1:00 PM' },
-  { value: '14:00', label: '2:00 PM' },
-  { value: '15:00', label: '3:00 PM' },
+  { value: "08:00", label: "8:00 AM" },
+  { value: "09:00", label: "9:00 AM" },
+  { value: "10:00", label: "10:00 AM" },
+  { value: "11:00", label: "11:00 AM" },
+  { value: "12:00", label: "12:00 PM" },
+  { value: "13:00", label: "1:00 PM" },
+  { value: "14:00", label: "2:00 PM" },
+  { value: "15:00", label: "3:00 PM" },
 ];
 
 const PLANTILLAS_HORARIO = [
   {
-    id: 'basico',
-    nombre: 'Horario Básico',
-    descripcion: '8am-12pm, Lunes a Viernes',
-    horaInicio: '08:00',
-    horaFin: '12:00',
+    id: "basico",
+    nombre: "Horario Básico",
+    descripcion: "8am-12pm, Lunes a Viernes",
+    horaInicio: "08:00",
+    horaFin: "12:00",
   },
   {
-    id: 'completo',
-    nombre: 'Jornada Completa',
-    descripcion: '8am-3pm, Lunes a Viernes',
-    horaInicio: '08:00',
-    horaFin: '15:00',
+    id: "completo",
+    nombre: "Jornada Completa",
+    descripcion: "8am-3pm, Lunes a Viernes",
+    horaInicio: "08:00",
+    horaFin: "15:00",
   },
   {
-    id: 'tarde',
-    nombre: 'Jornada Tarde',
-    descripcion: '1pm-5pm, Lunes a Viernes',
-    horaInicio: '13:00',
-    horaFin: '17:00',
+    id: "tarde",
+    nombre: "Jornada Tarde",
+    descripcion: "1pm-5pm, Lunes a Viernes",
+    horaInicio: "13:00",
+    horaFin: "17:00",
   },
   {
-    id: 'personalizado',
-    nombre: 'Personalizado',
-    descripcion: 'Define tu propio horario',
-    horaInicio: '08:00',
-    horaFin: '12:00',
+    id: "personalizado",
+    nombre: "Personalizado",
+    descripcion: "Define tu propio horario",
+    horaInicio: "08:00",
+    horaFin: "12:00",
   },
 ];
 
 const COLORES_CURSOS = [
-  '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', 
-  '#10b981', '#06b6d4', '#6366f1', '#84cc16'
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#f59e0b",
+  "#10b981",
+  "#06b6d4",
+  "#6366f1",
+  "#84cc16",
 ];
 
 // Componente Principal
@@ -484,17 +512,17 @@ export default function ConfigurarAula() {
   const [cursos, setCursos] = useState([]);
   const [docentes, setDocentes] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [viewMode, setViewMode] = useState('calendar');
+  const [viewMode, setViewMode] = useState("calendar");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [conflictos, setConflictos] = useState([]);
 
   const [quickAdd, setQuickAdd] = useState({
-    cursoId: '',
-    docenteId: '',
-    plantilla: 'basico',
-    horaInicio: '08:00',
-    horaFin: '09:00',
+    cursoId: "",
+    docenteId: "",
+    plantilla: "basico",
+    horaInicio: "08:00",
+    horaFin: "09:00",
   });
 
   useEffect(() => {
@@ -517,18 +545,19 @@ export default function ConfigurarAula() {
 
       setAula(aulaData.aula);
       setHorarios(aulaData.horarios || []);
-      
-      const cursosFiltrados = cursosData.filter(c => c.nivelGrado === aulaData.aula.grado);
+
+      const cursosFiltrados = cursosData.filter(
+        (c) => c.nivelGrado === aulaData.aula.grado
+      );
       setCursos(cursosFiltrados);
       setDocentes(docentesData);
-
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      console.error("Error al cargar datos:", error);
       Toast.fire({
-        icon: 'error',
-        title: 'Error al cargar la información del aula',
+        icon: "error",
+        title: "Error al cargar la información del aula",
       });
-      navigate('/aulas');
+      navigate("/aulas");
     } finally {
       setLoading(false);
     }
@@ -536,20 +565,20 @@ export default function ConfigurarAula() {
 
   const detectarConflictos = () => {
     const nuevosConflictos = [];
-    
+
     horarios.forEach((h1, i) => {
-      horarios.slice(i + 1).forEach(h2 => {
+      horarios.slice(i + 1).forEach((h2) => {
         if (h1.diaSemana === h2.diaSemana) {
           const inicio1 = h1.horaInicio;
           const fin1 = h1.horaFin;
           const inicio2 = h2.horaInicio;
           const fin2 = h2.horaFin;
 
-          if ((inicio1 < fin2 && fin1 > inicio2)) {
+          if (inicio1 < fin2 && fin1 > inicio2) {
             nuevosConflictos.push({
               horario1: h1.id,
               horario2: h2.id,
-              tipo: 'tiempo',
+              tipo: "tiempo",
             });
           }
         }
@@ -560,11 +589,11 @@ export default function ConfigurarAula() {
           const inicio2 = h2.horaInicio;
           const fin2 = h2.horaFin;
 
-          if ((inicio1 < fin2 && fin1 > inicio2)) {
+          if (inicio1 < fin2 && fin1 > inicio2) {
             nuevosConflictos.push({
               horario1: h1.id,
               horario2: h2.id,
-              tipo: 'docente',
+              tipo: "docente",
             });
           }
         }
@@ -582,15 +611,17 @@ export default function ConfigurarAula() {
   const handleQuickAddSubmit = () => {
     if (!quickAdd.cursoId || !quickAdd.docenteId) {
       Toast.fire({
-        icon: 'warning',
-        title: 'Selecciona curso y docente',
+        icon: "warning",
+        title: "Selecciona curso y docente",
       });
       return;
     }
 
-    const plantilla = PLANTILLAS_HORARIO.find(p => p.id === quickAdd.plantilla);
-    
-    if (quickAdd.plantilla === 'personalizado' && selectedSlot) {
+    const plantilla = PLANTILLAS_HORARIO.find(
+      (p) => p.id === quickAdd.plantilla
+    );
+
+    if (quickAdd.plantilla === "personalizado" && selectedSlot) {
       const horarioNuevo = crearHorario(
         selectedSlot.dia,
         quickAdd.horaInicio,
@@ -601,7 +632,7 @@ export default function ConfigurarAula() {
       setHorarios([...horarios, horarioNuevo]);
     } else {
       const nuevosHorarios = [];
-      DIAS_SEMANA.forEach(dia => {
+      DIAS_SEMANA.forEach((dia) => {
         const horarioNuevo = crearHorario(
           dia.value,
           plantilla.horaInicio,
@@ -616,35 +647,35 @@ export default function ConfigurarAula() {
 
     setShowQuickAdd(false);
     setQuickAdd({
-      cursoId: '',
-      docenteId: '',
-      plantilla: 'basico',
-      horaInicio: '08:00',
-      horaFin: '09:00',
+      cursoId: "",
+      docenteId: "",
+      plantilla: "basico",
+      horaInicio: "08:00",
+      horaFin: "09:00",
     });
 
     Toast.fire({
-      icon: 'success',
-      title: 'Horario(s) agregado(s)',
+      icon: "success",
+      title: "Horario(s) agregado(s)",
     });
   };
 
   const formatearHora = (hora) => {
-    if (!hora) return '08:00:00';
-    if (hora.includes(':00:00')) return hora;
+    if (!hora) return "08:00:00";
+    if (hora.includes(":00:00")) return hora;
     if (hora.length === 5) return `${hora}:00`;
     return `${hora}:00`;
   };
 
   const crearHorario = (dia, horaInicio, horaFin, cursoId, docenteId) => {
-    const curso = cursos.find(c => c.id === parseInt(cursoId));
-    const docente = docentes.find(d => d.id === parseInt(docenteId));
-    
+    const curso = cursos.find((c) => c.id === parseInt(cursoId));
+    const docente = docentes.find((d) => d.id === parseInt(docenteId));
+
     return {
       id: `temp-${Date.now()}-${Math.random()}`,
       aulaId: parseInt(id),
       diaSemana: dia,
-      diaSemanaTexto: DIAS_SEMANA.find(d => d.value === dia)?.label,
+      diaSemanaTexto: DIAS_SEMANA.find((d) => d.value === dia)?.label,
       horaInicio: formatearHora(horaInicio),
       horaFin: formatearHora(horaFin),
       cursoId: parseInt(cursoId),
@@ -656,51 +687,124 @@ export default function ConfigurarAula() {
     };
   };
 
-  const handleEliminarHorario = (horarioId) => {
-    setHorarios(horarios.filter(h => h.id !== horarioId));
-    Toast.fire({
-      icon: 'info',
-      title: 'Horario eliminado',
+  const handleEliminarHorario = async (horarioId) => {
+    // Si es un horario temporal (no guardado), eliminar directamente
+    if (String(horarioId).startsWith("temp-")) {
+      setHorarios(horarios.filter((h) => h.id !== horarioId));
+      Toast.fire({
+        icon: "info",
+        title: "Horario eliminado",
+      });
+      return;
+    }
+
+    // Si es un horario guardado, preguntar antes de eliminar
+    const { isConfirmed } = await MySwal.fire({
+      title: "Eliminar Horario",
+      html: `
+      <div style="text-align: left;">
+        <p>Esta acción eliminará:</p>
+        <ul>
+          <li>El horario seleccionado</li>
+          <li>El grupo-curso asociado (si existe)</li>
+          <li>Todas las sesiones generadas</li>
+          <li>Todas las inscripciones de estudiantes</li>
+        </ul>
+        <p style="color: #ef4444; font-weight: 600; margin-top: 1rem;">
+          Esta acción NO se puede deshacer
+        </p>
+      </div>
+    `,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar todo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#ef4444",
     });
+
+    if (!isConfirmed) return;
+
+    try {
+      MySwal.fire({
+        title: "Eliminando...",
+        html: "Eliminando horario y datos relacionados",
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+      });
+
+      const resultado = await aulaService.deleteHorarioCascada(horarioId);
+
+      MySwal.close();
+
+      if (resultado.exitoso) {
+        setHorarios(horarios.filter((h) => h.id !== horarioId));
+
+        await MySwal.fire({
+          icon: "success",
+          title: "Eliminado Correctamente",
+          html: `
+          <div style="text-align: left;">
+            <p><strong>${resultado.mensaje}</strong></p>
+            <br>
+            <p>Elementos eliminados:</p>
+            <ul style="font-size: 14px;">
+              <li>Grupos-cursos: ${resultado.gruposCursosEliminados}</li>
+              <li>Sesiones: ${resultado.sesionesEliminadas}</li>
+              <li>Inscripciones: ${resultado.inscripcionesEliminadas}</li>
+            </ul>
+          </div>
+        `,
+        });
+      }
+    } catch (error) {
+      MySwal.close();
+      console.error("Error al eliminar horario:", error);
+
+      MySwal.fire({
+        icon: "error",
+        title: "Error al Eliminar",
+        text: error.response?.data?.message || "No se pudo eliminar el horario",
+      });
+    }
   };
 
   const handleGuardarConfiguracion = async () => {
     if (horarios.length === 0) {
       Toast.fire({
-        icon: 'warning',
-        title: 'Debes agregar al menos un horario',
+        icon: "warning",
+        title: "Debes agregar al menos un horario",
       });
       return;
     }
 
-    const horariosInvalidos = horarios.filter(h => {
-      return !h.horaInicio.includes(':00:00') || !h.horaFin.includes(':00:00');
+    const horariosInvalidos = horarios.filter((h) => {
+      return !h.horaInicio.includes(":00:00") || !h.horaFin.includes(":00:00");
     });
 
     if (horariosInvalidos.length > 0) {
-      console.error('Horarios con formato inválido:', horariosInvalidos);
+      console.error("Horarios con formato inválido:", horariosInvalidos);
       Toast.fire({
-        icon: 'error',
-        title: 'Error en formato de horas',
+        icon: "error",
+        title: "Error en formato de horas",
       });
       return;
     }
 
     if (conflictos.length > 0) {
       const { isConfirmed } = await MySwal.fire({
-        title: 'Atención',
+        title: "Atención",
         html: `Hay ${conflictos.length} conflicto(s) detectado(s). ¿Deseas continuar de todos modos?`,
-        icon: 'warning',
+        icon: "warning",
         showCancelButton: true,
-        confirmButtonText: 'Sí, continuar',
-        cancelButtonText: 'Revisar',
+        confirmButtonText: "Sí, continuar",
+        cancelButtonText: "Revisar",
       });
 
       if (!isConfirmed) return;
     }
 
     const { isConfirmed, value: opciones } = await MySwal.fire({
-      title: 'Configurar Aula Completa',
+      title: "Configurar Aula Completa",
       html: `
         <div style="text-align: left;">
           <p><strong>Se crearán ${horarios.length} horarios</strong></p>
@@ -715,14 +819,14 @@ export default function ConfigurarAula() {
           </label>
         </div>
       `,
-      icon: 'question',
+      icon: "question",
       showCancelButton: true,
-      confirmButtonText: 'Sí, configurar',
-      cancelButtonText: 'Cancelar',
+      confirmButtonText: "Sí, configurar",
+      cancelButtonText: "Cancelar",
       preConfirm: () => {
         return {
-          generarGrupos: document.getElementById('generarGrupos').checked,
-          generarSesiones: document.getElementById('generarSesiones').checked,
+          generarGrupos: document.getElementById("generarGrupos").checked,
+          generarSesiones: document.getElementById("generarSesiones").checked,
         };
       },
     });
@@ -733,13 +837,13 @@ export default function ConfigurarAula() {
       setSaving(true);
 
       MySwal.fire({
-        title: 'Configurando aula...',
-        html: 'Esto puede tomar unos momentos',
+        title: "Configurando aula...",
+        html: "Esto puede tomar unos momentos",
         didOpen: () => MySwal.showLoading(),
         allowOutsideClick: false,
       });
 
-      const horariosParaEnviar = horarios.map(h => ({
+      const horariosParaEnviar = horarios.map((h) => ({
         aulaId: parseInt(id),
         cursoId: parseInt(h.cursoId),
         docenteId: parseInt(h.docenteId),
@@ -749,7 +853,10 @@ export default function ConfigurarAula() {
         orden: h.orden || 0,
       }));
 
-      console.log('Horarios a enviar:', JSON.stringify(horariosParaEnviar, null, 2));
+      console.log(
+        "Horarios a enviar:",
+        JSON.stringify(horariosParaEnviar, null, 2)
+      );
 
       const configDto = {
         aulaId: parseInt(id),
@@ -758,16 +865,19 @@ export default function ConfigurarAula() {
         generarSesionesAutomaticamente: opciones.generarSesiones,
       };
 
-      console.log('ConfigDTO completo:', JSON.stringify(configDto, null, 2));
+      console.log("ConfigDTO completo:", JSON.stringify(configDto, null, 2));
 
-      const resultado = await aulaService.configurarHorarioCompleto(id, configDto);
+      const resultado = await aulaService.configurarHorarioCompleto(
+        id,
+        configDto
+      );
 
       MySwal.close();
 
       if (resultado.exitoso) {
         await MySwal.fire({
-          icon: 'success',
-          title: 'Configuración Completada',
+          icon: "success",
+          title: "Configuración Completada",
           html: `
             <div style="text-align: left; padding: 1rem;">
               <p style="font-size: 16px; margin-bottom: 1rem;">
@@ -792,46 +902,49 @@ export default function ConfigurarAula() {
           `,
         });
 
-        navigate('/aulas');
+        navigate("/aulas");
       }
-
     } catch (error) {
       MySwal.close();
-      console.error('Error al configurar:', error);
-      console.error('Response data:', error.response?.data);
+      console.error("Error al configurar:", error);
+      console.error("Response data:", error.response?.data);
 
       if (error.response) {
         const { status, data } = error.response;
-        
+
         if (status === 400) {
           MySwal.fire({
-            icon: 'error',
-            title: 'Error de Validación',
+            icon: "error",
+            title: "Error de Validación",
             html: `
               <div style="text-align: left;">
-                <p>${data.message || 'Los datos enviados no son válidos'}</p>
-                ${data.errores ? `
+                <p>${data.message || "Los datos enviados no son válidos"}</p>
+                ${
+                  data.errores
+                    ? `
                   <br>
                   <p style="font-weight: 600; color: #64748b;">Detalles:</p>
                   <ul style="font-size: 13px; color: #64748b;">
-                    ${data.errores.map(e => `<li>${e}</li>`).join('')}
+                    ${data.errores.map((e) => `<li>${e}</li>`).join("")}
                   </ul>
-                ` : ''}
+                `
+                    : ""
+                }
               </div>
             `,
           });
         } else {
           MySwal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: data.message || 'No se pudo completar la configuración',
+            icon: "error",
+            title: "Error",
+            text: data.message || "No se pudo completar la configuración",
           });
         }
       } else {
         MySwal.fire({
-          icon: 'error',
-          title: 'Error de Conexión',
-          text: 'No se pudo conectar con el servidor',
+          icon: "error",
+          title: "Error de Conexión",
+          text: "No se pudo conectar con el servidor",
         });
       }
     } finally {
@@ -843,20 +956,24 @@ export default function ConfigurarAula() {
     return (
       <CalendarGrid>
         <TimeSlot>Hora</TimeSlot>
-        {DIAS_SEMANA.map(dia => (
+        {DIAS_SEMANA.map((dia) => (
           <DayHeader key={dia.value}>{dia.label}</DayHeader>
         ))}
 
-        {HORAS_DIA.map(hora => (
+        {HORAS_DIA.map((hora) => (
           <React.Fragment key={`row-${hora.value}`}>
             <TimeSlot>{hora.label}</TimeSlot>
-            {DIAS_SEMANA.map(dia => {
+            {DIAS_SEMANA.map((dia) => {
               const horariosEnSlot = horarios.filter(
-                h => h.diaSemana === dia.value && h.horaInicio.substring(0, 5) === hora.value
+                (h) =>
+                  h.diaSemana === dia.value &&
+                  h.horaInicio.substring(0, 5) === hora.value
               );
 
-              const tieneConflicto = horariosEnSlot.some(h => 
-                conflictos.some(c => c.horario1 === h.id || c.horario2 === h.id)
+              const tieneConflicto = horariosEnSlot.some((h) =>
+                conflictos.some(
+                  (c) => c.horario1 === h.id || c.horario2 === h.id
+                )
               );
 
               if (horariosEnSlot.length > 0) {
@@ -869,15 +986,18 @@ export default function ConfigurarAula() {
                     onClick={() => handleOpenQuickAdd(dia.value, hora.value)}
                   >
                     {tieneConflicto && <ConflictBadge>!</ConflictBadge>}
-                    <DeleteButton onClick={(e) => {
-                      e.stopPropagation();
-                      handleEliminarHorario(horario.id);
-                    }}>
+                    <DeleteButton
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEliminarHorario(horario.id);
+                      }}
+                    >
                       <Trash2 size={12} />
                     </DeleteButton>
                     <ClassInfo>{horario.nombreCurso}</ClassInfo>
                     <ClassTime>
-                      {horario.horaInicio.substring(0, 5)} - {horario.horaFin.substring(0, 5)}
+                      {horario.horaInicio.substring(0, 5)} -{" "}
+                      {horario.horaFin.substring(0, 5)}
                     </ClassTime>
                     <ClassTeacher>{horario.nombreDocente}</ClassTeacher>
                   </ClassSlot>
@@ -902,9 +1022,9 @@ export default function ConfigurarAula() {
     return (
       <Container>
         <Card>
-          <div style={{ textAlign: 'center', padding: '3rem' }}>
+          <div style={{ textAlign: "center", padding: "3rem" }}>
             <LoadingSpinner />
-            <p style={{ marginTop: '1rem', color: theme.colors.textMuted }}>
+            <p style={{ marginTop: "1rem", color: theme.colors.textMuted }}>
               Cargando información del aula...
             </p>
           </div>
@@ -916,29 +1036,37 @@ export default function ConfigurarAula() {
   if (!aula) return null;
 
   const horasPorSemana = horarios.reduce((total, h) => {
-    const inicio = h.horaInicio.split(':');
-    const fin = h.horaFin.split(':');
-    const horas = (parseInt(fin[0]) - parseInt(inicio[0])) + ((parseInt(fin[1]) - parseInt(inicio[1])) / 60);
+    const inicio = h.horaInicio.split(":");
+    const fin = h.horaFin.split(":");
+    const horas =
+      parseInt(fin[0]) -
+      parseInt(inicio[0]) +
+      (parseInt(fin[1]) - parseInt(inicio[1])) / 60;
     return total + horas;
   }, 0);
 
-  const materiasProgramadas = [...new Set(horarios.map(h => h.cursoId))].length;
-  const docentesAsignados = [...new Set(horarios.map(h => h.docenteId))].length;
+  const materiasProgramadas = [...new Set(horarios.map((h) => h.cursoId))]
+    .length;
+  const docentesAsignados = [...new Set(horarios.map((h) => h.docenteId))]
+    .length;
 
   return (
     <Container>
       <Header>
         <HeaderTop>
-          <BackButton variant="outline" onClick={() => navigate('/aulas')}>
+          <BackButton variant="outline" onClick={() => navigate("/aulas")}>
             <ArrowLeft size={18} />
             Volver
           </BackButton>
           <div style={{ flex: 1 }}>
             <Title>
-              <Settings size={28} style={{ marginRight: '8px' }} />
+              <Settings size={28} style={{ marginRight: "8px" }} />
               Configurar Aula: {aula.grado}° {aula.seccion}
             </Title>
-            <Subtitle>Periodo {aula.periodo} - {aula.aulaFisica || 'Sin aula física asignada'}</Subtitle>
+            <Subtitle>
+              Periodo {aula.periodo} -{" "}
+              {aula.aulaFisica || "Sin aula física asignada"}
+            </Subtitle>
           </div>
         </HeaderTop>
       </Header>
@@ -998,22 +1126,22 @@ export default function ConfigurarAula() {
             <Calendar size={20} />
             Horario Semanal ({horarios.length} clases)
           </CardTitle>
-          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <Button onClick={() => setShowQuickAdd(true)}>
               <Plus size={18} />
               Agregar Clase
             </Button>
             <ViewToggle>
               <ViewButton
-                $active={viewMode === 'calendar'}
-                onClick={() => setViewMode('calendar')}
+                $active={viewMode === "calendar"}
+                onClick={() => setViewMode("calendar")}
               >
                 <Grid3x3 size={16} />
                 Calendario
               </ViewButton>
               <ViewButton
-                $active={viewMode === 'list'}
-                onClick={() => setViewMode('list')}
+                $active={viewMode === "list"}
+                onClick={() => setViewMode("list")}
               >
                 <List size={16} />
                 Lista
@@ -1022,9 +1150,17 @@ export default function ConfigurarAula() {
           </div>
         </CardHeader>
 
-        {viewMode === 'calendar' ? renderCalendarView() : (
+        {viewMode === "calendar" ? (
+          renderCalendarView()
+        ) : (
           <div>
-            <p style={{ textAlign: 'center', padding: '2rem', color: theme.colors.textMuted }}>
+            <p
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                color: theme.colors.textMuted,
+              }}
+            >
               Vista de lista disponible
             </p>
           </div>
@@ -1034,21 +1170,26 @@ export default function ConfigurarAula() {
       <Card>
         <AlertBox $type="info">
           <Zap size={20} />
-          Al guardar se crearán automáticamente los grupos-cursos y todas las sesiones del periodo escolar.
+          Al guardar se crearán automáticamente los grupos-cursos y todas las
+          sesiones del periodo escolar.
         </AlertBox>
 
         <ActionsBar>
-          <Button variant="outline" onClick={() => navigate('/aulas')} disabled={saving}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/aulas")}
+            disabled={saving}
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleGuardarConfiguracion}
             disabled={saving || horarios.length === 0}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ display: "flex", alignItems: "center", gap: "8px" }}
           >
             {saving ? (
               <>
-                <LoadingSpinner style={{ width: '16px', height: '16px' }} />
+                <LoadingSpinner style={{ width: "16px", height: "16px" }} />
                 Guardando...
               </>
             ) : (
@@ -1069,17 +1210,21 @@ export default function ConfigurarAula() {
                 <Plus size={24} />
                 Agregar Clase
               </ModalTitle>
-              <CloseButton onClick={() => setShowQuickAdd(false)}>×</CloseButton>
+              <CloseButton onClick={() => setShowQuickAdd(false)}>
+                ×
+              </CloseButton>
             </ModalHeader>
 
             <FormGroup>
               <Label>Selecciona una Plantilla</Label>
               <TemplateGrid>
-                {PLANTILLAS_HORARIO.map(plantilla => (
+                {PLANTILLAS_HORARIO.map((plantilla) => (
                   <TemplateCard
                     key={plantilla.id}
                     $selected={quickAdd.plantilla === plantilla.id}
-                    onClick={() => setQuickAdd({ ...quickAdd, plantilla: plantilla.id })}
+                    onClick={() =>
+                      setQuickAdd({ ...quickAdd, plantilla: plantilla.id })
+                    }
                   >
                     <TemplateName>{plantilla.nombre}</TemplateName>
                     <TemplateDesc>{plantilla.descripcion}</TemplateDesc>
@@ -1092,10 +1237,12 @@ export default function ConfigurarAula() {
               <Label>Curso / Materia</Label>
               <Select
                 value={quickAdd.cursoId}
-                onChange={(e) => setQuickAdd({ ...quickAdd, cursoId: e.target.value })}
+                onChange={(e) =>
+                  setQuickAdd({ ...quickAdd, cursoId: e.target.value })
+                }
               >
                 <option value="">Seleccionar curso</option>
-                {cursos.map(curso => (
+                {cursos.map((curso) => (
                   <option key={curso.id} value={curso.id}>
                     {curso.nombre}
                   </option>
@@ -1107,10 +1254,12 @@ export default function ConfigurarAula() {
               <Label>Docente</Label>
               <Select
                 value={quickAdd.docenteId}
-                onChange={(e) => setQuickAdd({ ...quickAdd, docenteId: e.target.value })}
+                onChange={(e) =>
+                  setQuickAdd({ ...quickAdd, docenteId: e.target.value })
+                }
               >
                 <option value="">Seleccionar docente</option>
-                {docentes.map(docente => (
+                {docentes.map((docente) => (
                   <option key={docente.id} value={docente.id}>
                     {docente.nombreCompleto}
                   </option>
@@ -1118,15 +1267,17 @@ export default function ConfigurarAula() {
               </Select>
             </FormGroup>
 
-            {quickAdd.plantilla === 'personalizado' && (
-              <div style={{ display: 'flex', gap: '1rem' }}>
+            {quickAdd.plantilla === "personalizado" && (
+              <div style={{ display: "flex", gap: "1rem" }}>
                 <FormGroup style={{ flex: 1 }}>
                   <Label>Hora Inicio</Label>
                   <Select
                     value={quickAdd.horaInicio}
-                    onChange={(e) => setQuickAdd({ ...quickAdd, horaInicio: e.target.value })}
+                    onChange={(e) =>
+                      setQuickAdd({ ...quickAdd, horaInicio: e.target.value })
+                    }
                   >
-                    {HORAS_DIA.map(hora => (
+                    {HORAS_DIA.map((hora) => (
                       <option key={hora.value} value={hora.value}>
                         {hora.label}
                       </option>
@@ -1137,9 +1288,11 @@ export default function ConfigurarAula() {
                   <Label>Hora Fin</Label>
                   <Select
                     value={quickAdd.horaFin}
-                    onChange={(e) => setQuickAdd({ ...quickAdd, horaFin: e.target.value })}
+                    onChange={(e) =>
+                      setQuickAdd({ ...quickAdd, horaFin: e.target.value })
+                    }
                   >
-                    {HORAS_DIA.map(hora => (
+                    {HORAS_DIA.map((hora) => (
                       <option key={hora.value} value={hora.value}>
                         {hora.label}
                       </option>
@@ -1149,7 +1302,7 @@ export default function ConfigurarAula() {
               </div>
             )}
 
-            <ActionsBar style={{ marginTop: '1.5rem', paddingTop: '1.5rem' }}>
+            <ActionsBar style={{ marginTop: "1.5rem", paddingTop: "1.5rem" }}>
               <Button variant="outline" onClick={() => setShowQuickAdd(false)}>
                 Cancelar
               </Button>
