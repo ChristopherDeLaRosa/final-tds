@@ -4,10 +4,12 @@ import grupoCursoService from '../../services/grupoCursoService';
 import cursoService from '../../services/cursoService';
 import docenteService from '../../services/docenteService';
 import aulaService from '../../services/aulaService';
+import periodoService from '../../services/periodoService'; // ← NUEVO
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useModal } from '../../hooks/useModal';
+import { usePeriodos } from '../../hooks/usePeriodos'; // ← NUEVO
 import { MySwal, Toast } from '../../utils/alerts';
 import {
   gruposCursosColumns,
@@ -45,6 +47,9 @@ export default function GruposCursos() {
     close: closeModal 
   } = useModal();
 
+  // ← NUEVO: Hook de períodos
+  const { periodos, periodoActual, loading: loadingPeriodos } = usePeriodos();
+
   const [formData, setFormData] = useState(getInitialGrupoCursoFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,6 +82,17 @@ export default function GruposCursos() {
 
     fetchRelatedData();
   }, []);
+
+  // ← NUEVO: Auto-seleccionar período actual cuando cargue
+  useEffect(() => {
+    if (periodoActual && !formData.periodoId && !selectedGrupoCurso) {
+      setFormData(prev => ({ 
+        ...prev, 
+        periodoId: periodoActual.id,
+        anio: new Date(periodoActual.fechaInicio).getFullYear()
+      }));
+    }
+  }, [periodoActual, selectedGrupoCurso]);
 
   // Estadísticas
   const totalGrupos = gruposCursos.length;
@@ -113,11 +129,20 @@ export default function GruposCursos() {
 
   // Crear
   const handleAddGrupoCurso = () => {
-    if (loadingRelated) {
+    if (loadingRelated || loadingPeriodos) { // ← NUEVO
       Toast.fire({ title: 'Cargando datos...' });
       return;
     }
-    setFormData(getInitialGrupoCursoFormData());
+    
+    const initialData = getInitialGrupoCursoFormData();
+    
+    // ← NUEVO: Auto-seleccionar período actual
+    if (periodoActual) {
+      initialData.periodoId = periodoActual.id;
+      initialData.anio = new Date(periodoActual.fechaInicio).getFullYear();
+    }
+    
+    setFormData(initialData);
     setShowFormFields(false);
     setGradoSeleccionado(null);
     clearAllErrors();
@@ -126,7 +151,7 @@ export default function GruposCursos() {
 
   // Editar
   const handleEditGrupoCurso = (grupoCurso) => {
-    if (loadingRelated) {
+    if (loadingRelated || loadingPeriodos) { // ← NUEVO
       Toast.fire({ title: 'Cargando datos...' });
       return;
     }
@@ -141,6 +166,19 @@ export default function GruposCursos() {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
 
+    // ← NUEVO: Manejo del cambio de período
+    if (name === 'periodoId' && value) {
+      const periodoSel = periodos.find(p => p.id === parseInt(value));
+      if (periodoSel) {
+        setFormData(prev => ({
+          ...prev,
+          periodoId: parseInt(value),
+          anio: new Date(periodoSel.fechaInicio).getFullYear()
+        }));
+        return;
+      }
+    }
+
     // Selección de aula → auto-completar datos
     if (name === 'aulaId' && value) {
       const aulaSel = aulas.find(a => a.id === parseInt(value));
@@ -151,7 +189,7 @@ export default function GruposCursos() {
           grado: aulaSel.grado,
           seccion: aulaSel.seccion,
           anio: aulaSel.anio,
-          periodo: aulaSel.periodo,
+          periodoId: aulaSel.periodoId, // ← CAMBIO: Ahora es periodoId
           aula: aulaSel.aulaFisica || '',
           capacidadMaxima: aulaSel.capacidadMaxima || 30,
           cursoId: '',
@@ -208,7 +246,7 @@ export default function GruposCursos() {
     }
   };
 
-  // Activar/Desactivar (misma lógica del resto del sistema)
+  // Activar/Desactivar
   const handleToggleStatus = async (grupo) => {
     const action = grupo.activo ? 'desactivar' : 'activar';
     const actionPast = grupo.activo ? 'desactivado' : 'activado';
@@ -290,12 +328,13 @@ export default function GruposCursos() {
         cursos,
         docentes,
         aulas,
+        periodos, // ← NUEVO: Pasar períodos
         showFormFields,
         gradoSeleccionado
       )}
       formData={formData}
       formErrors={formErrors}
-      isSubmitting={isSubmitting || loadingRelated}
+      isSubmitting={isSubmitting || loadingRelated || loadingPeriodos} // ← NUEVO
 
       onAdd={handleAddGrupoCurso}
       onEdit={handleEditGrupoCurso}

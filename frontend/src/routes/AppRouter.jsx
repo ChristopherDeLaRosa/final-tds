@@ -21,6 +21,7 @@ import ConfigurarAula from "../pages/Aulas/ConfigurarAula.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
+import Periodos from "../pages/Periodos/Periodos.jsx";
 
 export default function AppRouter() {
   return (
@@ -53,6 +54,7 @@ export default function AppRouter() {
           {/* Gestión Académica */}
           <Route path="estudiantes" element={<Students />} />
           <Route path="docentes" element={<Docentes />} />
+          <Route path="periodos" element={<Periodos />} />
           <Route path="cursos" element={<Cursos />} />
           <Route path="aulas" element={<Aulas />} />
           <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />

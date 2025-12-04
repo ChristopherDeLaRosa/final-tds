@@ -154,6 +154,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 
 // Configuración de logging
 builder.Logging.ClearProviders();
