@@ -55,7 +55,6 @@ export default function AppRouter() {
           <Route path="cursos" element={<Cursos />} />
           <Route path="aulas" element={<Aulas />} />
           <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />
-          {/* <Route path="/aulas/:id/configurar" element={<ConfigurarAulaNew />} /> */}
           <Route path="grupos-cursos" element={<GruposCursos />} />
           <Route path="inscripciones" element={<Inscripciones />} />
           <Route path="rubros" element={<Rubros />} />
@@ -68,14 +67,6 @@ export default function AppRouter() {
           <Route path="asistencias" element={<Asistencias />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           
-          {/* Rutas */}
-          <Route path="students" element={<Navigate to="/estudiantes" replace />} />
-          <Route path="teachers" element={<Navigate to="/docentes" replace />} />
-          <Route path="courses" element={<Navigate to="/cursos" replace />} />
-          <Route path="sections" element={<Navigate to="/grupos-cursos" replace />} />
-          <Route path="sessions" element={<Navigate to="/sesiones" replace />} />
-          <Route path="attendance" element={<Navigate to="/asistencias" replace />} />
-          <Route path="grades" element={<Navigate to="/calificaciones" replace />} />
         </Route>
 
         {/* Ruta para no autorizados */}

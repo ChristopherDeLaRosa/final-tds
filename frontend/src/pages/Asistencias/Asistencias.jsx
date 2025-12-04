@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { ClipboardList, CheckCircle, UserX, TimerReset } from 'lucide-react';
 import { theme } from '../../styles';
 import asistenciaService from '../../services/asistenciaService';
 import estudianteService from '../../services/estudianteService';
@@ -50,21 +51,24 @@ export default function Asistencias() {
   const [sesiones, setSesiones] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
+  // ===========================
+  //   FETCH RELATED DATA
+  // ===========================
   useEffect(() => {
     const fetchRelatedData = async () => {
       try {
         setLoadingRelated(true);
-        
+
         const hoy = new Date().toISOString().split('T')[0];
         const fechaFin = new Date();
         fechaFin.setDate(fechaFin.getDate() + 30);
         const fechaFinStr = fechaFin.toISOString().split('T')[0];
-        
+
         const [estudiantesData, sesionesData] = await Promise.all([
           estudianteService.getAll(),
           sesionService.getByRangoFechas(hoy, fechaFinStr),
         ]);
-        
+
         setEstudiantes(estudiantesData.filter(e => e.activo));
         setSesiones(sesionesData);
       } catch (err) {
@@ -81,12 +85,16 @@ export default function Asistencias() {
     fetchRelatedData();
   }, []);
 
+  // ===========================
+  //         STATISTICS
+  // ===========================
   const totalAsistencias = asistencias.length;
   const presentes = asistencias.filter(a => a.estado === 'Presente').length;
   const ausentes = asistencias.filter(a => a.estado === 'Ausente').length;
   const tardanzas = asistencias.filter(a => a.estado === 'Tardanza').length;
-  const porcentajeAsistencia = totalAsistencias > 0 
-    ? Math.round((presentes / totalAsistencias) * 100) 
+
+  const porcentajeAsistencia = totalAsistencias > 0
+    ? Math.round((presentes / totalAsistencias) * 100)
     : 0;
 
   const stats = [
@@ -94,24 +102,37 @@ export default function Asistencias() {
       label: 'Total Registros',
       value: totalAsistencias,
       color: theme.colors.accent,
+      icon: <ClipboardList size={28} />,
     },
     {
       label: 'Presentes',
       value: presentes,
-      color: '#10b981',
+      color: theme.colors.success,
+      icon: <CheckCircle size={28} />,
     },
     {
       label: 'Ausentes',
       value: ausentes,
-      color: '#ef4444',
+      color: theme.colors.error,
+      icon: <UserX size={28} />,
+    },
+    {
+      label: 'Tardanzas',
+      value: tardanzas,
+      color: theme.colors.warning,
+      icon: <TimerReset size={28} />,
     },
     {
       label: 'Asistencia',
       value: `${porcentajeAsistencia}%`,
-      color: '#3b82f6',
+      color: theme.colors.info,
+      icon: <CheckCircle size={28} />,
     },
   ];
 
+  // ===========================
+  //         HANDLERS
+  // ===========================
   const handleAddAsistencia = () => {
     if (loadingRelated) {
       Toast.fire({
@@ -145,18 +166,14 @@ export default function Asistencias() {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    if (formErrors[name]) {
-      clearError(name);
-    }
+    if (formErrors[name]) clearError(name);
   };
 
   const handleSaveAsistencia = async () => {
-    if (!validate(formData)) {
-      return;
-    }
-    
+    if (!validate(formData)) return;
+
     setIsSubmitting(true);
-    
+
     try {
       const dataToSend = formatAsistenciaDataForAPI(formData);
 
@@ -165,12 +182,12 @@ export default function Asistencias() {
       } else {
         await create(dataToSend);
       }
-      
+
       closeModal();
       setFormData(getInitialAsistenciaFormData());
     } catch (err) {
       console.error('Error saving asistencia:', err);
-      
+
       if (err.response?.data?.message?.includes('ya existe')) {
         Toast.fire({
           icon: 'error',
@@ -200,8 +217,6 @@ export default function Asistencias() {
       MySwal.fire({
         title: 'Recargando...',
         didOpen: () => MySwal.showLoading(),
-        allowOutsideClick: false,
-        allowEscapeKey: false,
       });
       await fetchAll();
       MySwal.close();
@@ -216,6 +231,9 @@ export default function Asistencias() {
     }
   };
 
+  // ===========================
+  //         RENDER
+  // ===========================
   return (
     <CrudPage
       title="Gestión de Asistencias"
@@ -223,18 +241,27 @@ export default function Asistencias() {
       addButtonText="Registrar Asistencia"
       emptyMessage="No hay asistencias registradas. ¡Registra la primera!"
       loadingMessage="Cargando asistencias..."
+
       data={asistencias}
       loading={loading}
       error={error}
       stats={stats}
+
       columns={asistenciasColumns}
       searchFields={asistenciasSearchFields}
+
       isModalOpen={isModalOpen}
       modalTitle={selectedAsistencia ? 'Editar Asistencia' : 'Nueva Asistencia'}
-      formFields={getAsistenciasFormFields(!!selectedAsistencia, estudiantes, sesiones)}
+      formFields={getAsistenciasFormFields(
+        !!selectedAsistencia,
+        estudiantes,
+        sesiones
+      )}
+
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}
+
       onAdd={handleAddAsistencia}
       onEdit={handleEditAsistencia}
       onDelete={handleDeleteAsistencia}
@@ -245,3 +272,4 @@ export default function Asistencias() {
     />
   );
 }
+
