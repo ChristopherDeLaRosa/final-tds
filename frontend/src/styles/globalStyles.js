@@ -19,4 +19,5 @@ export const GlobalStyle = createGlobalStyle`
     outline: 2px solid ${theme.colors.accent};
     outline-offset: 2px;
   }
+
 `;

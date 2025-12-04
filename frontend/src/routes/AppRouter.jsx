@@ -8,9 +8,15 @@ import Cursos from "../pages/Cursos/Cursos.jsx";
 import GruposCursos from "../pages/GruposCursos/GruposCursos.jsx";
 import Inscripciones from "../pages/Inscripciones/Inscripciones.jsx";
 import Sesiones from "../pages/Sesiones/Sesiones.jsx";
+import ReportesAsistencia from "../pages/ReportesAsistencia/ReportesAsistencia.jsx";
+import HistorialAsistencias from "../pages/HistorialAsistencias/HistorialAsistencias.jsx";
+import PaseLista from "../pages/PaseLista/PaseLista.jsx";
 import Asistencias from "../pages/Asistencias/Asistencias.jsx";
 import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
 import Rubros from "../pages/Rubros/Rubros.jsx";
+import Aulas from "../pages/Aulas/Aulas.jsx";
+import ConfigurarAula from "../pages/Aulas/ConfigurarAula.jsx";
+// import ConfigurarAula from "../pages/Aulas/Configuraraulanew.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
@@ -47,16 +53,22 @@ export default function AppRouter() {
           <Route path="estudiantes" element={<Students />} />
           <Route path="docentes" element={<Docentes />} />
           <Route path="cursos" element={<Cursos />} />
+          <Route path="aulas" element={<Aulas />} />
+          <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />
+          {/* <Route path="/aulas/:id/configurar" element={<ConfigurarAulaNew />} /> */}
           <Route path="grupos-cursos" element={<GruposCursos />} />
           <Route path="inscripciones" element={<Inscripciones />} />
           <Route path="rubros" element={<Rubros />} />
           
           {/* Gestión de Clases */}
           <Route path="sesiones" element={<Sesiones />} />
+          <Route path="pase-lista" element={<PaseLista />} /> 
+          <Route path="reportes-asistencia" element={<ReportesAsistencia />} />
+          <Route path="historial-asistencias" element={<HistorialAsistencias />} />
           <Route path="asistencias" element={<Asistencias />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           
-          {/* Rutas antiguas redirigidas (compatibilidad) */}
+          {/* Rutas */}
           <Route path="students" element={<Navigate to="/estudiantes" replace />} />
           <Route path="teachers" element={<Navigate to="/docentes" replace />} />
           <Route path="courses" element={<Navigate to="/cursos" replace />} />
@@ -106,3 +118,4 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
+

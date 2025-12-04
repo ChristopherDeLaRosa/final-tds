@@ -26,7 +26,6 @@ const MatriculaBadge = styled.span`
 
 // Columnas de la tabla
 export const studentsColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { 
     key: 'matricula', 
     title: 'Matrícula',
@@ -164,6 +163,15 @@ export const getStudentsFormFields = (isEditing) => [
       ],
     },
   ],
+  {
+    name: 'aulaId',
+    label: 'Asignar a Aula (Opcional)',
+    type: 'select',
+    required: false,
+    options: [{ value: '', label: 'Sin asignar - Asignar después' }],
+    note: 'Selecciona primero el grado y sección. Las aulas compatibles se mostrarán automáticamente.',
+    disabled: true, // Se habilitará dinámicamente cuando se seleccione grado y sección
+  },
   ...(!isEditing ? [{
     name: 'fechaIngreso',
     label: 'Fecha de Ingreso',
@@ -293,6 +301,7 @@ export const getInitialStudentFormData = () => ({
   fechaIngreso: new Date().toISOString().split('T')[0],
   gradoActual: '',
   seccionActual: '',
+  aulaId: '',
   nombreTutor: '',
   telefonoTutor: '',
   emailTutor: '',
@@ -318,6 +327,7 @@ export const formatStudentForForm = (estudiante) => ({
   fechaIngreso: formatDateForForm(estudiante.fechaIngreso),
   gradoActual: estudiante.gradoActual || '',
   seccionActual: estudiante.seccionActual || '',
+  aulaId: estudiante.aulaId || '',
   nombreTutor: estudiante.nombreTutor || '',
   telefonoTutor: estudiante.telefonoTutor || '',
   emailTutor: estudiante.emailTutor || '',
@@ -337,6 +347,7 @@ export const formatStudentDataForAPI = (formData) => ({
   fechaIngreso: formData.fechaIngreso ? `${formData.fechaIngreso}T00:00:00` : null,
   gradoActual: parseInt(formData.gradoActual, 10),
   seccionActual: formData.seccionActual.trim().toUpperCase(),
+  aulaId: formData.aulaId ? parseInt(formData.aulaId, 10) : null,
   nombreTutor: formData.nombreTutor?.trim() || null,
   telefonoTutor: formData.telefonoTutor?.trim() || null,
   emailTutor: formData.emailTutor?.trim().toLowerCase() || null,

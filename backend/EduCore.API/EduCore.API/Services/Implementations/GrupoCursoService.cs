@@ -22,6 +22,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.Activo)
                 .OrderBy(g => g.Grado)
                 .ThenBy(g => g.Seccion)
@@ -36,6 +37,7 @@ namespace EduCore.API.Services.Implementations
             var grupo = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .FirstOrDefaultAsync(g => g.Id == id);
 
             return grupo != null ? MapToDto(grupo) : null;
@@ -46,6 +48,7 @@ namespace EduCore.API.Services.Implementations
             var grupo = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Include(g => g.Inscripciones)
                     .ThenInclude(i => i.Estudiante)
                 .FirstOrDefaultAsync(g => g.Id == id);
@@ -77,6 +80,7 @@ namespace EduCore.API.Services.Implementations
                     Codigo = grupo.Docente.Codigo,
                     Nombres = grupo.Docente.Nombres,
                     Apellidos = grupo.Docente.Apellidos,
+                    NombreCompleto = $"{grupo.Docente.Nombres} {grupo.Docente.Apellidos}",
                     Email = grupo.Docente.Email,
                     Telefono = grupo.Docente.Telefono,
                     Especialidad = grupo.Docente.Especialidad,
@@ -87,7 +91,8 @@ namespace EduCore.API.Services.Implementations
                 Seccion = grupo.Seccion,
                 Anio = grupo.Anio,
                 Periodo = grupo.Periodo,
-                Aula = grupo.Aula,
+                AulaId = grupo.AulaId,
+                AulaFisica = grupo.Aula?.AulaFisica,
                 Horario = grupo.Horario,
                 CapacidadMaxima = grupo.CapacidadMaxima,
                 CantidadEstudiantes = grupo.CantidadEstudiantes,
@@ -111,6 +116,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.Periodo == periodo && g.Activo)
                 .OrderBy(g => g.Grado)
                 .ThenBy(g => g.Seccion)
@@ -125,6 +131,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo == periodo && g.Activo)
                 .OrderBy(g => g.Curso.Orden)
                 .ThenBy(g => g.Curso.Nombre)
@@ -138,6 +145,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.CursoId == cursoId && g.Activo)
                 .OrderBy(g => g.Grado)
                 .ThenBy(g => g.Seccion)
@@ -151,6 +159,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.DocenteId == docenteId && g.Activo)
                 .OrderBy(g => g.Grado)
                 .ThenBy(g => g.Seccion)
@@ -171,7 +180,7 @@ namespace EduCore.API.Services.Implementations
                 Seccion = createDto.Seccion,
                 Anio = createDto.Anio,
                 Periodo = createDto.Periodo,
-                Aula = createDto.Aula,
+                AulaId = createDto.AulaId,
                 Horario = createDto.Horario,
                 CapacidadMaxima = createDto.CapacidadMaxima,
                 CantidadEstudiantes = 0,
@@ -188,6 +197,12 @@ namespace EduCore.API.Services.Implementations
             await _context.Entry(grupo)
                 .Reference(g => g.Docente)
                 .LoadAsync();
+            if (grupo.AulaId.HasValue)
+            {
+                await _context.Entry(grupo)
+                    .Reference(g => g.Aula)
+                    .LoadAsync();
+            }
 
             _logger.LogInformation(
                 "Grupo creado: {Codigo} - Curso: {Curso}, Grado: {Grado}, Seccion: {Seccion}",
@@ -202,13 +217,14 @@ namespace EduCore.API.Services.Implementations
             var grupo = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .FirstOrDefaultAsync(g => g.Id == id);
 
             if (grupo == null)
                 return null;
 
             grupo.DocenteId = updateDto.DocenteId;
-            grupo.Aula = updateDto.Aula;
+            grupo.AulaId = updateDto.AulaId;
             grupo.Horario = updateDto.Horario;
             grupo.CapacidadMaxima = updateDto.CapacidadMaxima;
             grupo.Activo = updateDto.Activo;
@@ -219,6 +235,14 @@ namespace EduCore.API.Services.Implementations
             await _context.Entry(grupo)
                 .Reference(g => g.Docente)
                 .LoadAsync();
+
+            // Recargar aula si cambió
+            if (grupo.AulaId.HasValue)
+            {
+                await _context.Entry(grupo)
+                    .Reference(g => g.Aula)
+                    .LoadAsync();
+            }
 
             _logger.LogInformation("Grupo actualizado: {Id} - {Codigo}", id, grupo.Codigo);
 
@@ -262,6 +286,7 @@ namespace EduCore.API.Services.Implementations
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
+                .Include(g => g.Aula)
                 .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo == periodo && g.Activo)
                 .OrderBy(g => g.Curso.Orden)
                 .ThenBy(g => g.Horario)
@@ -283,7 +308,8 @@ namespace EduCore.API.Services.Implementations
                     NombreCurso = g.Curso.Nombre,
                     AreaConocimiento = g.Curso.AreaConocimiento,
                     Docente = $"{g.Docente.Nombres} {g.Docente.Apellidos}",
-                    Aula = g.Aula,
+                    AulaId = g.AulaId,
+                    AulaFisica = g.Aula?.AulaFisica,
                     Horario = g.Horario
                 }).ToList()
             };
@@ -315,7 +341,8 @@ namespace EduCore.API.Services.Implementations
                 Seccion = grupo.Seccion,
                 Anio = grupo.Anio,
                 Periodo = grupo.Periodo,
-                Aula = grupo.Aula,
+                AulaId = grupo.AulaId,
+                AulaFisica = grupo.Aula?.AulaFisica,
                 Horario = grupo.Horario,
                 CapacidadMaxima = grupo.CapacidadMaxima,
                 CantidadEstudiantes = grupo.CantidadEstudiantes,

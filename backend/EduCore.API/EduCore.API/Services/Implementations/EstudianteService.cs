@@ -93,25 +93,36 @@ namespace EduCore.API.Services.Implementations
         {
             var estudiante = new Estudiante
             {
-                Matricula = createDto.Matricula,
-                Nombres = createDto.Nombres,
-                Apellidos = createDto.Apellidos,
-                Email = createDto.Email,
-                Telefono = createDto.Telefono,
-                Direccion = createDto.Direccion,
+                Matricula = createDto.Matricula.Trim().ToUpper(),
+                Nombres = createDto.Nombres.Trim(),
+                Apellidos = createDto.Apellidos.Trim(),
+                Email = createDto.Email.Trim().ToLower(),
+                Telefono = createDto.Telefono?.Trim(),
+                Direccion = createDto.Direccion?.Trim(),
                 FechaNacimiento = createDto.FechaNacimiento,
                 GradoActual = createDto.GradoActual,
-                SeccionActual = createDto.SeccionActual,
-                NombreTutor = createDto.NombreTutor,
-                TelefonoTutor = createDto.TelefonoTutor,
-                EmailTutor = createDto.EmailTutor,
-                ObservacionesMedicas = createDto.ObservacionesMedicas,
+                SeccionActual = createDto.SeccionActual.Trim().ToUpper(),
+                AulaId = createDto.AulaId,
+                NombreTutor = createDto.NombreTutor?.Trim(),
+                TelefonoTutor = createDto.TelefonoTutor?.Trim(),
+                EmailTutor = createDto.EmailTutor?.Trim().ToLower(),
+                ObservacionesMedicas = createDto.ObservacionesMedicas?.Trim(),
                 FechaIngreso = DateTime.UtcNow,
                 Activo = true
             };
 
             _context.Estudiantes.Add(estudiante);
             await _context.SaveChangesAsync();
+
+            if (createDto.AulaId.HasValue)
+            {
+                var aula = await _context.Aulas.FindAsync(createDto.AulaId.Value);
+                if (aula != null)
+                {
+                    aula.CantidadEstudiantes++;
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             _logger.LogInformation(
                 "Estudiante creado: {Matricula} - {Nombres} {Apellidos} - Grado: {Grado}{Seccion}",
@@ -128,6 +139,32 @@ namespace EduCore.API.Services.Implementations
 
             if (estudiante == null)
                 return null;
+
+            //Manejar cambio de aula
+            if (updateDto.AulaId != estudiante.AulaId)
+            {
+                // Decrementar contador del aula anterior
+                if (estudiante.AulaId.HasValue)
+                {
+                    var aulaAnterior = await _context.Aulas.FindAsync(estudiante.AulaId.Value);
+                    if (aulaAnterior != null && aulaAnterior.CantidadEstudiantes > 0)
+                    {
+                        aulaAnterior.CantidadEstudiantes--;
+                    }
+                }
+
+                // Incrementar contador del aula nueva
+                if (updateDto.AulaId.HasValue)
+                {
+                    var aulaNueva = await _context.Aulas.FindAsync(updateDto.AulaId.Value);
+                    if (aulaNueva != null)
+                    {
+                        aulaNueva.CantidadEstudiantes++;
+                    }
+                }
+
+                estudiante.AulaId = updateDto.AulaId;
+            }
 
             estudiante.Nombres = updateDto.Nombres;
             estudiante.Apellidos = updateDto.Apellidos;
@@ -149,7 +186,6 @@ namespace EduCore.API.Services.Implementations
 
             return MapToDto(estudiante);
         }
-
         public async Task<bool> DeleteAsync(int id)
         {
             var estudiante = await _context.Estudiantes.FindAsync(id);

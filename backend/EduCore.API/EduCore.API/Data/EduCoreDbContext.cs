@@ -20,6 +20,8 @@ namespace EduCore.API.Data
         public DbSet<Calificacion> Calificaciones { get; set; }
         public DbSet<Sesion> Sesiones { get; set; }
         public DbSet<Asistencia> Asistencias { get; set; }
+        public DbSet<Aula> Aulas { get; set; }
+        public DbSet<HorarioAula> HorariosAulas { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -143,7 +145,6 @@ namespace EduCore.API.Data
                 entity.Property(e => e.Codigo).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.Periodo).IsRequired().HasMaxLength(20);
-                entity.Property(e => e.Aula).HasMaxLength(50);
                 entity.Property(e => e.Horario).HasMaxLength(200);
                 entity.Property(e => e.Grado).IsRequired();
                 entity.Property(e => e.Anio).IsRequired();
@@ -160,6 +161,12 @@ namespace EduCore.API.Data
                     .WithMany(d => d.GrupoCursos)
                     .HasForeignKey(g => g.DocenteId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                // Relacion con Aula
+                entity.HasOne(g => g.Aula)
+                    .WithMany(a => a.GruposCursos)
+                    .HasForeignKey(g => g.AulaId)
+                    .OnDelete(DeleteBehavior.SetNull);
 
                 // Relaciones uno a muchos
                 entity.HasMany(g => g.Inscripciones)
@@ -301,6 +308,65 @@ namespace EduCore.API.Data
                 // dos registros en la misma sesion
                 entity.HasIndex(a => new { a.EstudianteId, a.SesionId })
                     .IsUnique();
+            });
+
+            // CONFIGURACION DE AULA
+            modelBuilder.Entity<Aula>(entity =>
+            {
+                entity.Property(e => e.Codigo).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Periodo).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.AulaFisica).HasMaxLength(50);
+
+                // Índice único: No puede haber dos aulas con el mismo grado/sección/periodo
+                entity.HasIndex(a => new { a.Grado, a.Seccion, a.Periodo })
+                    .IsUnique()
+                    .HasFilter("[Activo] = 1");
+
+                // Relación uno a muchos con Estudiantes
+                entity.HasMany(a => a.Estudiantes)
+                    .WithOne(e => e.Aula)
+                    .HasForeignKey(e => e.AulaId)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                // Relación uno a muchos con HorarioAula
+                entity.HasMany(a => a.Horarios)
+                    .WithOne(h => h.Aula)
+                    .HasForeignKey(h => h.AulaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Relación uno a muchos con GruposCursos
+                entity.HasMany(a => a.GruposCursos)
+                    .WithOne(g => g.Aula)
+                    .HasForeignKey(g => g.AulaId)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // CONFIGURACION DE HORARIO AULA
+            modelBuilder.Entity<HorarioAula>(entity =>
+            {
+                // Relación con Aula
+                entity.HasOne(h => h.Aula)
+                    .WithMany(a => a.Horarios)
+                    .HasForeignKey(h => h.AulaId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // Relación con Curso
+                entity.HasOne(h => h.Curso)
+                    .WithMany()
+                    .HasForeignKey(h => h.CursoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Relación con Docente
+                entity.HasOne(h => h.Docente)
+                    .WithMany()
+                    .HasForeignKey(h => h.DocenteId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice compuesto: No puede haber dos horarios en el mismo aula/día/hora
+                entity.HasIndex(h => new { h.AulaId, h.DiaSemana, h.HoraInicio })
+                    .IsUnique()
+                    .HasFilter("[Activo] = 1");
             });
 
             // DATOS SEMILLA (SEED DATA)
