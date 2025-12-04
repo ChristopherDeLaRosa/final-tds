@@ -1161,7 +1161,7 @@ export default function ConfigurarAula() {
           <div style={{ flex: 1 }}>
             <Title>
               <Settings size={28} style={{ marginRight: '8px' }} />
-              Configurar Aula: {aula.grado}° {aula.seccion}
+              Configurar Horario de Aula: {aula.grado}° {aula.seccion}
             </Title>
             <Subtitle>Periodo {aula.periodo} - {aula.aulaFisica || 'Sin aula física asignada'}</Subtitle>
           </div>

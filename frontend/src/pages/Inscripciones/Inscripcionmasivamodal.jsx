@@ -530,7 +530,7 @@ export default function InscripcionMasivaModal({ isOpen, onClose, onSuccess }) {
           <p style="margin-bottom: 15px;">Se crearán <strong>${totalInscripciones}</strong> inscripciones:</p>
           <ul style="margin: 0;">
             <li><strong>${estudiantesSeleccionados.size}</strong> estudiantes seleccionados</li>
-            <li><strong>${gruposSeleccionados.size}</strong> grupos-cursos seleccionados</li>
+            <li><strong>${gruposSeleccionados.size}</strong> Secciones seleccionadas</li>
           </ul>
         </div>
       `,
