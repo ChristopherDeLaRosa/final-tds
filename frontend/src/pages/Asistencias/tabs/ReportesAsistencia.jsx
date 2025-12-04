@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled,{ keyframes } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import ReactSelect from 'react-select';
 import { 
-  ArrowLeft,
   User,
   Users,
-  Calendar,
   TrendingUp,
   TrendingDown,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
-import { theme } from '../../styles';
-import asistenciaService from '../../services/asistenciaService';
-import estudianteService from '../../services/estudianteService';
-import grupoCursoService from '../../services/grupoCursoService';
-import { Toast } from '../../utils/alerts';
-import Button from '../../components/atoms/Button/Button';
-import Select from '../../components/atoms/Select/Select';
-import Input from '../../components/atoms/Input/Input';
+import { theme } from '../../../styles';
+import asistenciaService from '../../../services/asistenciaService';
+import estudianteService from '../../../services/estudianteService';
+import grupoCursoService from '../../../services/grupoCursoService';
+import { Toast } from '../../../utils/alerts';
+import Button from '../../../components/atoms/Button/Button';
+import Input from '../../../components/atoms/Input/Input';
 
 const Card = styled.div`
   background: ${theme.colors.bg || '#ffffff'};
@@ -42,42 +37,6 @@ const LoadingSpinner = styled.div`
   border-top: 3px solid ${theme.colors.primary};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
-`;
-
-const Container = styled.div`
-  padding: ${theme.spacing.xl};
-  max-width: 1400px;
-  margin: 0 auto;
-`;
-
-const Header = styled.div`
-  margin-bottom: ${theme.spacing.xl};
-`;
-
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.md};
-  margin-bottom: ${theme.spacing.sm};
-`;
-
-const BackButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.xs};
-`;
-
-const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: ${theme.colors.text};
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
-  font-size: 14px;
-  color: ${theme.colors.textMuted};
-  margin: 8px 0 0 0;
 `;
 
 const TabsContainer = styled.div`
@@ -279,17 +238,6 @@ const Table = styled.table`
   }
 `;
 
-const Badge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  padding: ${theme.spacing.xs} ${theme.spacing.sm};
-  border-radius: ${theme.borderRadius.sm};
-  font-size: ${theme.fontSize.xs};
-  font-weight: 600;
-  background: ${props => props.$bgColor};
-  color: ${props => props.$textColor};
-`;
-
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem;
@@ -310,7 +258,6 @@ const LoadingContainer = styled.div`
   }
 `;
 
-// Estilos personalizados para react-select
 const customSelectStyles = {
   control: (provided, state) => ({
     ...provided,
@@ -350,21 +297,14 @@ const customSelectStyles = {
 };
 
 export default function ReportesAsistencia() {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('estudiante'); // 'estudiante' | 'grupo'
-  
-  // Filtros
+  const [activeTab, setActiveTab] = useState('estudiante');
   const [estudiantes, setEstudiantes] = useState([]);
   const [gruposCursos, setGruposCursos] = useState([]);
   const [estudianteSeleccionado, setEstudianteSeleccionado] = useState(null);
   const [grupoCursoSeleccionado, setGrupoCursoSeleccionado] = useState(null);
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState('');
-  
-  // Reportes
   const [reporteEstudiante, setReporteEstudiante] = useState(null);
   const [reporteGrupo, setReporteGrupo] = useState(null);
-  
-  // Estados
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
 
@@ -393,14 +333,12 @@ export default function ReportesAsistencia() {
     }
   };
 
-  // Convertir estudiantes a formato para react-select
   const estudiantesOptions = estudiantes.map(est => ({
     value: est.id,
     label: `${est.matricula} - ${est.nombres} ${est.apellidos}`,
     data: est
   }));
 
-  // Convertir grupos-cursos a formato para react-select
   const gruposCursosOptions = gruposCursos.map(grupo => ({
     value: grupo.id,
     label: `${grupo.nombreCurso} - ${grupo.grado}° ${grupo.seccion} (${grupo.periodo})`,
@@ -423,7 +361,6 @@ export default function ReportesAsistencia() {
         grupoCursoSeleccionado ? grupoCursoSeleccionado.value : null
       );
       
-      console.log('Reporte estudiante:', reporte);
       setReporteEstudiante(reporte);
       
       Toast.fire({
@@ -457,7 +394,6 @@ export default function ReportesAsistencia() {
         periodoSeleccionado || null
       );
       
-      console.log('Reporte grupo:', reporte);
       setReporteGrupo(reporte);
       
       Toast.fire({
@@ -483,17 +419,6 @@ export default function ReportesAsistencia() {
     setReporteGrupo(null);
   };
 
-  const getEstadoBadge = (estado) => {
-    const config = {
-      'Presente': { bg: 'rgba(16, 185, 129, 0.15)', text: '#10b981' },
-      'Ausente': { bg: 'rgba(239, 68, 68, 0.15)', text: '#ef4444' },
-      'Tardanza': { bg: 'rgba(245, 158, 11, 0.15)', text: '#f59e0b' },
-      'Justificado': { bg: 'rgba(59, 130, 246, 0.15)', text: '#3b82f6' },
-    };
-    const c = config[estado] || config['Presente'];
-    return <Badge $bgColor={c.bg} $textColor={c.text}>{estado}</Badge>;
-  };
-
   const getAsistenciaColor = (porcentaje) => {
     if (porcentaje >= 90) return '#10b981';
     if (porcentaje >= 75) return '#3b82f6';
@@ -508,35 +433,17 @@ export default function ReportesAsistencia() {
 
   if (loadingData) {
     return (
-      <Container>
-        <Card>
-          <LoadingContainer>
-            <LoadingSpinner $size="large" />
-            <p>Cargando datos...</p>
-          </LoadingContainer>
-        </Card>
-      </Container>
+      <Card>
+        <LoadingContainer>
+          <LoadingSpinner $size="large" />
+          <p>Cargando datos...</p>
+        </LoadingContainer>
+      </Card>
     );
   }
 
   return (
-    <Container>
-      <Header>
-        <HeaderTop>
-          <BackButton 
-            variant="outline" 
-            onClick={() => navigate('/asistencias')}
-          >
-            <ArrowLeft size={18} />
-            Volver
-          </BackButton>
-          <div style={{ flex: 1 }}>
-            <Title>Reportes de Asistencia</Title>
-            <Subtitle>Consulta estadísticas y reportes detallados de asistencia</Subtitle>
-          </div>
-        </HeaderTop>
-      </Header>
-
+    <>
       <TabsContainer>
         <Tab
           $active={activeTab === 'estudiante'}
@@ -560,7 +467,6 @@ export default function ReportesAsistencia() {
         </Tab>
       </TabsContainer>
 
-      {/* FILTROS */}
       <FiltersCard>
         <FiltersGrid>
           {activeTab === 'estudiante' ? (
@@ -638,7 +544,6 @@ export default function ReportesAsistencia() {
         </FilterActions>
       </FiltersCard>
 
-      {/* REPORTE DE ESTUDIANTE */}
       {activeTab === 'estudiante' && reporteEstudiante && (
         <ReportCard>
           <ReportHeader>
@@ -705,7 +610,6 @@ export default function ReportesAsistencia() {
         </ReportCard>
       )}
 
-      {/* REPORTE DE GRUPO */}
       {activeTab === 'grupo' && reporteGrupo && (
         <ReportCard>
           <ReportHeader>
@@ -803,7 +707,6 @@ export default function ReportesAsistencia() {
         </ReportCard>
       )}
 
-      {/* EMPTY STATE */}
       {!reporteEstudiante && activeTab === 'estudiante' && !loading && (
         <EmptyState>
           <Search size={48} color={theme.colors.textMuted} />
@@ -817,6 +720,6 @@ export default function ReportesAsistencia() {
           <p>Selecciona un grupo-curso y genera un reporte para ver las estadísticas</p>
         </EmptyState>
       )}
-    </Container>
+    </>
   );
 }

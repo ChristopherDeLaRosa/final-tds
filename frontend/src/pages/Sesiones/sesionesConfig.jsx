@@ -15,7 +15,6 @@ const Badge = styled.span`
 
 // Columnas de la tabla
 export const sesionesColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { 
     key: 'fecha', 
     title: 'Fecha',
