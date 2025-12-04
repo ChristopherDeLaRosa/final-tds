@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { 
-  ArrowLeft, 
   AlertCircle, 
   CheckCircle2, 
   Calendar,
   Save,
   Users
 } from 'lucide-react';
-import { theme } from '../../styles';
-import sesionService from '../../services/sesionService';
-import paseListaService from '../../services/paseListaService';
-import { MySwal, Toast } from '../../utils/alerts';
-import Button from '../../components/atoms/Button/Button';
-import Select from '../../components/atoms/Select/Select';
-import PaseListaTable from '../../components/organisms/PaseListaTable/PaseListaTable';
+import { theme } from '../../../styles';
+import sesionService from '../../../services/sesionService';
+import paseListaService from '../../../services/paseListaService';
+import { MySwal, Toast } from '../../../utils/alerts';
+import Button from '../../../components/atoms/Button/Button';
+import Select from '../../../components/atoms/Select/Select';
+import PaseListaTable from '../../../components/organisms/PaseListaTable/PaseListaTable';
 
-// Card component
 const Card = styled.div`
   background: ${theme.colors.bg || '#ffffff'};
   border: 1px solid ${theme.colors.border || '#e5e7eb'};
@@ -26,7 +23,6 @@ const Card = styled.div`
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 `;
 
-// Spinner animation
 const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -40,46 +36,6 @@ const LoadingSpinner = styled.div`
   border-top: 3px solid ${theme.colors.primary};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
-`;
-
-const Container = styled.div`
-  padding: ${theme.spacing.xl};
-  max-width: 1400px;
-  margin: 0 auto;
-`;
-
-const PageHeaderWrapper = styled.div`
-  margin-bottom: ${theme.spacing.xl};
-`;
-
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.md};
-  margin-bottom: ${theme.spacing.sm};
-`;
-
-const BackButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.xs};
-`;
-
-const HeaderContent = styled.div`
-  flex: 1;
-`;
-
-const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: ${theme.colors.text};
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
-  font-size: 14px;
-  color: ${theme.colors.textMuted};
-  margin: 8px 0 0 0;
 `;
 
 const SelectionCard = styled(Card)`
@@ -169,8 +125,6 @@ const SaveButton = styled(Button)`
 `;
 
 export default function PaseLista() {
-  const navigate = useNavigate();
-  
   const [sesiones, setSesiones] = useState([]);
   const [sesionSeleccionada, setSesionSeleccionada] = useState(null);
   const [estudiantes, setEstudiantes] = useState([]);
@@ -418,39 +372,17 @@ export default function PaseLista() {
 
   if (loading) {
     return (
-      <Container>
-        <PageHeaderWrapper>
-          <Title>Pase de Lista</Title>
-          <Subtitle>Control de asistencia diaria</Subtitle>
-        </PageHeaderWrapper>
-        <Card>
-          <LoadingContainer>
-            <LoadingSpinner $size="large" />
-            <p>Cargando sesiones del día...</p>
-          </LoadingContainer>
-        </Card>
-      </Container>
+      <Card>
+        <LoadingContainer>
+          <LoadingSpinner $size="large" />
+          <p>Cargando sesiones del día...</p>
+        </LoadingContainer>
+      </Card>
     );
   }
 
   return (
-    <Container>
-      <PageHeaderWrapper>
-        <HeaderTop>
-          <BackButton 
-            variant="outline" 
-            onClick={() => navigate('/asistencias')}
-          >
-            <ArrowLeft size={18} />
-            Volver
-          </BackButton>
-          <HeaderContent>
-            <Title>Pase de Lista</Title>
-            <Subtitle>Control de asistencia diaria - Selecciona una sesión para comenzar</Subtitle>
-          </HeaderContent>
-        </HeaderTop>
-      </PageHeaderWrapper>
-
+    <>
       <SelectionCard>
         <FormGrid>
           <FormGroup>
@@ -500,12 +432,6 @@ export default function PaseLista() {
               <Calendar size={20} />
               No hay sesiones programadas para hoy
             </p>
-            <Button
-              variant="outline"
-              onClick={() => navigate('/sesiones')}
-            >
-              Ir a Sesiones
-            </Button>
           </EmptyMessage>
         )}
       </SelectionCard>
@@ -564,7 +490,6 @@ export default function PaseLista() {
           </Card>
         </>
       )}
-    </Container>
+    </>
   );
 }
-

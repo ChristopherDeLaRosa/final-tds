@@ -189,10 +189,10 @@ const menuSections = [
     title: 'Gestión de Clases',
     items: [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
-      { path: '/pase-lista', label: 'Pase de Lista', icon: ClipboardList },
+      // { path: '/pase-lista', label: 'Pase de Lista', icon: ClipboardList },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
-      { path: '/historial-asistencias', label: 'Historial', icon: History },
-      { path: '/reportes-asistencia', label: 'Reportes', icon: BarChart3 },
+      // { path: '/historial-asistencias', label: 'Historial', icon: History },
+      // { path: '/reportes-asistencia', label: 'Reportes', icon: BarChart3 },
       { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
     ]
   }

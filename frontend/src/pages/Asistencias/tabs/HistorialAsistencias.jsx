@@ -1,25 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { 
-  ArrowLeft,
   Search,
   Filter,
   Calendar as CalendarIcon,
-  User,
-  Clock,
   FileText,
-  Download,
   Eye
 } from 'lucide-react';
-import { theme } from '../../styles';
-import asistenciaService from '../../services/asistenciaService';
-import estudianteService from '../../services/estudianteService';
-import sesionService from '../../services/sesionService';
-import { Toast, MySwal } from '../../utils/alerts';
-import Button from '../../components/atoms/Button/Button';
-import Select from '../../components/atoms/Select/Select';
-import Input from '../../components/atoms/Input/Input';
+import { theme } from '../../../styles';
+import asistenciaService from '../../../services/asistenciaService';
+import estudianteService from '../../../services/estudianteService';
+import sesionService from '../../../services/sesionService';
+import { Toast, MySwal } from '../../../utils/alerts';
+import Button from '../../../components/atoms/Button/Button';
+import Select from '../../../components/atoms/Select/Select';
+import Input from '../../../components/atoms/Input/Input';
 
 const Card = styled.div`
   background: ${theme.colors.bg || '#ffffff'};
@@ -42,42 +37,6 @@ const LoadingSpinner = styled.div`
   border-top: 3px solid ${theme.colors.primary};
   border-radius: 50%;
   animation: ${spin} 0.8s linear infinite;
-`;
-
-const Container = styled.div`
-  padding: ${theme.spacing.xl};
-  max-width: 1600px;
-  margin: 0 auto;
-`;
-
-const Header = styled.div`
-  margin-bottom: ${theme.spacing.xl};
-`;
-
-const HeaderTop = styled.div`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.md};
-  margin-bottom: ${theme.spacing.sm};
-`;
-
-const BackButton = styled(Button)`
-  display: flex;
-  align-items: center;
-  gap: ${theme.spacing.xs};
-`;
-
-const Title = styled.h1`
-  font-size: 28px;
-  font-weight: 700;
-  color: ${theme.colors.text};
-  margin: 0;
-`;
-
-const Subtitle = styled.p`
-  font-size: 14px;
-  color: ${theme.colors.textMuted};
-  margin: 8px 0 0 0;
 `;
 
 const FiltersCard = styled(Card)`
@@ -276,28 +235,16 @@ const PaginationButtons = styled.div`
 `;
 
 export default function HistorialAsistencias() {
-  const navigate = useNavigate();
-  
-  // Datos para filtros
   const [estudiantes, setEstudiantes] = useState([]);
-  const [sesiones, setSesiones] = useState([]);
-  
-  // Filtros
   const [estudianteFilter, setEstudianteFilter] = useState('');
   const [estadoFilter, setEstadoFilter] = useState('');
   const [fechaInicioFilter, setFechaInicioFilter] = useState('');
   const [fechaFinFilter, setFechaFinFilter] = useState('');
   const [busqueda, setBusqueda] = useState('');
-  
-  // Datos
   const [asistencias, setAsistencias] = useState([]);
   const [asistenciasFiltradas, setAsistenciasFiltradas] = useState([]);
-  
-  // Estados
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
-  
-  // Paginación
   const [paginaActual, setPaginaActual] = useState(1);
   const itemsPorPagina = 20;
 
@@ -306,12 +253,12 @@ export default function HistorialAsistencias() {
   }, []);
 
   useEffect(() => {
-  if (asistencias.length > 0) {
-    aplicarFiltros();
-  } else {
-    setAsistenciasFiltradas([]);
-  }
-}, [asistencias, estudianteFilter, estadoFilter, fechaInicioFilter, fechaFinFilter, busqueda]);
+    if (asistencias.length > 0) {
+      aplicarFiltros();
+    } else {
+      setAsistenciasFiltradas([]);
+    }
+  }, [asistencias, estudianteFilter, estadoFilter, fechaInicioFilter, fechaFinFilter, busqueda]);
 
   const cargarDatosIniciales = async () => {
     try {
@@ -329,130 +276,104 @@ export default function HistorialAsistencias() {
     }
   };
 
- const aplicarFiltros = () => {
-  let resultado = [...asistencias];
+  const aplicarFiltros = () => {
+    let resultado = [...asistencias];
 
-  // Filtro por estudiante
-  if (estudianteFilter) {
-    resultado = resultado.filter(a => a.estudianteId === parseInt(estudianteFilter));
-  }
+    if (estudianteFilter) {
+      resultado = resultado.filter(a => a.estudianteId === parseInt(estudianteFilter));
+    }
 
-  // Filtro por estado
-  if (estadoFilter) {
-    resultado = resultado.filter(a => a.estado === estadoFilter);
-  }
+    if (estadoFilter) {
+      resultado = resultado.filter(a => a.estado === estadoFilter);
+    }
 
-  // Búsqueda general (solo si hay texto)
-  if (busqueda && busqueda.trim() !== '') {
-    const searchLower = busqueda.toLowerCase().trim();
-    resultado = resultado.filter(a =>
-      (a.nombreEstudiante?.toLowerCase() || '').includes(searchLower) ||
-      (a.matriculaEstudiante?.toLowerCase() || '').includes(searchLower) ||
-      (a.temaSesion?.toLowerCase() || '').includes(searchLower)
-    );
-  }
+    if (busqueda && busqueda.trim() !== '') {
+      const searchLower = busqueda.toLowerCase().trim();
+      resultado = resultado.filter(a =>
+        (a.nombreEstudiante?.toLowerCase() || '').includes(searchLower) ||
+        (a.matriculaEstudiante?.toLowerCase() || '').includes(searchLower) ||
+        (a.temaSesion?.toLowerCase() || '').includes(searchLower)
+      );
+    }
 
-  console.log('Filtros aplicados:', {
-    total: asistencias.length,
-    estudiante: estudianteFilter,
-    estado: estadoFilter,
-    busqueda: busqueda,
-    resultado: resultado.length
-  });
-
-  setAsistenciasFiltradas(resultado);
-  setPaginaActual(1);
-};
+    setAsistenciasFiltradas(resultado);
+    setPaginaActual(1);
+  };
 
   const handleBuscar = async () => {
-  if (!fechaInicioFilter || !fechaFinFilter) {
-    Toast.fire({
-      icon: 'warning',
-      title: 'Selecciona un rango de fechas',
-    });
-    return;
-  }
-
-  try {
-    setLoading(true);
-    
-    console.log('Buscando asistencias entre:', fechaInicioFilter, 'y', fechaFinFilter);
-    
-    // Obtener todas las sesiones en el rango
-    const sesionesData = await sesionService.getByRangoFechas(
-      fechaInicioFilter,
-      fechaFinFilter
-    );
-
-    console.log('Sesiones encontradas:', sesionesData.length);
-
-    if (sesionesData.length === 0) {
-      setAsistencias([]);
+    if (!fechaInicioFilter || !fechaFinFilter) {
       Toast.fire({
-        icon: 'info',
-        title: 'No hay sesiones en el rango seleccionado',
+        icon: 'warning',
+        title: 'Selecciona un rango de fechas',
       });
-      setLoading(false);
       return;
     }
 
-    // Obtener asistencias de cada sesión
-    const asistenciasPromises = sesionesData.map(sesion =>
-      asistenciaService.getBySesion(sesion.id).catch(err => {
-        console.warn(`Error al obtener asistencias de sesión ${sesion.id}:`, err);
-        return [];
-      })
-    );
-    
-    const asistenciasArrays = await Promise.all(asistenciasPromises);
-    const todasAsistencias = asistenciasArrays.flat();
-    
-    console.log('Total asistencias cargadas:', todasAsistencias.length);
-    console.log('Primera asistencia:', todasAsistencias[0]);
-    
-    const asistenciasEnriquecidas = todasAsistencias.map(asistencia => {
-      // Buscar la sesión correspondiente
-      const sesion = sesionesData.find(s => s.id === asistencia.sesionId);
+    try {
+      setLoading(true);
       
-      // Buscar el estudiante correspondiente
-      const estudiante = estudiantes.find(e => e.id === asistencia.estudianteId);
+      const sesionesData = await sesionService.getByRangoFechas(
+        fechaInicioFilter,
+        fechaFinFilter
+      );
+
+      if (sesionesData.length === 0) {
+        setAsistencias([]);
+        Toast.fire({
+          icon: 'info',
+          title: 'No hay sesiones en el rango seleccionado',
+        });
+        setLoading(false);
+        return;
+      }
+
+      const asistenciasPromises = sesionesData.map(sesion =>
+        asistenciaService.getBySesion(sesion.id).catch(err => {
+          console.warn(`Error al obtener asistencias de sesión ${sesion.id}:`, err);
+          return [];
+        })
+      );
       
-      return {
-        ...asistencia,
-        fechaSesion: sesion?.fecha || asistencia.fechaSesion,
-        temaSesion: sesion?.tema || '',
-        nombreEstudiante: estudiante ? `${estudiante.nombres} ${estudiante.apellidos}` : 'Desconocido',
-        matriculaEstudiante: estudiante?.matricula || 'N/A'
-      };
-    });
-    
-    console.log('Asistencias enriquecidas:', asistenciasEnriquecidas.length);
-    console.log('Primera asistencia enriquecida:', asistenciasEnriquecidas[0]);
-    
-    setAsistencias(asistenciasEnriquecidas);
-    
-    if (asistenciasEnriquecidas.length === 0) {
-      Toast.fire({
-        icon: 'info',
-        title: 'No hay asistencias registradas en este período',
+      const asistenciasArrays = await Promise.all(asistenciasPromises);
+      const todasAsistencias = asistenciasArrays.flat();
+      
+      const asistenciasEnriquecidas = todasAsistencias.map(asistencia => {
+        const sesion = sesionesData.find(s => s.id === asistencia.sesionId);
+        const estudiante = estudiantes.find(e => e.id === asistencia.estudianteId);
+        
+        return {
+          ...asistencia,
+          fechaSesion: sesion?.fecha || asistencia.fechaSesion,
+          temaSesion: sesion?.tema || '',
+          nombreEstudiante: estudiante ? `${estudiante.nombres} ${estudiante.apellidos}` : 'Desconocido',
+          matriculaEstudiante: estudiante?.matricula || 'N/A'
+        };
       });
-    } else {
+      
+      setAsistencias(asistenciasEnriquecidas);
+      
+      if (asistenciasEnriquecidas.length === 0) {
+        Toast.fire({
+          icon: 'info',
+          title: 'No hay asistencias registradas en este período',
+        });
+      } else {
+        Toast.fire({
+          icon: 'success',
+          title: `${asistenciasEnriquecidas.length} registros encontrados`,
+        });
+      }
+    } catch (error) {
+      console.error('Error al buscar asistencias:', error);
       Toast.fire({
-        icon: 'success',
-        title: `${asistenciasEnriquecidas.length} registros encontrados`,
+        icon: 'error',
+        title: 'Error al buscar asistencias',
+        text: error.response?.data?.message || error.message,
       });
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error('Error al buscar asistencias:', error);
-    Toast.fire({
-      icon: 'error',
-      title: 'Error al buscar asistencias',
-      text: error.response?.data?.message || error.message,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const limpiarFiltros = () => {
     setEstudianteFilter('');
@@ -495,7 +416,6 @@ export default function HistorialAsistencias() {
     });
   };
 
-  // Calcular estadísticas
   const stats = {
     total: asistenciasFiltradas.length,
     presentes: asistenciasFiltradas.filter(a => a.estado === 'Presente').length,
@@ -503,7 +423,6 @@ export default function HistorialAsistencias() {
     tardanzas: asistenciasFiltradas.filter(a => a.estado === 'Tardanza').length,
   };
 
-  // Paginación
   const totalPaginas = Math.ceil(asistenciasFiltradas.length / itemsPorPagina);
   const indiceInicio = (paginaActual - 1) * itemsPorPagina;
   const indiceFin = indiceInicio + itemsPorPagina;
@@ -511,36 +430,17 @@ export default function HistorialAsistencias() {
 
   if (loadingData) {
     return (
-      <Container>
-        <Card>
-          <LoadingContainer>
-            <LoadingSpinner $size="large" />
-            <p>Cargando datos...</p>
-          </LoadingContainer>
-        </Card>
-      </Container>
+      <Card>
+        <LoadingContainer>
+          <LoadingSpinner $size="large" />
+          <p>Cargando datos...</p>
+        </LoadingContainer>
+      </Card>
     );
   }
 
   return (
-    <Container>
-      <Header>
-        <HeaderTop>
-          <BackButton 
-            variant="outline" 
-            onClick={() => navigate('/asistencias')}
-          >
-            <ArrowLeft size={18} />
-            Volver
-          </BackButton>
-          <div style={{ flex: 1 }}>
-            <Title>Historial de Asistencias</Title>
-            <Subtitle>Consulta y filtra el historial completo de asistencias</Subtitle>
-          </div>
-        </HeaderTop>
-      </Header>
-
-      {/* FILTROS */}
+    <>
       <FiltersCard>
         <FiltersGrid>
           <FormGroup>
@@ -616,7 +516,6 @@ export default function HistorialAsistencias() {
         </FilterActions>
       </FiltersCard>
 
-      {/* ESTADÍSTICAS */}
       {asistenciasFiltradas.length > 0 && (
         <StatsBar>
           <StatCard>
@@ -638,7 +537,6 @@ export default function HistorialAsistencias() {
         </StatsBar>
       )}
 
-      {/* TABLA */}
       {asistenciasFiltradas.length > 0 && (
         <TableCard>
           <TableHeader>
@@ -697,7 +595,6 @@ export default function HistorialAsistencias() {
             </Table>
           </TableWrapper>
 
-          {/* PAGINACIÓN */}
           {totalPaginas > 1 && (
             <Pagination>
               <PaginationInfo>
@@ -732,7 +629,6 @@ export default function HistorialAsistencias() {
         </TableCard>
       )}
 
-      {/* EMPTY STATE */}
       {asistenciasFiltradas.length === 0 && asistencias.length === 0 && !loading && (
         <EmptyState>
           <Search size={48} color={theme.colors.textMuted} />
@@ -749,6 +645,6 @@ export default function HistorialAsistencias() {
           </Button>
         </EmptyState>
       )}
-    </Container>
+    </>
   );
 }
