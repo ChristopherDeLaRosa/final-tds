@@ -22,6 +22,7 @@ namespace EduCore.API.Data
         public DbSet<Asistencia> Asistencias { get; set; }
         public DbSet<Aula> Aulas { get; set; }
         public DbSet<HorarioAula> HorariosAulas { get; set; }
+        public DbSet<Periodo> Periodos { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -144,7 +145,6 @@ namespace EduCore.API.Data
             {
                 entity.Property(e => e.Codigo).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
-                entity.Property(e => e.Periodo).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.Horario).HasMaxLength(200);
                 entity.Property(e => e.Grado).IsRequired();
                 entity.Property(e => e.Anio).IsRequired();
@@ -168,6 +168,13 @@ namespace EduCore.API.Data
                     .HasForeignKey(g => g.AulaId)
                     .OnDelete(DeleteBehavior.SetNull);
 
+                // ====== RELACIÓN CON PERIODO ======
+                entity.HasOne(g => g.Periodo)
+                    .WithMany(p => p.GruposCursos)
+                    .HasForeignKey(g => g.PeriodoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                // ===================================
+
                 // Relaciones uno a muchos
                 entity.HasMany(g => g.Inscripciones)
                     .WithOne(i => i.GrupoCurso)
@@ -184,6 +191,7 @@ namespace EduCore.API.Data
                     .HasForeignKey(r => r.GrupoCursoId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
+
 
             // CONFIGURACION DE INSCRIPCION
 
@@ -315,13 +323,19 @@ namespace EduCore.API.Data
             {
                 entity.Property(e => e.Codigo).IsRequired().HasMaxLength(50);
                 entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
-                entity.Property(e => e.Periodo).IsRequired().HasMaxLength(20);
                 entity.Property(e => e.AulaFisica).HasMaxLength(50);
 
                 // Índice único: No puede haber dos aulas con el mismo grado/sección/periodo
-                entity.HasIndex(a => new { a.Grado, a.Seccion, a.Periodo })
+                entity.HasIndex(a => new { a.Grado, a.Seccion, a.PeriodoId }) // ← CAMBIO AQUÍ
                     .IsUnique()
                     .HasFilter("[Activo] = 1");
+
+                // ====== RELACIÓN CON PERIODO ======
+                entity.HasOne(a => a.Periodo)
+                    .WithMany(p => p.Aulas)
+                    .HasForeignKey(a => a.PeriodoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+                // ==================================
 
                 // Relación uno a muchos con Estudiantes
                 entity.HasMany(a => a.Estudiantes)
@@ -367,6 +381,31 @@ namespace EduCore.API.Data
                 entity.HasIndex(h => new { h.AulaId, h.DiaSemana, h.HoraInicio })
                     .IsUnique()
                     .HasFilter("[Activo] = 1");
+            });
+
+            // ========== CONFIGURACION DE PERIODO ========== 
+            modelBuilder.Entity<Periodo>(entity =>
+            {
+                entity.Property(e => e.Nombre).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.Trimestre).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.Observaciones).HasMaxLength(500);
+
+                // Relación con GruposCursos
+                entity.HasMany(p => p.GruposCursos)
+                    .WithOne(g => g.Periodo)
+                    .HasForeignKey(g => g.PeriodoId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // Índice para búsquedas rápidas por período actual
+                entity.HasIndex(p => p.EsActual);
+
+                // Índice compuesto para búsquedas por año escolar y trimestre
+                entity.HasIndex(p => new { p.Nombre, p.Trimestre });
+
+                // Validación: solo puede haber un período actual a la vez
+                entity.HasIndex(p => p.EsActual)
+                    .IsUnique()
+                    .HasFilter("[EsActual] = 1");
             });
 
             // DATOS SEMILLA (SEED DATA)

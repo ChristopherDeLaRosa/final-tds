@@ -3,8 +3,10 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EduCore.API.Models
 {
+    /// <summary>
     /// Representa un aula física con su grupo de estudiantes y horario completo
     /// Ej: "5°A - 2024-2025" tiene 30 estudiantes y un horario semanal definido
+    /// </summary>
     public class Aula
     {
         [Key]
@@ -25,9 +27,12 @@ namespace EduCore.API.Models
         [Required]
         public int Anio { get; set; } // 2024, 2025
 
+        // ============ RELACIÓN CON PERIODO ============
         [Required]
-        [MaxLength(20)]
-        public string Periodo { get; set; } = string.Empty; // "2024-2025"
+        public int PeriodoId { get; set; }
+        [ForeignKey("PeriodoId")]
+        public virtual Periodo Periodo { get; set; } = null!;
+        // ==============================================
 
         [MaxLength(50)]
         public string? AulaFisica { get; set; } // Nombre del salón físico: "Aula 201"

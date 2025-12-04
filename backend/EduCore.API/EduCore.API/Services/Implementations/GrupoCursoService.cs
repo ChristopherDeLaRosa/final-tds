@@ -90,7 +90,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = grupo.Grado,
                 Seccion = grupo.Seccion,
                 Anio = grupo.Anio,
-                Periodo = grupo.Periodo,
+                Periodo = grupo.Periodo.Nombre,
                 AulaId = grupo.AulaId,
                 AulaFisica = grupo.Aula?.AulaFisica,
                 Horario = grupo.Horario,
@@ -117,7 +117,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
                 .Include(g => g.Aula)
-                .Where(g => g.Periodo == periodo && g.Activo)
+                .Where(g => g.Periodo.Nombre == periodo && g.Activo)
                 .OrderBy(g => g.Grado)
                 .ThenBy(g => g.Seccion)
                 .ThenBy(g => g.Curso.Nombre)
@@ -132,7 +132,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
                 .Include(g => g.Aula)
-                .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo == periodo && g.Activo)
+                .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo.Nombre == periodo && g.Activo)
                 .OrderBy(g => g.Curso.Orden)
                 .ThenBy(g => g.Curso.Nombre)
                 .ToListAsync();
@@ -179,7 +179,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = createDto.Grado,
                 Seccion = createDto.Seccion,
                 Anio = createDto.Anio,
-                Periodo = createDto.Periodo,
+                PeriodoId = createDto.PeriodoId,
                 AulaId = createDto.AulaId,
                 Horario = createDto.Horario,
                 CapacidadMaxima = createDto.CapacidadMaxima,
@@ -287,7 +287,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(g => g.Curso)
                 .Include(g => g.Docente)
                 .Include(g => g.Aula)
-                .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo == periodo && g.Activo)
+                .Where(g => g.Grado == grado && g.Seccion == seccion && g.Periodo.Nombre == periodo && g.Activo)
                 .OrderBy(g => g.Curso.Orden)
                 .ThenBy(g => g.Horario)
                 .ToListAsync();
@@ -340,7 +340,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = grupo.Grado,
                 Seccion = grupo.Seccion,
                 Anio = grupo.Anio,
-                Periodo = grupo.Periodo,
+                Periodo = grupo.Periodo.Nombre,
                 AulaId = grupo.AulaId,
                 AulaFisica = grupo.Aula?.AulaFisica,
                 Horario = grupo.Horario,

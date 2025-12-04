@@ -48,7 +48,7 @@ namespace EduCore.API.Services.Implementations
             // Aplicar filtros opcionales
             if (!string.IsNullOrWhiteSpace(periodo))
             {
-                query = query.Where(i => i.GrupoCurso.Periodo == periodo);
+                query = query.Where(i => i.GrupoCurso.Periodo.Nombre == periodo);
             }
 
             if (grado.HasValue)
@@ -143,7 +143,7 @@ namespace EduCore.API.Services.Implementations
                     Grado = inscripcion.GrupoCurso.Grado,
                     Seccion = inscripcion.GrupoCurso.Seccion,
                     Anio = inscripcion.GrupoCurso.Anio,
-                    Periodo = inscripcion.GrupoCurso.Periodo,
+                    Periodo = inscripcion.GrupoCurso.Periodo.Nombre,
                     AulaId = inscripcion.GrupoCurso.AulaId,
                     AulaFisica = inscripcion.GrupoCurso.Aula?.AulaFisica,
                     Horario = inscripcion.GrupoCurso.Horario,
@@ -192,7 +192,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
                 .Where(i => i.EstudianteId == estudianteId &&
-                           i.GrupoCurso.Periodo == periodo &&
+                           i.GrupoCurso.Periodo.Nombre == periodo &&
                            i.Activo)
                 .OrderBy(i => i.GrupoCurso.Curso.Orden)
                 .ToListAsync();
@@ -276,7 +276,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo,
+                Periodo = grupoCurso.Periodo.Nombre,
                 CapacidadMaxima = grupoCurso.CapacidadMaxima,
                 CantidadEstudiantes = grupoCurso.CantidadEstudiantes,
                 CuposDisponibles = cuposDisponibles > 0 ? cuposDisponibles : 0,
@@ -420,7 +420,7 @@ namespace EduCore.API.Services.Implementations
             var gruposCursos = await _context.GruposCursos
                 .Where(g => g.Grado == estudiante.GradoActual &&
                            g.Seccion == estudiante.SeccionActual &&
-                           g.Periodo == inscripcionDto.Periodo &&
+                           g.Periodo.Nombre == inscripcionDto.Periodo &&
                            g.Activo)
                 .ToListAsync();
 
@@ -629,7 +629,7 @@ namespace EduCore.API.Services.Implementations
             var gruposCursos = await _context.GruposCursos
                 .Where(g => g.Grado == inscripcionDto.Grado &&
                            g.Seccion == inscripcionDto.Seccion &&
-                           g.Periodo == inscripcionDto.Periodo &&
+                           g.Periodo.Nombre == inscripcionDto.Periodo &&
                            g.Activo)
                 .ToListAsync();
 
@@ -745,7 +745,7 @@ namespace EduCore.API.Services.Implementations
             var inscripciones = await _context.Inscripciones
                 .Include(i => i.Estudiante)
                 .Include(i => i.GrupoCurso)
-                .Where(i => i.GrupoCurso.Periodo == periodo)
+                .Where(i => i.GrupoCurso.Periodo.Nombre == periodo)
                 .ToListAsync();
 
             var totalEstudiantes = inscripciones.Select(i => i.EstudianteId).Distinct().Count();

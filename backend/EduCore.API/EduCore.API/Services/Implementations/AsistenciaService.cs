@@ -318,7 +318,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo,
+                Periodo = grupoCurso.Periodo?.Nombre ?? string.Empty,
                 TotalSesiones = totalSesiones,
                 PorcentajeAsistenciaPromedio = Math.Round(porcentajePromedio, 2),
                 Estudiantes = estudiantesResumen.OrderBy(e => e.NombreCompleto).ToList()

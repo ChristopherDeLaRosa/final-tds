@@ -246,7 +246,7 @@ namespace EduCore.API.Services.Implementations
                     AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
                     Grado = inscripcion.GrupoCurso.Grado,
                     Seccion = inscripcion.GrupoCurso.Seccion,
-                    Periodo = inscripcion.GrupoCurso.Periodo,
+                    Periodo = inscripcion.GrupoCurso.Periodo.Nombre,
                     Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
                     PromedioFinal = inscripcion.PromedioFinal,
                     Estado = inscripcion.Estado,

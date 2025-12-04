@@ -27,7 +27,7 @@ namespace EduCore.API.DTOs
         public int Grado { get; set; }
         public string Seccion { get; set; } = string.Empty;
         public int Anio { get; set; }
-        public string Periodo { get; set; } = string.Empty;
+        public int PeriodoId { get; set; }
         public string? AulaFisica { get; set; }
         public int CapacidadMaxima { get; set; } = 35;
         public DateTime FechaInicio { get; set; }

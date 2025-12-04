@@ -75,7 +75,7 @@ namespace EduCore.API.Services.Implementations
                     NombreCurso = g.Curso.Nombre,
                     Grado = g.Grado,
                     Seccion = g.Seccion,
-                    Periodo = g.Periodo,
+                    Periodo = g.Periodo.Nombre,
                     CantidadEstudiantes = g.CantidadEstudiantes,
                     CapacidadMaxima = g.CapacidadMaxima,
                     Aula = g.Aula?.AulaFisica,
@@ -259,7 +259,7 @@ namespace EduCore.API.Services.Implementations
             // Filtro por periodo
             if (!string.IsNullOrWhiteSpace(filtros.Periodo))
             {
-                query = query.Where(d => d.GrupoCursos.Any(g => g.Periodo == filtros.Periodo && g.Activo));
+                query = query.Where(d => d.GrupoCursos.Any(g => g.Periodo.Nombre == filtros.Periodo && g.Activo));
             }
 
             var docentes = await query
@@ -409,7 +409,7 @@ namespace EduCore.API.Services.Implementations
 
             if (!string.IsNullOrWhiteSpace(periodo))
             {
-                query = query.Where(g => g.Periodo == periodo);
+                query = query.Where(g => g.Periodo.Nombre == periodo);
             }
 
             var grupos = await query
@@ -431,7 +431,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = g.Grado,
                 Seccion = g.Seccion,
                 Anio = g.Anio,
-                Periodo = g.Periodo,
+                Periodo = g.Periodo.Nombre,
                 AulaId = g.AulaId,
                 AulaFisica = g.Aula?.AulaFisica,
                 Horario = g.Horario,
@@ -449,7 +449,7 @@ namespace EduCore.API.Services.Implementations
 
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
-                .Where(g => g.DocenteId == docenteId && g.Periodo == periodo && g.Activo)
+                .Where(g => g.DocenteId == docenteId && g.Periodo.Nombre == periodo && g.Activo)
                 .ToListAsync();
 
             // Obtener sesiones para calcular horas semanales
@@ -519,7 +519,7 @@ namespace EduCore.API.Services.Implementations
 
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
-                .Where(g => g.DocenteId == docenteId && g.Periodo == periodo && g.Activo)
+                .Where(g => g.DocenteId == docenteId && g.Periodo.Nombre == periodo && g.Activo)
                 .ToListAsync();
 
             var gruposIds = grupos.Select(g => g.Id).ToList();

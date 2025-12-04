@@ -105,10 +105,8 @@ namespace EduCore.API.Migrations
                     b.Property<int>("Grado")
                         .HasColumnType("int");
 
-                    b.Property<string>("Periodo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("PeriodoId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Seccion")
                         .IsRequired()
@@ -117,7 +115,9 @@ namespace EduCore.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Grado", "Seccion", "Periodo")
+                    b.HasIndex("PeriodoId");
+
+                    b.HasIndex("Grado", "Seccion", "PeriodoId")
                         .IsUnique()
                         .HasFilter("[Activo] = 1");
 
@@ -404,10 +404,8 @@ namespace EduCore.API.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Periodo")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("PeriodoId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Seccion")
                         .IsRequired()
@@ -424,6 +422,8 @@ namespace EduCore.API.Migrations
                     b.HasIndex("CursoId");
 
                     b.HasIndex("DocenteId");
+
+                    b.HasIndex("PeriodoId");
 
                     b.ToTable("GruposCursos");
                 });
@@ -511,6 +511,51 @@ namespace EduCore.API.Migrations
                         .HasFilter("[Activo] = 1");
 
                     b.ToTable("Inscripciones");
+                });
+
+            modelBuilder.Entity("EduCore.API.Models.Periodo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EsActual")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("FechaFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Observaciones")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Trimestre")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EsActual")
+                        .IsUnique()
+                        .HasFilter("[EsActual] = 1");
+
+                    b.HasIndex("Nombre", "Trimestre");
+
+                    b.ToTable("Periodos");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Rubro", b =>
@@ -650,9 +695,9 @@ namespace EduCore.API.Migrations
                             Id = 1,
                             Activo = true,
                             Email = "admin@educore.com",
-                            FechaCreacion = new DateTime(2025, 11, 29, 19, 31, 42, 56, DateTimeKind.Utc).AddTicks(4607),
+                            FechaCreacion = new DateTime(2025, 12, 4, 18, 16, 21, 661, DateTimeKind.Utc).AddTicks(6132),
                             NombreUsuario = "admin",
-                            PasswordHash = "$2a$11$qdkEvnVb0rxeW8U7t8JdteW2M08wqYtdUJFUX.y.AlwUQ2QjpD3y2",
+                            PasswordHash = "$2a$11$yV9P6d/FCGmBEQCYykWfCeHahCdmxBM1TUhzXRI0PVTGb3.dP1PA.",
                             Rol = "Admin"
                         });
                 });
@@ -674,6 +719,17 @@ namespace EduCore.API.Migrations
                     b.Navigation("Estudiante");
 
                     b.Navigation("Sesion");
+                });
+
+            modelBuilder.Entity("EduCore.API.Models.Aula", b =>
+                {
+                    b.HasOne("EduCore.API.Models.Periodo", "Periodo")
+                        .WithMany("Aulas")
+                        .HasForeignKey("PeriodoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Periodo");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Calificacion", b =>
@@ -724,11 +780,19 @@ namespace EduCore.API.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("EduCore.API.Models.Periodo", "Periodo")
+                        .WithMany("GruposCursos")
+                        .HasForeignKey("PeriodoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Aula");
 
                     b.Navigation("Curso");
 
                     b.Navigation("Docente");
+
+                    b.Navigation("Periodo");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.HorarioAula", b =>
@@ -851,6 +915,13 @@ namespace EduCore.API.Migrations
                     b.Navigation("Rubros");
 
                     b.Navigation("Sesiones");
+                });
+
+            modelBuilder.Entity("EduCore.API.Models.Periodo", b =>
+                {
+                    b.Navigation("Aulas");
+
+                    b.Navigation("GruposCursos");
                 });
 
             modelBuilder.Entity("EduCore.API.Models.Rubro", b =>
