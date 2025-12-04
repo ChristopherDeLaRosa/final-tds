@@ -21,13 +21,15 @@ const grupoCursoService = {
     return response.data;
   },
 
-  // Obtener grupos por periodo
+  // Obtener grupos por periodo (nombre del periodo como string)
+  // Ejemplo: getByPeriodo("2024-2025")
   getByPeriodo: async (periodo) => {
     const response = await axiosInstance.get(`${API_URL}/periodo/${periodo}`);
     return response.data;
   },
 
-  // Obtener grupos por grado y sección (periodo es REQUERIDO)
+  // Obtener grupos por grado y sección (periodo es REQUERIDO como string)
+  // Ejemplo: getByGradoSeccion(5, "A", "2024-2025")
   getByGradoSeccion: async (grado, seccion, periodo) => {
     if (!periodo) {
       throw new Error('El periodo es requerido');
@@ -50,7 +52,7 @@ const grupoCursoService = {
     return response.data;
   },
 
-  // Obtener horario por grado y sección (periodo es REQUERIDO)
+  // Obtener horario por grado y sección (periodo es REQUERIDO como string)
   getHorario: async (grado, seccion, periodo) => {
     if (!periodo) {
       throw new Error('El periodo es requerido');
@@ -61,8 +63,23 @@ const grupoCursoService = {
     return response.data;
   },
 
-  // Crear nuevo grupo-curso
+
   create: async (grupoCursoData) => {
+    // Validación adicional para ayudar a detectar errores
+    if (!grupoCursoData.periodoId && grupoCursoData.periodo) {
+      console.error(
+        'Estás usando "periodo" (string) pero el backend requiere "periodoId" (number).',
+        'Por favor actualiza tu código para usar periodoId.'
+      );
+      throw new Error(
+        'El campo "periodoId" es requerido. Ya no se acepta "periodo" como string.'
+      );
+    }
+
+    if (!grupoCursoData.periodoId) {
+      throw new Error('El campo "periodoId" es requerido');
+    }
+
     const response = await axiosInstance.post(API_URL, grupoCursoData);
     return response.data;
   },

@@ -211,11 +211,11 @@ namespace EduCore.API.Data
                     .HasForeignKey(i => i.GrupoCursoId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Indice unico compuesto: un estudiante no puede estar inscrito 
-                // dos veces en el mismo grupo si esta activo
+                // ⚠️ CAMBIO: PostgreSQL no soporta HasFilter con sintaxis SQL Server
+                // Índice parcial usando sintaxis PostgreSQL
                 entity.HasIndex(i => new { i.EstudianteId, i.GrupoCursoId })
                     .IsUnique()
-                    .HasFilter("[Activo] = 1");
+                    .HasFilter("\"Activo\" = true"); // ← Sintaxis PostgreSQL
 
                 // Precision decimal
                 entity.Property(i => i.PromedioFinal)
@@ -325,10 +325,10 @@ namespace EduCore.API.Data
                 entity.Property(e => e.Seccion).IsRequired().HasMaxLength(10);
                 entity.Property(e => e.AulaFisica).HasMaxLength(50);
 
-                // Índice único: No puede haber dos aulas con el mismo grado/sección/periodo
-                entity.HasIndex(a => new { a.Grado, a.Seccion, a.PeriodoId }) // ← CAMBIO AQUÍ
+                // ⚠️ CAMBIO: Índice único con sintaxis PostgreSQL
+                entity.HasIndex(a => new { a.Grado, a.Seccion, a.PeriodoId })
                     .IsUnique()
-                    .HasFilter("[Activo] = 1");
+                    .HasFilter("\"Activo\" = true"); // ← Sintaxis PostgreSQL
 
                 // ====== RELACIÓN CON PERIODO ======
                 entity.HasOne(a => a.Periodo)
@@ -377,10 +377,10 @@ namespace EduCore.API.Data
                     .HasForeignKey(h => h.DocenteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Índice compuesto: No puede haber dos horarios en el mismo aula/día/hora
+                // ⚠️ CAMBIO: Índice compuesto con sintaxis PostgreSQL
                 entity.HasIndex(h => new { h.AulaId, h.DiaSemana, h.HoraInicio })
                     .IsUnique()
-                    .HasFilter("[Activo] = 1");
+                    .HasFilter("\"Activo\" = true"); // ← Sintaxis PostgreSQL
             });
 
             // ========== CONFIGURACION DE PERIODO ========== 
@@ -402,10 +402,10 @@ namespace EduCore.API.Data
                 // Índice compuesto para búsquedas por año escolar y trimestre
                 entity.HasIndex(p => new { p.Nombre, p.Trimestre });
 
-                // Validación: solo puede haber un período actual a la vez
+                // ⚠️ CAMBIO: Validación con sintaxis PostgreSQL
                 entity.HasIndex(p => p.EsActual)
                     .IsUnique()
-                    .HasFilter("[EsActual] = 1");
+                    .HasFilter("\"EsActual\" = true"); // ← Sintaxis PostgreSQL
             });
 
             // DATOS SEMILLA (SEED DATA)

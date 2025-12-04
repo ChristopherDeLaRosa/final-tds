@@ -1,12 +1,13 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
 namespace EduCore.API.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class InitialPostgres : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,18 +16,18 @@ namespace EduCore.API.Migrations
                 name: "Cursos",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Codigo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    NivelGrado = table.Column<int>(type: "int", nullable: false),
-                    Nivel = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    AreaConocimiento = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    HorasSemana = table.Column<int>(type: "int", nullable: false),
-                    EsObligatoria = table.Column<bool>(type: "bit", nullable: false),
-                    Orden = table.Column<int>(type: "int", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Codigo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Nombre = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Descripcion = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    NivelGrado = table.Column<int>(type: "integer", nullable: false),
+                    Nivel = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    AreaConocimiento = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    HorasSemana = table.Column<int>(type: "integer", nullable: false),
+                    EsObligatoria = table.Column<bool>(type: "boolean", nullable: false),
+                    Orden = table.Column<int>(type: "integer", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -37,16 +38,16 @@ namespace EduCore.API.Migrations
                 name: "Docentes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Codigo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Nombres = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Apellidos = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Telefono = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Especialidad = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    FechaContratacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Codigo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Nombres = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Apellidos = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Telefono = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Especialidad = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    FechaContratacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -57,15 +58,15 @@ namespace EduCore.API.Migrations
                 name: "Periodos",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Nombre = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Trimestre = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaFin = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EsActual = table.Column<bool>(type: "bit", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false),
-                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Nombre = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Trimestre = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    FechaInicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaFin = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    EsActual = table.Column<bool>(type: "boolean", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false),
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -76,19 +77,19 @@ namespace EduCore.API.Migrations
                 name: "Aulas",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Codigo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Grado = table.Column<int>(type: "int", nullable: false),
-                    Seccion = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Anio = table.Column<int>(type: "int", nullable: false),
-                    PeriodoId = table.Column<int>(type: "int", nullable: false),
-                    AulaFisica = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    CapacidadMaxima = table.Column<int>(type: "int", nullable: false),
-                    CantidadEstudiantes = table.Column<int>(type: "int", nullable: false),
-                    FechaInicio = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaFin = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Codigo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Grado = table.Column<int>(type: "integer", nullable: false),
+                    Seccion = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Anio = table.Column<int>(type: "integer", nullable: false),
+                    PeriodoId = table.Column<int>(type: "integer", nullable: false),
+                    AulaFisica = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    CapacidadMaxima = table.Column<int>(type: "integer", nullable: false),
+                    CantidadEstudiantes = table.Column<int>(type: "integer", nullable: false),
+                    FechaInicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaFin = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -105,24 +106,24 @@ namespace EduCore.API.Migrations
                 name: "Estudiantes",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Matricula = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Nombres = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Apellidos = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Telefono = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    Direccion = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    FechaNacimiento = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaIngreso = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    AulaId = table.Column<int>(type: "int", nullable: true),
-                    GradoActual = table.Column<int>(type: "int", nullable: false),
-                    SeccionActual = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    NombreTutor = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    TelefonoTutor = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
-                    EmailTutor = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    ObservacionesMedicas = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Matricula = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Nombres = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Apellidos = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: false),
+                    Telefono = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    Direccion = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    FechaNacimiento = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaIngreso = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    AulaId = table.Column<int>(type: "integer", nullable: true),
+                    GradoActual = table.Column<int>(type: "integer", nullable: false),
+                    SeccionActual = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    NombreTutor = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    TelefonoTutor = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
+                    EmailTutor = table.Column<string>(type: "character varying(150)", maxLength: 150, nullable: true),
+                    ObservacionesMedicas = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -139,20 +140,20 @@ namespace EduCore.API.Migrations
                 name: "GruposCursos",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Codigo = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    CursoId = table.Column<int>(type: "int", nullable: false),
-                    DocenteId = table.Column<int>(type: "int", nullable: false),
-                    Grado = table.Column<int>(type: "int", nullable: false),
-                    Seccion = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
-                    Anio = table.Column<int>(type: "int", nullable: false),
-                    PeriodoId = table.Column<int>(type: "int", nullable: false),
-                    AulaId = table.Column<int>(type: "int", nullable: true),
-                    Horario = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    CapacidadMaxima = table.Column<int>(type: "int", nullable: false),
-                    CantidadEstudiantes = table.Column<int>(type: "int", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Codigo = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    CursoId = table.Column<int>(type: "integer", nullable: false),
+                    DocenteId = table.Column<int>(type: "integer", nullable: false),
+                    Grado = table.Column<int>(type: "integer", nullable: false),
+                    Seccion = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    Anio = table.Column<int>(type: "integer", nullable: false),
+                    PeriodoId = table.Column<int>(type: "integer", nullable: false),
+                    AulaId = table.Column<int>(type: "integer", nullable: true),
+                    Horario = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    CapacidadMaxima = table.Column<int>(type: "integer", nullable: false),
+                    CantidadEstudiantes = table.Column<int>(type: "integer", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -187,16 +188,16 @@ namespace EduCore.API.Migrations
                 name: "HorariosAulas",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AulaId = table.Column<int>(type: "int", nullable: false),
-                    CursoId = table.Column<int>(type: "int", nullable: false),
-                    DocenteId = table.Column<int>(type: "int", nullable: false),
-                    DiaSemana = table.Column<int>(type: "int", nullable: false),
-                    HoraInicio = table.Column<TimeSpan>(type: "time", nullable: false),
-                    HoraFin = table.Column<TimeSpan>(type: "time", nullable: false),
-                    Orden = table.Column<int>(type: "int", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    AulaId = table.Column<int>(type: "integer", nullable: false),
+                    CursoId = table.Column<int>(type: "integer", nullable: false),
+                    DocenteId = table.Column<int>(type: "integer", nullable: false),
+                    DiaSemana = table.Column<int>(type: "integer", nullable: false),
+                    HoraInicio = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    HoraFin = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    Orden = table.Column<int>(type: "integer", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -225,17 +226,17 @@ namespace EduCore.API.Migrations
                 name: "Usuarios",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    NombreUsuario = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Rol = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false),
-                    FechaCreacion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UltimoAcceso = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    EstudianteId = table.Column<int>(type: "int", nullable: true),
-                    DocenteId = table.Column<int>(type: "int", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NombreUsuario = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    Email = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    PasswordHash = table.Column<string>(type: "text", nullable: false),
+                    Rol = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false),
+                    FechaCreacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UltimoAcceso = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    EstudianteId = table.Column<int>(type: "integer", nullable: true),
+                    DocenteId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -258,14 +259,14 @@ namespace EduCore.API.Migrations
                 name: "Inscripciones",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    EstudianteId = table.Column<int>(type: "int", nullable: false),
-                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
-                    FechaInscripcion = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    PromedioFinal = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: true),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EstudianteId = table.Column<int>(type: "integer", nullable: false),
+                    GrupoCursoId = table.Column<int>(type: "integer", nullable: false),
+                    FechaInscripcion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Estado = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    PromedioFinal = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: true),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -288,14 +289,14 @@ namespace EduCore.API.Migrations
                 name: "Rubros",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
-                    Nombre = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Descripcion = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    Porcentaje = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    Orden = table.Column<int>(type: "int", nullable: false),
-                    Activo = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GrupoCursoId = table.Column<int>(type: "integer", nullable: false),
+                    Nombre = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Descripcion = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    Porcentaje = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
+                    Orden = table.Column<int>(type: "integer", nullable: false),
+                    Activo = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -312,15 +313,15 @@ namespace EduCore.API.Migrations
                 name: "Sesiones",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GrupoCursoId = table.Column<int>(type: "int", nullable: false),
-                    Fecha = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    HoraInicio = table.Column<TimeSpan>(type: "time", nullable: false),
-                    HoraFin = table.Column<TimeSpan>(type: "time", nullable: false),
-                    Tema = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Realizada = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    GrupoCursoId = table.Column<int>(type: "integer", nullable: false),
+                    Fecha = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    HoraInicio = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    HoraFin = table.Column<TimeSpan>(type: "interval", nullable: false),
+                    Tema = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    Realizada = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -337,17 +338,17 @@ namespace EduCore.API.Migrations
                 name: "Calificaciones",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    EstudianteId = table.Column<int>(type: "int", nullable: false),
-                    RubroId = table.Column<int>(type: "int", nullable: false),
-                    Nota = table.Column<decimal>(type: "decimal(5,2)", precision: 5, scale: 2, nullable: false),
-                    Observaciones = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    FechaModificacion = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    UsuarioModificacionId = table.Column<int>(type: "int", nullable: true),
-                    Recuperacion = table.Column<bool>(type: "bit", nullable: false),
-                    CalificacionOriginalId = table.Column<int>(type: "int", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    EstudianteId = table.Column<int>(type: "integer", nullable: false),
+                    RubroId = table.Column<int>(type: "integer", nullable: false),
+                    Nota = table.Column<decimal>(type: "numeric(5,2)", precision: 5, scale: 2, nullable: false),
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    FechaRegistro = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    UsuarioModificacionId = table.Column<int>(type: "integer", nullable: true),
+                    Recuperacion = table.Column<bool>(type: "boolean", nullable: false),
+                    CalificacionOriginalId = table.Column<int>(type: "integer", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -370,16 +371,16 @@ namespace EduCore.API.Migrations
                 name: "Asistencias",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SesionId = table.Column<int>(type: "int", nullable: false),
-                    EstudianteId = table.Column<int>(type: "int", nullable: false),
-                    Estado = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Observaciones = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    FechaRegistro = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UsuarioRegistroId = table.Column<int>(type: "int", nullable: true),
-                    NotificacionEnviada = table.Column<bool>(type: "bit", nullable: false),
-                    FechaNotificacion = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    SesionId = table.Column<int>(type: "integer", nullable: false),
+                    EstudianteId = table.Column<int>(type: "integer", nullable: false),
+                    Estado = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    Observaciones = table.Column<string>(type: "character varying(300)", maxLength: 300, nullable: true),
+                    FechaRegistro = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UsuarioRegistroId = table.Column<int>(type: "integer", nullable: true),
+                    NotificacionEnviada = table.Column<bool>(type: "boolean", nullable: false),
+                    FechaNotificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -401,7 +402,7 @@ namespace EduCore.API.Migrations
             migrationBuilder.InsertData(
                 table: "Usuarios",
                 columns: new[] { "Id", "Activo", "DocenteId", "Email", "EstudianteId", "FechaCreacion", "NombreUsuario", "PasswordHash", "Rol", "UltimoAcceso" },
-                values: new object[] { 1, true, null, "admin@educore.com", null, new DateTime(2025, 12, 4, 18, 16, 21, 661, DateTimeKind.Utc).AddTicks(6132), "admin", "$2a$11$yV9P6d/FCGmBEQCYykWfCeHahCdmxBM1TUhzXRI0PVTGb3.dP1PA.", "Admin", null });
+                values: new object[] { 1, true, null, "admin@educore.com", null, new DateTime(2025, 12, 4, 18, 57, 26, 607, DateTimeKind.Utc).AddTicks(4775), "admin", "$2a$11$6OH.RnsaC9ClParDgk0eTeooIqWy2IodZNKfI4czuQOmr4lTeE0CO", "Admin", null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Asistencias_EstudianteId_SesionId",
@@ -419,7 +420,7 @@ namespace EduCore.API.Migrations
                 table: "Aulas",
                 columns: new[] { "Grado", "Seccion", "PeriodoId" },
                 unique: true,
-                filter: "[Activo] = 1");
+                filter: "\"Activo\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Aulas_PeriodoId",
@@ -502,7 +503,7 @@ namespace EduCore.API.Migrations
                 table: "HorariosAulas",
                 columns: new[] { "AulaId", "DiaSemana", "HoraInicio" },
                 unique: true,
-                filter: "[Activo] = 1");
+                filter: "\"Activo\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HorariosAulas_CursoId",
@@ -519,7 +520,7 @@ namespace EduCore.API.Migrations
                 table: "Inscripciones",
                 columns: new[] { "EstudianteId", "GrupoCursoId" },
                 unique: true,
-                filter: "[Activo] = 1");
+                filter: "\"Activo\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Inscripciones_GrupoCursoId",
@@ -531,7 +532,7 @@ namespace EduCore.API.Migrations
                 table: "Periodos",
                 column: "EsActual",
                 unique: true,
-                filter: "[EsActual] = 1");
+                filter: "\"EsActual\" = true");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Periodos_Nombre_Trimestre",
