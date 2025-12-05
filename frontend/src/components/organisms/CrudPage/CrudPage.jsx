@@ -285,6 +285,7 @@ export default function CrudPage({
   // Tabla
   columns = [],
   searchFields = [],
+   filterOptions = {},
   
   // Modal
   isModalOpen = false,
@@ -374,6 +375,7 @@ export default function CrudPage({
           data={data}
           columns={columns}
           searchFields={searchFields}
+          filterOptions={filterOptions}
           onEdit={onEdit}
           onDelete={onDelete}
           showActions={true}

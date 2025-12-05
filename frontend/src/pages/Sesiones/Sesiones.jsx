@@ -16,6 +16,7 @@ import {
   getInitialSesionFormData,
   formatSesionForForm,
   formatSesionDataForAPI,
+  getSesionesFilterOptions,
 } from './sesionesConfig';
 
 export default function Sesiones() {
@@ -107,6 +108,9 @@ export default function Sesiones() {
       icon: <BarChart3 size={28} />,
     },
   ];
+
+  // opciones de filtro
+  const filterOptions = getSesionesFilterOptions(sesiones);
 
   // =======================
   //      HANDLERS
@@ -230,6 +234,7 @@ export default function Sesiones() {
 
       columns={sesionesColumns}
       searchFields={sesionesSearchFields}
+      filterOptions={filterOptions} 
 
       isModalOpen={isModalOpen}
       modalTitle={selectedSesion ? 'Editar Sesión' : 'Nueva Sesión'}

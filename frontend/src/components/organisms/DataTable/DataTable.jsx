@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
-import { SearchField, FilterSelect, PaginationButtons } from '../../molecules';
-import { Text } from '../../atoms';
-import { Edit2, Power } from 'lucide-react';
-import { 
-  TableContainer, 
-  TableToolbar, 
+import { useEffect } from "react";
+import { SearchField, FilterSelect, PaginationButtons } from "../../molecules";
+import { Text } from "../../atoms";
+import { Edit2, Power } from "lucide-react";
+import {
+  TableContainer,
+  TableToolbar,
   FilterControls,
   StyledTable,
   TableHead,
@@ -16,14 +16,14 @@ import {
   EmptyState,
   LoadingState,
   ActionButtons,
-  ActionButton
-} from './DataTable.styles';
-import { useTableSearch, useTableFilters, useTablePagination } from './hooks';
+  ActionButton,
+} from "./DataTable.styles";
+import { useTableSearch, useTableFilters, useTablePagination } from "./hooks";
 
-const DataTable = ({ 
-  data = [], 
-  columns = [], 
-  searchFields = [], 
+const DataTable = ({
+  data = [],
+  columns = [],
+  searchFields = [],
   filterOptions = {},
   initialItemsPerPage,
   loading = false,
@@ -34,54 +34,61 @@ const DataTable = ({
   showActions = true,
   customActions,
 }) => {
-  
-  const { searchTerm, setSearchTerm, searchedData } = useTableSearch(data, searchFields);
-  const { filters, filteredData, handleFilterChange } = useTableFilters(searchedData);
-  const { 
-    currentPage, 
-    itemsPerPage, 
-    paginatedData, 
-    paginationInfo, 
-    handlePageChange, 
+  const { searchTerm, setSearchTerm, searchedData } = useTableSearch(
+    data,
+    searchFields
+  );
+  const { filters, filteredData, handleFilterChange } =
+    useTableFilters(searchedData);
+  const {
+    currentPage,
+    itemsPerPage,
+    paginatedData,
+    paginationInfo,
+    handlePageChange,
     handleItemsPerPageChange,
-    resetPagination 
+    resetPagination,
   } = useTablePagination(filteredData, initialItemsPerPage);
 
   useEffect(() => {
     resetPagination();
   }, [searchTerm, ...Object.values(filters)]);
 
-  const tableColumns = showActions && (onEdit || onDelete || customActions)
-    ? [...columns, {
-        key: 'actions',
-        title: 'Acciones',
-        width: '150px',
-        render: (_, row) => (
-          <ActionButtons>
-            {onEdit && (
-              <ActionButton 
-                onClick={() => onEdit(row)}
-                title="Editar"
-                type="edit"
-              >
-                <Edit2 size={18} />
-              </ActionButton>
-            )}
-            {onDelete && (
-              <ActionButton 
-                onClick={() => onDelete(row)}
-                title="Desactivar"
-                type="delete"
-              >
-                <Power size={18} />
-              </ActionButton>
-            )}
-            {/*Renderizar acciones personalizadas */}
-            {customActions && customActions(row)}
-          </ActionButtons>
-        )
-      }]
-    : columns;
+  const tableColumns =
+    showActions && (onEdit || onDelete || customActions)
+      ? [
+          ...columns,
+          {
+            key: "actions",
+            title: "Acciones",
+            width: "150px",
+            render: (_, row) => (
+              <ActionButtons>
+                {onEdit && (
+                  <ActionButton
+                    onClick={() => onEdit(row)}
+                    title="Editar"
+                    type="edit"
+                  >
+                    <Edit2 size={18} />
+                  </ActionButton>
+                )}
+                {onDelete && (
+                  <ActionButton
+                    onClick={() => onDelete(row)}
+                    title="Desactivar"
+                    type="delete"
+                  >
+                    <Power size={18} />
+                  </ActionButton>
+                )}
+                {/*Renderizar acciones personalizadas */}
+                {customActions && customActions(row)}
+              </ActionButtons>
+            ),
+          },
+        ]
+      : columns;
 
   if (loading) {
     return (
@@ -107,15 +114,15 @@ const DataTable = ({
             onChange={setSearchTerm}
           />
         )}
-        
+
         {Object.keys(filterOptions).length > 0 && (
           <FilterControls>
-            {Object.entries(filterOptions).map(([key, options]) => (
+            {Object.entries(filterOptions).map(([key, filterConfig]) => (
               <FilterSelect
                 key={key}
-                label={`Filtrar por ${key}`}
-                options={options}
-                value={filters[key] || ''}
+                label={filterConfig.label || key}
+                options={filterConfig.options}
+                value={filters[key] || ""}
                 onChange={(value) => handleFilterChange(key, value)}
               />
             ))}
@@ -134,8 +141,8 @@ const DataTable = ({
         <StyledTable>
           <TableHead>
             <TableRow>
-              {tableColumns.map(column => (
-                <TableHeaderCell 
+              {tableColumns.map((column) => (
+                <TableHeaderCell
                   key={column.key}
                   style={{ width: column.width }}
                 >
@@ -147,12 +154,11 @@ const DataTable = ({
           <TableBody>
             {paginatedData.map((row, index) => (
               <TableRow key={row.id || index}>
-                {tableColumns.map(column => (
+                {tableColumns.map((column) => (
                   <TableCell key={column.key}>
-                    {column.render 
-                      ? column.render(row[column.key], row, index) 
-                      : row[column.key]
-                    }
+                    {column.render
+                      ? column.render(row[column.key], row, index)
+                      : row[column.key]}
                   </TableCell>
                 ))}
               </TableRow>
@@ -181,4 +187,3 @@ const DataTable = ({
 };
 
 export default DataTable;
-

@@ -9,11 +9,21 @@ export const useTableFilters = (data) => {
     Object.entries(filters).forEach(([key, value]) => {
       if (value !== '' && value !== null && value !== undefined) {
         filtered = filtered.filter(item => {
+          // Filtro especial para fechas por mes
+          if (key === 'fechaMes') {
+            const itemFecha = new Date(item.fecha);
+            const [year, month] = value.split('-');
+            const itemMes = `${itemFecha.getFullYear()}-${String(itemFecha.getMonth() + 1).padStart(2, '0')}`;
+            return itemMes === value;
+          }
+          
           const itemValue = item[key];
+          
           // Manejar valores booleanos
           if (typeof value === 'boolean') {
             return itemValue === value;
           }
+          
           // Manejar otros tipos
           return itemValue === value;
         });
