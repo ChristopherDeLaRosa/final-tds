@@ -188,7 +188,7 @@ const menuSections = [
     items: [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
-      { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+      // { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
       { path: '/gradebook', label: 'Libro de Calificaciones', icon: Notebook}
 
     ]
@@ -223,7 +223,7 @@ export const Sidebar = () => {
     // Confirmación con SweetAlert
     const result = await MySwal.fire({
       title: '¿Cerrar sesión?',
-      text: 'Se cerrará tu sesión actual en EduCore.',
+      text: 'Se cerrará tu sesión actual en Zirak.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Sí, cerrar sesión',
@@ -325,14 +325,14 @@ export const Sidebar = () => {
       <SidebarHeader>
         {!collapsed ? (
           <AppTitle>
-            <AppName>EduCore</AppName>
+            <AppName>Zirak</AppName>
             <UserInfo>
               <UserName>{user?.nombreUsuario || 'Usuario'}</UserName>
               <UserRole>{getRoleLabel(user?.rol)}</UserRole>
             </UserInfo>
           </AppTitle>
         ) : (
-          <AppName>EC</AppName>
+          <AppName>ZK</AppName>
         )}
         <IconButton 
           onClick={() => setCollapsed(!collapsed)}
