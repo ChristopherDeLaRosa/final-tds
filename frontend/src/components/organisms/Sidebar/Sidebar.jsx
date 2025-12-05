@@ -14,7 +14,8 @@ import {
   Calendar,
   UserPlus,
   BookMarked,
-  Building2
+  Building2,
+  Notebook
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -188,6 +189,8 @@ const menuSections = [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
       { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+      { path: '/gradebook', label: 'Libro de Calificaciones', icon: Notebook}
+
     ]
   }
 ];
