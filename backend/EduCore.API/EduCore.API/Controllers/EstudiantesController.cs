@@ -87,6 +87,25 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
+        /// Generar siguiente matrícula disponible
+        /// </summary>
+        /// <returns>Siguiente matrícula en formato YYYY-NNN</returns>
+        [HttpGet("generar-matricula")]
+        public async Task<ActionResult<object>> GenerarMatricula()
+        {
+            try
+            {
+                var matricula = await _estudianteService.GenerarMatriculaAsync();
+                return Ok(new { matricula });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar matrícula");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Obtener estudiantes por grado
         /// </summary>
         /// <param name="grado">Grado escolar (1-12)</param>
@@ -181,10 +200,18 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Verificar si la matrícula ya existe
-                if (await _estudianteService.MatriculaExistsAsync(createDto.Matricula))
+                // Si no viene matrícula, generarla automáticamente
+                if (string.IsNullOrWhiteSpace(createDto.Matricula))
                 {
-                    return BadRequest(new { message = "La matrícula ya está registrada" });
+                    createDto.Matricula = await _estudianteService.GenerarMatriculaAsync();
+                }
+                else
+                {
+                    // Verificar si la matrícula ya existe
+                    if (await _estudianteService.MatriculaExistsAsync(createDto.Matricula))
+                    {
+                        return BadRequest(new { message = "La matrícula ya está registrada" });
+                    }
                 }
 
                 var estudiante = await _estudianteService.CreateAsync(createDto);

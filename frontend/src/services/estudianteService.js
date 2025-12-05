@@ -3,6 +3,12 @@ import axiosInstance from './axiosConfig';
 const API_URL = '/Estudiantes';
 
 const estudianteService = {
+  // Generar matrícula automáticamente
+  generarMatricula: async () => {
+    const response = await axiosInstance.get(`${API_URL}/generar-matricula`);
+    return response.data.matricula;
+  },
+
   // Obtener todos los estudiantes activos
   getAll: async () => {
     const response = await axiosInstance.get(API_URL);
