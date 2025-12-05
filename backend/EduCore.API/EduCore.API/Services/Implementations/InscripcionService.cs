@@ -25,6 +25,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             return inscripcion != null ? MapToDto(inscripcion) : null;
@@ -42,6 +44,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.Activo)
                 .AsQueryable();
 
@@ -81,6 +85,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Aula)
                 .FirstOrDefaultAsync(i => i.Id == id);
@@ -143,7 +149,7 @@ namespace EduCore.API.Services.Implementations
                     Grado = inscripcion.GrupoCurso.Grado,
                     Seccion = inscripcion.GrupoCurso.Seccion,
                     Anio = inscripcion.GrupoCurso.Anio,
-                    Periodo = inscripcion.GrupoCurso.Periodo.Nombre,
+                    Periodo = inscripcion.GrupoCurso.Periodo?.Nombre ?? string.Empty,
                     AulaId = inscripcion.GrupoCurso.AulaId,
                     AulaFisica = inscripcion.GrupoCurso.Aula?.AulaFisica,
                     Horario = inscripcion.GrupoCurso.Horario,
@@ -170,6 +176,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.EstudianteId == estudianteId && i.Activo)
                 .OrderByDescending(i => i.FechaInscripcion)
                 .ToListAsync();
@@ -191,6 +199,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.EstudianteId == estudianteId &&
                            i.GrupoCurso.Periodo.Nombre == periodo &&
                            i.Activo)
@@ -232,6 +242,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.GrupoCursoId == grupoCursoId && i.Activo)
                 .OrderBy(i => i.Estudiante.Apellidos)
                 .ThenBy(i => i.Estudiante.Nombres)
@@ -244,6 +256,7 @@ namespace EduCore.API.Services.Implementations
         {
             var grupoCurso = await _context.GruposCursos
                 .Include(g => g.Curso)
+                .Include(g => g.Periodo) // ← AGREGADO
                 .FirstOrDefaultAsync(g => g.Id == grupoCursoId);
 
             if (grupoCurso == null)
@@ -276,7 +289,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo.Nombre,
+                Periodo = grupoCurso.Periodo?.Nombre ?? string.Empty, // ← PROTECCIÓN
                 CapacidadMaxima = grupoCurso.CapacidadMaxima,
                 CantidadEstudiantes = grupoCurso.CantidadEstudiantes,
                 CuposDisponibles = cuposDisponibles > 0 ? cuposDisponibles : 0,
@@ -335,6 +348,9 @@ namespace EduCore.API.Services.Implementations
             await _context.Entry(inscripcion.GrupoCurso)
                 .Reference(g => g.Docente)
                 .LoadAsync();
+            await _context.Entry(inscripcion.GrupoCurso)
+                .Reference(g => g.Periodo)
+                .LoadAsync(); // ← AGREGADO
 
             _logger.LogInformation(
                 "Inscripción creada: Estudiante {EstudianteId} en GrupoCurso {GrupoCursoId}",
@@ -352,6 +368,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .FirstOrDefaultAsync(i => i.Id == id);
 
             if (inscripcion == null)
@@ -418,6 +436,7 @@ namespace EduCore.API.Services.Implementations
 
             // Obtener todos los grupos del grado/sección del estudiante en el periodo
             var gruposCursos = await _context.GruposCursos
+                .Include(g => g.Periodo) // ← AGREGADO
                 .Where(g => g.Grado == estudiante.GradoActual &&
                            g.Seccion == estudiante.SeccionActual &&
                            g.Periodo.Nombre == inscripcionDto.Periodo &&
@@ -491,6 +510,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.EstudianteId == estudiante.Id &&
                            gruposCursos.Select(g => g.Id).Contains(i.GrupoCursoId))
                 .ToListAsync();
@@ -627,6 +648,7 @@ namespace EduCore.API.Services.Implementations
 
             // Obtener todos los grupos del grado/sección en el periodo
             var gruposCursos = await _context.GruposCursos
+                .Include(g => g.Periodo) // ← AGREGADO
                 .Where(g => g.Grado == inscripcionDto.Grado &&
                            g.Seccion == inscripcionDto.Seccion &&
                            g.Periodo.Nombre == inscripcionDto.Periodo &&
@@ -715,6 +737,8 @@ namespace EduCore.API.Services.Implementations
                     .ThenInclude(g => g.Curso)
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
+                .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .FirstOrDefaultAsync(i => i.Id == inscripcionId);
 
             if (inscripcion == null)
@@ -745,6 +769,7 @@ namespace EduCore.API.Services.Implementations
             var inscripciones = await _context.Inscripciones
                 .Include(i => i.Estudiante)
                 .Include(i => i.GrupoCurso)
+                    .ThenInclude(g => g.Periodo) // ← AGREGADO
                 .Where(i => i.GrupoCurso.Periodo.Nombre == periodo)
                 .ToListAsync();
 
@@ -807,15 +832,19 @@ namespace EduCore.API.Services.Implementations
             {
                 Id = inscripcion.Id,
                 EstudianteId = inscripcion.EstudianteId,
-                MatriculaEstudiante = inscripcion.Estudiante.Matricula,
-                NombreEstudiante = $"{inscripcion.Estudiante.Nombres} {inscripcion.Estudiante.Apellidos}",
-                GradoEstudiante = inscripcion.Estudiante.GradoActual,
-                SeccionEstudiante = inscripcion.Estudiante.SeccionActual,
+                MatriculaEstudiante = inscripcion.Estudiante?.Matricula ?? string.Empty,
+                NombreEstudiante = inscripcion.Estudiante != null
+                    ? $"{inscripcion.Estudiante.Nombres} {inscripcion.Estudiante.Apellidos}"
+                    : string.Empty,
+                GradoEstudiante = inscripcion.Estudiante?.GradoActual ?? 0,
+                SeccionEstudiante = inscripcion.Estudiante?.SeccionActual ?? string.Empty,
                 GrupoCursoId = inscripcion.GrupoCursoId,
-                CodigoGrupo = inscripcion.GrupoCurso.Codigo,
-                NombreCurso = inscripcion.GrupoCurso.Curso.Nombre,
-                AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
-                Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
+                CodigoGrupo = inscripcion.GrupoCurso?.Codigo ?? string.Empty,
+                NombreCurso = inscripcion.GrupoCurso?.Curso?.Nombre ?? string.Empty,
+                AreaConocimiento = inscripcion.GrupoCurso?.Curso?.AreaConocimiento ?? string.Empty,
+                Docente = inscripcion.GrupoCurso?.Docente != null
+                    ? $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}"
+                    : string.Empty,
                 FechaInscripcion = inscripcion.FechaInscripcion,
                 Estado = inscripcion.Estado,
                 PromedioFinal = inscripcion.PromedioFinal,
