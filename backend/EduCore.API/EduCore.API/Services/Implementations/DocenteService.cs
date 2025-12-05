@@ -18,6 +18,31 @@ namespace EduCore.API.Services.Implementations
             _logger = logger;
         }
 
+        public async Task<string> GenerarCodigoAsync()
+        {
+            // Obtener el último código registrado
+            var ultimoCodigo = await _context.Docentes
+                .Where(d => d.Codigo.StartsWith("DOC-"))
+                .OrderByDescending(d => d.Codigo)
+                .Select(d => d.Codigo)
+                .FirstOrDefaultAsync();
+
+            int siguienteNumero = 1;
+
+            if (!string.IsNullOrEmpty(ultimoCodigo))
+            {
+                // Extraer el número del último código (formato: DOC-NNN)
+                var partes = ultimoCodigo.Split('-');
+                if (partes.Length == 2 && int.TryParse(partes[1], out int numeroActual))
+                {
+                    siguienteNumero = numeroActual + 1;
+                }
+            }
+
+            // Formato: DOC-001, DOC-002, etc.
+            return $"DOC-{siguienteNumero:D3}";
+        }
+
         public async Task<IEnumerable<DocenteDto>> GetAllAsync()
         {
             var docentes = await _context.Docentes
@@ -56,7 +81,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(d => d.GrupoCursos)
                     .ThenInclude(g => g.Curso)
                 .Include(d => d.GrupoCursos)
-                    .ThenInclude(g => g.Aula) 
+                    .ThenInclude(g => g.Aula)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (docente == null)
@@ -134,10 +159,18 @@ namespace EduCore.API.Services.Implementations
 
         public async Task<DocenteDto> CreateAsync(CreateDocenteDto createDto)
         {
-            // Validar código único
-            if (await CodigoExisteAsync(createDto.Codigo))
+            // Si el código está vacío, generarlo automáticamente
+            if (string.IsNullOrWhiteSpace(createDto.Codigo))
             {
-                throw new InvalidOperationException($"El código '{createDto.Codigo}' ya existe");
+                createDto.Codigo = await GenerarCodigoAsync();
+            }
+            else
+            {
+                // Validar código único si fue proporcionado
+                if (await CodigoExisteAsync(createDto.Codigo))
+                {
+                    throw new InvalidOperationException($"El código '{createDto.Codigo}' ya existe");
+                }
             }
 
             // Validar email único

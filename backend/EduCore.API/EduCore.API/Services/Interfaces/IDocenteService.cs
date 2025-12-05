@@ -33,5 +33,8 @@ namespace EduCore.API.Services.Interfaces
         Task<bool> ExistsAsync(int id);
         Task<bool> CodigoExisteAsync(string codigo, int? docenteId = null);
         Task<bool> EmailExisteAsync(string email, int? docenteId = null);
+
+        /// Genera el siguiente código disponible en formato DOC-NNN
+        Task<string> GenerarCodigoAsync();
     }
 }
