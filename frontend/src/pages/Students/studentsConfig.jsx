@@ -71,14 +71,13 @@ export const studentsSearchFields = [
 // Campos del formulario
 export const getStudentsFormFields = (isEditing) => [
   {
-    name: 'matricula',
-    label: `Matrícula ${isEditing ? '(No editable)' : ''}`,
-    type: 'text',
-    placeholder: 'Ej: 2024-001',
-    required: true,
-    disabled: isEditing,
-    maxLength: 20,
-  },
+  name: 'matricula',
+  label: 'Matrícula',
+  type: 'text',
+  disabled: true,
+  required: false,
+  placeholder: '',
+},
   [
     {
       name: 'nombres',
@@ -170,7 +169,7 @@ export const getStudentsFormFields = (isEditing) => [
     required: false,
     options: [{ value: '', label: 'Sin asignar - Asignar después' }],
     note: 'Selecciona primero el grado y sección. Las aulas compatibles se mostrarán automáticamente.',
-    disabled: true, // Se habilitará dinámicamente cuando se seleccione grado y sección
+    disabled: true, // Se habilita dinámicamente cuando se seleccione grado y sección
   },
   ...(!isEditing ? [{
     name: 'fechaIngreso',
@@ -218,7 +217,6 @@ export const getStudentsFormFields = (isEditing) => [
 // Reglas de validación
 export const studentsValidationRules = {
   matricula: {
-    required: { message: 'La matrícula es requerida' },
     maxLength: { value: 20, message: 'Máximo 20 caracteres' },
   },
   nombres: {
@@ -337,7 +335,7 @@ export const formatStudentForForm = (estudiante) => ({
 
 // Formatear datos para enviar a la API
 export const formatStudentDataForAPI = (formData) => ({
-  matricula: formData.matricula.trim().toUpperCase(),
+  matricula: formData.matricula?.trim().toUpperCase() || '',
   nombres: formData.nombres.trim(),
   apellidos: formData.apellidos.trim(),
   email: formData.email.trim().toLowerCase(),

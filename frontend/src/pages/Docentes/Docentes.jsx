@@ -49,9 +49,28 @@ export default function Docentes() {
   // Calcular estadísticas con iconos
   const stats = getDocentesStats(docentes);
 
-  // Handler para abrir modal de crear
-  const handleAddDocente = () => {
-    setFormData(getInitialDocenteFormData());
+  const handleAddDocente = async () => {
+    const initialData = getInitialDocenteFormData();
+    
+    // Generar código automáticamente
+    try {
+      const codigoGenerado = await docenteService.generarCodigo();
+      initialData.codigo = codigoGenerado;
+      
+      Toast.fire({
+        icon: 'info',
+        title: `Código generado: ${codigoGenerado}`,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error('Error al generar código:', error);
+      Toast.fire({
+        icon: 'warning',
+        title: 'No se pudo generar código automático',
+      });
+    }
+
+    setFormData(initialData);
     clearAllErrors();
     openModal(null);
   };
@@ -66,6 +85,7 @@ export default function Docentes() {
   // Handler para cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'codigo') return;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -90,16 +110,6 @@ export default function Docentes() {
       if (selectedDocente) {
         await update(selectedDocente.id, dataToSend);
       } else {
-        // Verificar si el código ya existe
-        const codigoExists = await docenteService.codigoExists(dataToSend.codigo);
-        if (codigoExists) {
-          Toast.fire({
-            icon: 'error',
-            title: 'El código ya existe',
-          });
-          setIsSubmitting(false);
-          return;
-        }
         await create(dataToSend);
       }
       
@@ -230,4 +240,3 @@ export default function Docentes() {
     />
   );
 }
-

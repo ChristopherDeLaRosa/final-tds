@@ -112,14 +112,15 @@ export const docentesSearchFields = [
 // Campos del formulario
 export const getDocentesFormFields = (isEditing) => [
   {
-    name: 'codigo',
-    label: `Código ${isEditing ? '(No editable)' : ''}`,
-    type: 'text',
-    placeholder: 'Ej: DOC-001',
-    required: true,
-    disabled: isEditing,
-    maxLength: 20,
-  },
+  name: 'codigo',
+  label: 'Código (Generado automáticamente)',
+  type: 'text',
+  placeholder: '',
+  required: true,
+  disabled: true,
+  maxLength: 20,
+  note: 'Se genera automáticamente en formato DOC-001',
+},
   [
     {
       name: 'nombres',
@@ -176,10 +177,6 @@ export const getDocentesFormFields = (isEditing) => [
 
 // Reglas de validación
 export const docentesValidationRules = {
-  codigo: {
-    required: { message: 'El código es requerido' },
-    maxLength: { value: 20, message: 'Máximo 20 caracteres' },
-  },
   nombres: {
     required: { message: 'Los nombres son requeridos' },
     minLength: { value: 2, message: 'Mínimo 2 caracteres' },
@@ -238,7 +235,7 @@ export const formatDocenteForForm = (docente) => ({
 
 // Formatear datos para enviar a la API
 export const formatDocenteDataForAPI = (formData) => ({
-  codigo: formData.codigo.trim().toUpperCase(),
+  codigo: formData.codigo?.trim().toUpperCase() || '',
   nombres: formData.nombres.trim(),
   apellidos: formData.apellidos.trim(),
   email: formData.email.trim().toLowerCase(),
@@ -282,4 +279,3 @@ export const getDocentesStats = (docentes) => {
     },
   ];
 };
-

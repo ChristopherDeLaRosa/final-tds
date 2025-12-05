@@ -40,7 +40,7 @@ export const gruposCursosColumns = [
     render: (value, row) => `${value}° ${row.seccion}`
   },
   { key: 'nombreDocente', title: 'Docente' },
-  { key: 'periodo', title: 'Período', width: '120px' },
+  { key: 'periodo', title: 'Período', width: '120px' }, // ← Se mantiene para mostrar el nombre
   { key: 'aula', title: 'Aula', width: '80px' },
   { 
     key: 'cantidadEstudiantes', 
@@ -82,11 +82,32 @@ export const gruposCursosSearchFields = [
   'aula'
 ];
 
-// Campos del formulario (necesita cursos, docentes y aulas para los selects)
-// showAutoFilledFields determina si se muestran los campos auto-completados
-// gradoSeleccionado filtra los cursos por el grado del aula
-export const getGruposCursosFormFields = (isEditing, cursos = [], docentes = [], aulas = [], showAutoFilledFields = false, gradoSeleccionado = null) => {
+// ← ACTUALIZADO: Ahora recibe períodos
+export const getGruposCursosFormFields = (
+  isEditing, 
+  cursos = [], 
+  docentes = [], 
+  aulas = [], 
+  periodos = [], // ← NUEVO
+  showAutoFilledFields = false, 
+  gradoSeleccionado = null
+) => {
   const baseFields = [
+    // ← NUEVO: Campo de selección de período
+    {
+      name: 'periodoId',
+      label: 'Período Académico',
+      type: 'select',
+      required: true,
+      options: [
+        { value: '', label: 'Selecciona un período' },
+        ...periodos.map(p => ({
+          value: p.id,
+          label: `${p.nombre} - ${p.trimestre}${p.esActual ? ' (Actual)' : ''}`
+        }))
+      ],
+      helper: 'Selecciona el período académico para este grupo'
+    },
     {
       name: 'aulaId',
       label: 'Aula',
@@ -115,10 +136,9 @@ export const getGruposCursosFormFields = (isEditing, cursos = [], docentes = [],
       label: `Código del Grupo ${isEditing ? '(No editable)' : ''}`,
       type: 'text',
       required: true,
-      disabled: isEditing,
-      maxLength: 20,
       disabled: true,
       readOnly: true,
+      maxLength: 20,
     },
     {
       name: 'cursoId',
@@ -187,6 +207,15 @@ export const gruposCursosValidationRules = {
       message: 'Solo letras mayúsculas, números y guiones',
     },
   },
+  periodoId: { // ← NUEVO
+    required: { message: 'El período es requerido' },
+    validate: (value) => {
+      if (!value || value === '') {
+        return 'Debes seleccionar un período';
+      }
+      return true;
+    },
+  },
   aulaId: {
     required: { message: 'El aula es requerida' },
     validate: (value) => {
@@ -237,9 +266,7 @@ export const gruposCursosValidationRules = {
       return true;
     },
   },
-  periodo: {
-    required: { message: 'El período es requerido' },
-  },
+  // ← ELIMINADO: Ya no validamos 'periodo' como string
   aula: {
     maxLength: { value: 50, message: 'Máximo 50 caracteres' },
   },
@@ -258,7 +285,7 @@ export const gruposCursosValidationRules = {
   },
 };
 
-// Datos iniciales del formulario
+// ← ACTUALIZADO: Datos iniciales con periodoId
 export const getInitialGrupoCursoFormData = () => ({
   codigo: '',
   aulaId: '',
@@ -267,14 +294,14 @@ export const getInitialGrupoCursoFormData = () => ({
   grado: '',
   seccion: '',
   anio: new Date().getFullYear(),
-  periodo: '',
+  periodoId: null, // ← CAMBIO: Ahora es periodoId (number)
   aula: '',
   horario: '',
   capacidadMaxima: 30,
   activo: true,
 });
 
-// Formatear grupo-curso para el formulario
+// ← ACTUALIZADO: Formatear con periodoId
 export const formatGrupoCursoForForm = (grupoCurso) => ({
   codigo: grupoCurso.codigo || '',
   aulaId: grupoCurso.aulaId || '',
@@ -283,14 +310,14 @@ export const formatGrupoCursoForForm = (grupoCurso) => ({
   grado: grupoCurso.grado || '',
   seccion: grupoCurso.seccion || '',
   anio: grupoCurso.anio || new Date().getFullYear(),
-  periodo: grupoCurso.periodo || '',
+  periodoId: grupoCurso.periodoId || null, // ← CAMBIO: Ahora es periodoId
   aula: grupoCurso.aula || '',
   horario: grupoCurso.horario || '',
   capacidadMaxima: grupoCurso.capacidadMaxima || 30,
   activo: grupoCurso.activo ?? true,
 });
 
-// Formatear datos para enviar a la API
+// ← ACTUALIZADO: Enviar periodoId a la API
 export const formatGrupoCursoDataForAPI = (formData) => ({
   codigo: formData.codigo.trim().toUpperCase(),
   aulaId: parseInt(formData.aulaId, 10),
@@ -299,10 +326,9 @@ export const formatGrupoCursoDataForAPI = (formData) => ({
   grado: parseInt(formData.grado, 10),
   seccion: formData.seccion.trim().toUpperCase(),
   anio: parseInt(formData.anio, 10),
-  periodo: formData.periodo.trim(),
+  periodoId: parseInt(formData.periodoId, 10), // ← CAMBIO: Ahora enviamos periodoId
   aula: formData.aula?.trim() || null,
   horario: formData.horario?.trim() || null,
   capacidadMaxima: parseInt(formData.capacidadMaxima, 10),
   activo: formData.activo,
 });
-

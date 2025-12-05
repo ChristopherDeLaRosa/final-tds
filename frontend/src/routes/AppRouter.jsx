@@ -8,9 +8,10 @@ import Cursos from "../pages/Cursos/Cursos.jsx";
 import GruposCursos from "../pages/GruposCursos/GruposCursos.jsx";
 import Inscripciones from "../pages/Inscripciones/Inscripciones.jsx";
 import Sesiones from "../pages/Sesiones/Sesiones.jsx";
-import ReportesAsistencia from "../pages/ReportesAsistencia/ReportesAsistencia.jsx";
-import HistorialAsistencias from "../pages/HistorialAsistencias/HistorialAsistencias.jsx";
-import PaseLista from "../pages/PaseLista/PaseLista.jsx";
+import AsistenciasUnificado from "../pages/Asistencias/AsistenciasUnificado.jsx";
+import ReportesAsistencia from "../pages/Asistencias/tabs/ReportesAsistencia.jsx";
+import HistorialAsistencias from "../pages/Asistencias/tabs/HistorialAsistencias.jsx";
+import PaseLista from "../pages/Asistencias/tabs/PaseLista.jsx";
 // import Asistencias from "../pages/Asistencias/Asistencias.jsx";
 import Calificaciones from "../pages/Calificaciones/Calificaciones.jsx";
 import Rubros from "../pages/Rubros/Rubros.jsx";
@@ -20,7 +21,7 @@ import ConfigurarAula from "../pages/Aulas/ConfigurarAula.jsx";
 import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
-import AsistenciasUnificado from "../pages/Asistencias/AsistenciasUnificado.jsx";
+import Periodos from "../pages/Periodos/Periodos.jsx";
 
 export default function AppRouter() {
   return (
@@ -53,6 +54,7 @@ export default function AppRouter() {
           {/* Gestión Académica */}
           <Route path="estudiantes" element={<Students />} />
           <Route path="docentes" element={<Docentes />} />
+          <Route path="periodos" element={<Periodos />} />
           <Route path="cursos" element={<Cursos />} />
           <Route path="aulas" element={<Aulas />} />
           <Route path="aulas/:id/configurar" element={<ConfigurarAula />} />

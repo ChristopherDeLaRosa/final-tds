@@ -4,10 +4,12 @@ import grupoCursoService from '../../services/grupoCursoService';
 import cursoService from '../../services/cursoService';
 import docenteService from '../../services/docenteService';
 import aulaService from '../../services/aulaService';
+import periodoService from '../../services/periodoService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useModal } from '../../hooks/useModal';
+import { usePeriodos } from '../../hooks/usePeriodos';
 import { MySwal, Toast } from '../../utils/alerts';
 import {
   gruposCursosColumns,
@@ -45,6 +47,8 @@ export default function GruposCursos() {
     close: closeModal 
   } = useModal();
 
+  const { periodos, periodoActual, loading: loadingPeriodos } = usePeriodos();
+
   const [formData, setFormData] = useState(getInitialGrupoCursoFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -77,6 +81,17 @@ export default function GruposCursos() {
 
     fetchRelatedData();
   }, []);
+
+  // Auto-seleccionar período actual cuando cargue
+  useEffect(() => {
+    if (periodoActual && !formData.periodoId && !selectedGrupoCurso) {
+      setFormData(prev => ({ 
+        ...prev, 
+        periodoId: periodoActual.id,
+        anio: new Date(periodoActual.fechaInicio).getFullYear()
+      }));
+    }
+  }, [periodoActual, selectedGrupoCurso]);
 
   // Estadísticas
   const totalGrupos = gruposCursos.length;
@@ -113,11 +128,20 @@ export default function GruposCursos() {
 
   // Crear
   const handleAddGrupoCurso = () => {
-    if (loadingRelated) {
+    if (loadingRelated || loadingPeriodos) {
       Toast.fire({ title: 'Cargando datos...' });
       return;
     }
-    setFormData(getInitialGrupoCursoFormData());
+    
+    const initialData = getInitialGrupoCursoFormData();
+    
+    // Auto-seleccionar período actual
+    if (periodoActual) {
+      initialData.periodoId = periodoActual.id;
+      initialData.anio = new Date(periodoActual.fechaInicio).getFullYear();
+    }
+    
+    setFormData(initialData);
     setShowFormFields(false);
     setGradoSeleccionado(null);
     clearAllErrors();
@@ -126,11 +150,31 @@ export default function GruposCursos() {
 
   // Editar
   const handleEditGrupoCurso = (grupoCurso) => {
-    if (loadingRelated) {
+    if (loadingRelated || loadingPeriodos) {
       Toast.fire({ title: 'Cargando datos...' });
       return;
     }
-    setFormData(formatGrupoCursoForForm(grupoCurso));
+    
+    const formattedData = formatGrupoCursoForForm(grupoCurso);
+    
+    // FIX: Si viene periodoId, usarlo; si no, buscarlo por nombre
+    if (formattedData.periodoId) {
+      // Ya tiene periodoId, usarlo directamente
+      setFormData(formattedData);
+    } else if (grupoCurso.periodo) {
+      // Buscar periodoId por nombre usando el helper del hook
+      const periodo = periodos.find(p => p.nombre === grupoCurso.periodo);
+      if (periodo) {
+        formattedData.periodoId = periodo.id;
+        setFormData(formattedData);
+      } else {
+        console.warn(`No se encontró período con nombre: ${grupoCurso.periodo}`);
+        setFormData(formattedData);
+      }
+    } else {
+      setFormData(formattedData);
+    }
+    
     setShowFormFields(true);
     setGradoSeleccionado(grupoCurso.grado);
     clearAllErrors();
@@ -141,17 +185,45 @@ export default function GruposCursos() {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    // Selección de aula → auto-completar datos
+    // Manejo del cambio de período
+    if (name === 'periodoId' && value) {
+      const periodoSel = periodos.find(p => p.id === parseInt(value));
+      if (periodoSel) {
+        setFormData(prev => ({
+          ...prev,
+          periodoId: parseInt(value),
+          anio: new Date(periodoSel.fechaInicio).getFullYear()
+        }));
+        return;
+      }
+    }
+
+    // ← FIX: Selección de aula → auto-completar datos CON periodoId correcto
     if (name === 'aulaId' && value) {
       const aulaSel = aulas.find(a => a.id === parseInt(value));
       if (aulaSel) {
+        // Buscar el periodoId basado en el nombre del periodo del aula
+        const periodo = periodos.find(p => p.nombre === aulaSel.periodo);
+        const periodoId = periodo ? periodo.id : null;
+        
+        console.log('Aula seleccionada:', aulaSel);
+        console.log('Periodo del aula:', aulaSel.periodo);
+        console.log('PeriodoId encontrado:', periodoId);
+        
+        if (!periodoId) {
+          Toast.fire({ 
+            icon: 'warning', 
+            title: `No se encontró el período "${aulaSel.periodo}"` 
+          });
+        }
+        
         setFormData(prev => ({
           ...prev,
-          aulaId: value,
+          aulaId: parseInt(value),
           grado: aulaSel.grado,
           seccion: aulaSel.seccion,
           anio: aulaSel.anio,
-          periodo: aulaSel.periodo,
+          periodoId: periodoId, // ← FIX: Ahora usa el periodoId correcto
           aula: aulaSel.aulaFisica || '',
           capacidadMaxima: aulaSel.capacidadMaxima || 30,
           cursoId: '',
@@ -172,7 +244,7 @@ export default function GruposCursos() {
 
       if (cursoSel && grado && seccion) {
         const codigo = `${grado}${seccion.toUpperCase()}-${cursoSel.codigo}`;
-        setFormData(prev => ({ ...prev, cursoId: value, codigo }));
+        setFormData(prev => ({ ...prev, cursoId: parseInt(value), codigo }));
         return;
       }
     }
@@ -187,12 +259,23 @@ export default function GruposCursos() {
 
   // Guardar
   const handleSaveGrupoCurso = async () => {
+    // FIX: Validación adicional del periodoId antes de guardar
+    if (!formData.periodoId) {
+      Toast.fire({ 
+        icon: 'error', 
+        title: 'Debes seleccionar un período' 
+      });
+      return;
+    }
+    
     if (!validate(formData)) return;
 
     setIsSubmitting(true);
 
     try {
       const data = formatGrupoCursoDataForAPI(formData);
+      
+      console.log('Datos a enviar:', data); // ← Para debug
 
       if (selectedGrupoCurso) {
         await update(selectedGrupoCurso.id, data);
@@ -203,12 +286,18 @@ export default function GruposCursos() {
       closeModal();
       setFormData(getInitialGrupoCursoFormData());
       fetchAll();
+    } catch (error) {
+      console.error('Error al guardar:', error);
+      Toast.fire({ 
+        icon: 'error', 
+        title: error.response?.data?.message || 'Error al guardar el grupo' 
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Activar/Desactivar (misma lógica del resto del sistema)
+  // Activar/Desactivar
   const handleToggleStatus = async (grupo) => {
     const action = grupo.activo ? 'desactivar' : 'activar';
     const actionPast = grupo.activo ? 'desactivado' : 'activado';
@@ -290,12 +379,13 @@ export default function GruposCursos() {
         cursos,
         docentes,
         aulas,
+        periodos,
         showFormFields,
         gradoSeleccionado
       )}
       formData={formData}
       formErrors={formErrors}
-      isSubmitting={isSubmitting || loadingRelated}
+      isSubmitting={isSubmitting || loadingRelated || loadingPeriodos}
 
       onAdd={handleAddGrupoCurso}
       onEdit={handleEditGrupoCurso}

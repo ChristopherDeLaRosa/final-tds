@@ -327,7 +327,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo,
+                Periodo = grupoCurso.Periodo?.Nombre ?? string.Empty,
                 Rubros = rubros.Select(r => new RubroResumenDto
                 {
                     RubroId = r.Id,
@@ -355,7 +355,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
                 .Where(i => i.EstudianteId == estudianteId &&
-                           i.GrupoCurso.Periodo == periodo &&
+                           i.GrupoCurso.Periodo.Nombre == periodo &&
                            i.Activo)
                 .ToListAsync();
 

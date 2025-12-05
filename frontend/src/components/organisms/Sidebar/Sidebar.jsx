@@ -13,11 +13,7 @@ import {
   Layers,
   Calendar,
   UserPlus,
-  ClipboardList,
-  FileText,
   BookMarked,
-  BarChart3,
-  History,
   Building2
 } from 'lucide-react';
 import styled from 'styled-components';
@@ -178,8 +174,9 @@ const menuSections = [
     items: [
       { path: '/estudiantes', label: 'Estudiantes', icon: Users },
       { path: '/docentes', label: 'Docentes', icon: UserCheck },
-      { path: '/cursos', label: 'Asignaturas', icon: BookOpen },
+      { path: '/periodos', label: 'Períodos', icon: Calendar },
       { path: '/aulas', label: 'Aulas', icon: Building2 },
+      { path: '/cursos', label: 'Asignaturas', icon: BookOpen },
       { path: '/grupos-cursos', label: 'Secciones Académicas', icon: Layers },
       { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
       { path: '/rubros', label: 'Rubros', icon: BookMarked },
@@ -189,10 +186,7 @@ const menuSections = [
     title: 'Gestión de Clases',
     items: [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
-      // { path: '/pase-lista', label: 'Pase de Lista', icon: ClipboardList },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
-      // { path: '/historial-asistencias', label: 'Historial', icon: History },
-      // { path: '/reportes-asistencia', label: 'Reportes', icon: BarChart3 },
       { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
     ]
   }

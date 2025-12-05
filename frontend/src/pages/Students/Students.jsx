@@ -129,8 +129,28 @@ export default function Students() {
     return field;
   });
 
-  const handleAddStudent = () => {
-    setFormData(getInitialStudentFormData());
+  const handleAddStudent = async () => {
+    const initialData = getInitialStudentFormData();
+    
+    // Generar matrícula automáticamente
+    try {
+      const matriculaGenerada = await estudianteService.generarMatricula();
+      initialData.matricula = matriculaGenerada;
+      
+      Toast.fire({
+        icon: 'info',
+        title: `Matrícula generada: ${matriculaGenerada}`,
+        timer: 2000,
+      });
+    } catch (error) {
+      console.error('Error al generar matrícula:', error);
+      Toast.fire({
+        icon: 'warning',
+        title: 'No se pudo generar matrícula automática',
+      });
+    }
+
+    setFormData(initialData);
     clearAllErrors();
     openModal(null);
   };
@@ -143,6 +163,8 @@ export default function Students() {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    if (name === 'matricula') return;
 
     setFormData(prev => ({
       ...prev,
@@ -166,13 +188,6 @@ export default function Students() {
       if (selectedEstudiante) {
         await update(selectedEstudiante.id, dataToSend);
       } else {
-        const exists = await estudianteService.matriculaExists(dataToSend.matricula);
-        if (exists) {
-          Toast.fire({ icon: 'error', title: 'La matrícula ya existe' });
-          setIsSubmitting(false);
-          return;
-        }
-
         const nuevo = await create(dataToSend);
 
         if (formData.aulaId && nuevo?.id) {

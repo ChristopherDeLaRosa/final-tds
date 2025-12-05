@@ -3,6 +3,12 @@ import axiosInstance from './axiosConfig';
 const ENDPOINT = '/Docentes';
 
 const docenteService = {
+
+  // Generar cod automaticamente
+  generarCodigo: async () => {
+    const response = await axiosInstance.get(`${ENDPOINT}/generar-codigo`);
+    return response.data.codigo;
+  },
   // Obtener todos los docentes
   getAll: async () => {
     const response = await axiosInstance.get(ENDPOINT);
