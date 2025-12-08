@@ -81,6 +81,41 @@ const estudianteService = {
       throw error;
     }
   },
+
+  // Carga masiva de estudiantes
+  bulkCreate: async (estudiantes) => {
+    const results = {
+      exitosos: [],
+      fallidos: [],
+      total: estudiantes.length
+    };
+
+    for (let i = 0; i < estudiantes.length; i++) {
+      try {
+        const matricula = await estudianteService.generarMatricula();
+        const estudianteData = {
+          ...estudiantes[i],
+          matricula: matricula
+        };
+        
+        const creado = await estudianteService.create(estudianteData);
+        results.exitosos.push({
+          fila: i + 2,
+          matricula: creado.matricula,
+          nombre: `${creado.nombres} ${creado.apellidos}`
+        });
+      } catch (error) {
+        results.fallidos.push({
+          fila: i + 2,
+          datos: estudiantes[i],
+          error: error.response?.data?.message || error.message || 'Error desconocido'
+        });
+      }
+    }
+
+    return results;
+  }
 };
 
 export default estudianteService;
+
