@@ -112,7 +112,7 @@ const SecondaryButton = styled.button`
   transition: all 0.2s ease;
   white-space: nowrap;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${theme.colors.accent}08;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
@@ -285,7 +285,7 @@ export default function CrudPage({
   // Tabla
   columns = [],
   searchFields = [],
-   filterOptions = {},
+  filterOptions = {},
   
   // Modal
   isModalOpen = false,
@@ -321,7 +321,6 @@ export default function CrudPage({
 
   return (
     <PageContainer>
-      {/* Error Message */}
       {error && (
         <ErrorMessage>
           <ErrorContent>
@@ -336,7 +335,6 @@ export default function CrudPage({
         </ErrorMessage>
       )}
 
-      {/* Header */}
       <Header>
         <HeaderContent>
           <Title>{title}</Title>
@@ -344,19 +342,17 @@ export default function CrudPage({
         </HeaderContent>
         
         <ActionButtons>
-          {/* Botones adicionales */}
-          {additionalActions.map((action, index) => (
+          {additionalActions && additionalActions.length > 0 && additionalActions.map((action, index) => (
             <SecondaryButton 
               key={index}
               onClick={action.onClick}
-              disabled={loading}
+              disabled={loading || action.disabled}
             >
               {action.icon}
               {action.label}
             </SecondaryButton>
           ))}
           
-          {/* Botón principal de agregar */}
           {onAdd && (
             <AddButton onClick={onAdd} disabled={loading}>
               <Plus size={20} />
@@ -366,10 +362,8 @@ export default function CrudPage({
         </ActionButtons>
       </Header>
 
-      {/* Stats */}
       {stats && stats.length > 0 && <CrudStats stats={stats} />}
 
-      {/* Table */}
       <TableCard>
         <DataTable
           data={data}
@@ -385,7 +379,6 @@ export default function CrudPage({
         />
       </TableCard>
 
-      {/* Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={onCancel}
@@ -424,3 +417,4 @@ export default function CrudPage({
     </PageContainer>
   );
 }
+
