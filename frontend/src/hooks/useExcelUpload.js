@@ -4,6 +4,9 @@ import * as XLSX from 'xlsx';
 export const useExcelUpload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // ============================================================
+  // LECTURA DE ARCHIVO EXCEL (ESTÁ BIEN, NO SE MODIFICA)
+  // ============================================================
   const readExcelFile = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -13,7 +16,7 @@ export const useExcelUpload = () => {
           const data = new Uint8Array(e.target.result);
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+          const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: "" });
           resolve(jsonData);
         } catch (error) {
           reject(error);
@@ -24,6 +27,85 @@ export const useExcelUpload = () => {
       reader.readAsArrayBuffer(file);
     });
   };
+
+  // ============================================================
+  // 🧩 PLANTILLA PARA DOCENTES — NUEVO
+  // ============================================================
+  const generateDocenteTemplate = () => {
+    const headers = [
+      "Nombres",
+      "Apellidos",
+      "Email",
+      "Telefono",
+      "Especialidad",
+      "FechaContratacion",
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Docentes");
+
+    XLSX.writeFile(workbook, "plantilla_docentes.xlsx");
+  };
+
+  // ============================================================
+  // 🧩 VALIDACIÓN + TRANSFORMACIÓN DOCENTES — NUEVO
+  // ============================================================
+  const validateAndTransformDocentes = (rows) => {
+    const validData = [];
+    const errors = [];
+
+    rows.forEach((row, index) => {
+      const fila = index + 2;
+      const filaErrores = [];
+
+      const nombres = row["Nombres"]?.trim();
+      const apellidos = row["Apellidos"]?.trim();
+      const email = row["Email"]?.trim();
+      const telefono = row["Telefono"]?.trim() || null;
+      const especialidad = row["Especialidad"]?.trim() || null;
+      const fechaRaw = row["FechaContratacion"];
+
+      if (!nombres) filaErrores.push("Nombres requeridos");
+      if (!apellidos) filaErrores.push("Apellidos requeridos");
+
+      if (!email) filaErrores.push("Email requerido");
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        filaErrores.push("Email inválido");
+
+      // Validación de fecha
+      let fechaContratacion = null;
+      if (fechaRaw) {
+        const parsed = new Date(fechaRaw);
+        if (isNaN(parsed)) filaErrores.push("FechaContratacion inválida");
+        else fechaContratacion = parsed.toISOString();
+      }
+
+      if (filaErrores.length > 0) {
+        errors.push({
+          fila,
+          error: filaErrores.join(", "),
+          datos: row
+        });
+        return;
+      }
+
+      validData.push({
+        nombres,
+        apellidos,
+        email,
+        telefono,
+        especialidad,
+        fechaContratacion
+      });
+    });
+
+    return { validData, errors };
+  };
+
+  // ============================================================
+  // ⚠️👇 AQUÍ NO SE TOCA NADA DE ESTUDIANTES
+  // ============================================================
 
   const validateAndTransformData = (jsonData) => {
     const errors = [];
@@ -107,82 +189,71 @@ export const useExcelUpload = () => {
   };
 
   const excelDateToJSDate = (excelDate) => {
-    if (excelDate instanceof Date) {
-      return excelDate;
-    }
-
-    if (typeof excelDate === 'string') {
-      return new Date(excelDate);
-    }
-
+    if (excelDate instanceof Date) return excelDate;
+    if (typeof excelDate === 'string') return new Date(excelDate);
     if (typeof excelDate === 'number') {
-      const date = new Date((excelDate - 25569) * 86400 * 1000);
-      return date;
+      return new Date((excelDate - 25569) * 86400 * 1000);
     }
-
     return new Date();
   };
 
   const formatDateForAPI = (date) => {
     const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}T00:00:00`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T00:00:00`;
   };
 
   const generateExcelTemplate = () => {
-    const templateData = [
-      {
-        nombres: 'Juan Carlos',
-        apellidos: 'Pérez López',
-        email: 'juan.perez@ejemplo.com',
-        telefono: '809-555-1234',
-        direccion: 'Calle Principal #123, Santo Domingo',
-        fechaNacimiento: '2010-05-15',
-        fechaIngreso: '2024-08-20',
-        gradoActual: 8,
-        seccionActual: 'A',
-        aulaId: '',
-        nombreTutor: 'María López',
-        telefonoTutor: '809-555-5678',
-        emailTutor: 'maria.lopez@ejemplo.com',
-        observacionesMedicas: 'Ninguna'
-      }
-    ];
+  const templateData = [
+    {
+      nombres: 'Juan Carlos',
+      apellidos: 'Pérez López',
+      email: 'juan.perez@ejemplo.com',
+      telefono: '809-555-1234',
+      direccion: 'Calle Principal #123, Santo Domingo',
+      fechaNacimiento: '2010-05-15',
+      fechaIngreso: '2024-08-20',
+      gradoActual: 8,
+      seccionActual: 'A',
+      aulaId: '',
+      nombreTutor: 'María López',
+      telefonoTutor: '809-555-5678',
+      emailTutor: 'maria.lopez@ejemplo.com',
+      observacionesMedicas: 'Ninguna'
+    }
+  ];
 
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
-    
-    const columnWidths = [
-      { wch: 20 },
-      { wch: 20 },
-      { wch: 30 },
-      { wch: 15 },
-      { wch: 40 },
-      { wch: 15 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 12 },
-      { wch: 10 },
-      { wch: 20 },
-      { wch: 15 },
-      { wch: 30 },
-      { wch: 30 }
-    ];
-    
-    worksheet['!cols'] = columnWidths;
+  const worksheet = XLSX.utils.json_to_sheet(templateData);
 
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Estudiantes');
-    
-    XLSX.writeFile(workbook, 'plantilla_estudiantes.xlsx');
-  };
+  worksheet["!cols"] = [
+    { wch: 20 }, { wch: 20 }, { wch: 30 }, { wch: 15 },
+    { wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 12 },
+    { wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 15 },
+    { wch: 30 }, { wch: 30 }
+  ];
 
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Estudiantes');
+
+  XLSX.writeFile(workbook, 'plantilla_estudiantes.xlsx');
+};
+
+
+  // ============================================================
+  // EXPORT FINAL (AQUÍ AÑADIMOS DOCENTES)
+  // ============================================================
   return {
     isProcessing,
     setIsProcessing,
+
+    // Bases
     readExcelFile,
+
+    // Estudiantes
     validateAndTransformData,
-    generateExcelTemplate
+    generateExcelTemplate,
+
+    // Docentes
+    generateDocenteTemplate,
+    validateAndTransformDocentes
   };
 };

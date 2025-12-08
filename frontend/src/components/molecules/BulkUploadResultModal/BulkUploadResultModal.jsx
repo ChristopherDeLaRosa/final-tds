@@ -3,6 +3,9 @@ import { theme } from '../../../styles';
 import { CheckCircle, XCircle, Download, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+/* ============================================================
+   ESTILOS (NO SE CAMBIAN)
+============================================================ */
 const Overlay = styled.div`
   position: fixed;
   top: 0;
@@ -99,10 +102,6 @@ const SummaryValue = styled.div`
 
 const Section = styled.div`
   margin-bottom: ${theme.spacing.xl};
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 `;
 
 const SectionTitle = styled.h3`
@@ -162,28 +161,25 @@ const Button = styled.button`
   font-weight: 600;
   font-size: ${theme.fontSize.sm};
   cursor: pointer;
-  transition: all 0.2s;
   display: flex;
   align-items: center;
   gap: ${theme.spacing.sm};
   border: none;
+  transition: 0.2s;
 
-  ${props => props.$variant === 'primary' && `
-    background-color: ${theme.colors.primary};
-    color: white;
-
-    &:hover {
-      background-color: ${theme.colors.primaryHover};
-    }
+  ${({ $variant }) =>
+    $variant === "primary" &&
+    `
+      background: ${theme.colors.primary};
+      color: white;
+      &:hover { background: ${theme.colors.primaryHover}; }
   `}
 
-  ${props => props.$variant === 'secondary' && `
-    background-color: ${theme.colors.bgSecondary};
-    color: ${theme.colors.textPrimary};
-
-    &:hover {
-      background-color: ${theme.colors.border};
-    }
+  ${({ $variant }) =>
+    $variant === "secondary" &&
+    `
+      background: ${theme.colors.bgSecondary};
+      &:hover { background: ${theme.colors.border}; }
   `}
 `;
 
@@ -193,101 +189,113 @@ const EmptyState = styled.div`
   color: ${theme.colors.textSecondary};
 `;
 
+/* ============================================================
+   MODAL INTELIGENTE
+============================================================ */
+
 export default function BulkUploadResultModal({ results, onClose }) {
+  const tipo = results.tipo || 
+    (results.exitosos[0]?.gradoActual !== undefined ? "estudiantes" : "docentes");
+
+  const labelExitosos =
+    tipo === "estudiantes" ? "Estudiantes Creados Exitosamente" : "Docentes Creados Exitosamente";
+
+  const labelFallidos =
+    tipo === "estudiantes" ? "Estudiantes con Errores" : "Docentes con Errores";
+
+  const getNombreItem = (item) => {
+    if (item.nombres && item.apellidos) {
+      return `${item.nombres} ${item.apellidos}`;
+    }
+    return item.nombre || item.nombreCompleto || "Sin nombre";
+  };
+
+  const getDetalleItem = (item) => {
+    // MOSTRAR MATRÍCULA O CÓDIGO SEGÚN TIPO
+    const identificador = tipo === "estudiantes" 
+      ? `Matrícula: ${item.matricula || 'N/A'}` 
+      : `Código: ${item.codigo || 'N/A'}`;
+    
+    return `Fila: ${item.fila} | ${identificador}`;
+  };
+
   const handleDownloadErrors = () => {
-    const errorsData = results.fallidos.map(error => ({
-      Fila: error.fila,
-      Error: error.error,
-      Nombres: error.datos.nombres || '',
-      Apellidos: error.datos.apellidos || '',
-      Email: error.datos.email || '',
-      GradoActual: error.datos.gradoActual || '',
-      SeccionActual: error.datos.seccionActual || ''
+    const errorsData = results.fallidos.map(err => ({
+      Fila: err.fila,
+      Error: err.error,
+      ...err.datos
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(errorsData);
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Errores');
-    
-    const timestamp = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(workbook, `errores_carga_${timestamp}.xlsx`);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Errores");
+
+    XLSX.writeFile(workbook, `errores_${tipo}_${Date.now()}.xlsx`);
   };
 
   return (
     <Overlay onClick={onClose}>
-      <Modal onClick={(e) => e.stopPropagation()}>
+      <Modal onClick={e => e.stopPropagation()}>
         <Header>
           <Title>Resultados de Carga Masiva</Title>
-          <CloseButton onClick={onClose}>
-            <X size={24} />
-          </CloseButton>
+          <CloseButton onClick={onClose}><X size={22} /></CloseButton>
         </Header>
 
         <Content>
+          {/* RESUMEN */}
           <Summary>
-            <SummaryCard 
-              $bgColor="rgba(59, 130, 246, 0.1)" 
-              $borderColor="rgba(59, 130, 246, 0.3)"
-            >
+            <SummaryCard $bgColor="rgba(59,130,246,0.1)" $borderColor="rgba(59,130,246,0.3)">
               <SummaryLabel>Total Procesados</SummaryLabel>
-              <SummaryValue $color={theme.colors.accent}>
-                {results.total}
-              </SummaryValue>
+              <SummaryValue $color={theme.colors.accent}>{results.total}</SummaryValue>
             </SummaryCard>
 
-            <SummaryCard 
-              $bgColor="rgba(16, 185, 129, 0.1)" 
-              $borderColor="rgba(16, 185, 129, 0.3)"
-            >
+            <SummaryCard $bgColor="rgba(16,185,129,0.1)" $borderColor="rgba(16,185,129,0.3)">
               <SummaryLabel>Exitosos</SummaryLabel>
               <SummaryValue $color={theme.colors.success}>
-                <CheckCircle size={32} />
+                <CheckCircle size={26} />
                 {results.exitosos.length}
               </SummaryValue>
             </SummaryCard>
 
-            <SummaryCard 
-              $bgColor="rgba(239, 68, 68, 0.1)" 
-              $borderColor="rgba(239, 68, 68, 0.3)"
-            >
+            <SummaryCard $bgColor="rgba(239,68,68,0.1)" $borderColor="rgba(239,68,68,0.3)">
               <SummaryLabel>Fallidos</SummaryLabel>
               <SummaryValue $color={theme.colors.error}>
-                <XCircle size={32} />
+                <XCircle size={26} />
                 {results.fallidos.length}
               </SummaryValue>
             </SummaryCard>
           </Summary>
 
+          {/* LISTA DE EXITOSOS */}
           {results.exitosos.length > 0 && (
             <Section>
               <SectionTitle>
-                <CheckCircle size={20} color={theme.colors.success} />
-                Estudiantes Creados Exitosamente
+                <CheckCircle size={20} color={theme.colors.success} /> {labelExitosos}
               </SectionTitle>
+
               <List>
-                {results.exitosos.map((item, index) => (
-                  <ListItem key={index} $borderColor={theme.colors.success}>
-                    <ListItemHeader>{item.nombre}</ListItemHeader>
-                    <ListItemDetail>
-                      Matrícula: {item.matricula} | Fila: {item.fila}
-                    </ListItemDetail>
+                {results.exitosos.map((item, idx) => (
+                  <ListItem key={idx} $borderColor={theme.colors.success}>
+                    <ListItemHeader>{getNombreItem(item)}</ListItemHeader>
+                    <ListItemDetail>Fila: {item.fila}</ListItemDetail>
                   </ListItem>
                 ))}
               </List>
             </Section>
           )}
 
+          {/* LISTA DE FALLIDOS */}
           {results.fallidos.length > 0 && (
             <Section>
               <SectionTitle>
-                <XCircle size={20} color={theme.colors.error} />
-                Estudiantes con Errores
+                <XCircle size={20} color={theme.colors.error} /> {labelFallidos}
               </SectionTitle>
+
               <List>
-                {results.fallidos.map((item, index) => (
-                  <ListItem key={index} $borderColor={theme.colors.error}>
+                {results.fallidos.map((item, idx) => (
+                  <ListItem key={idx} $borderColor={theme.colors.error}>
                     <ListItemHeader>
-                      Fila {item.fila}: {item.datos.nombres} {item.datos.apellidos}
+                      Fila {item.fila}: {getNombreItem(item.datos)}
                     </ListItemHeader>
                     <ErrorDetail>{item.error}</ErrorDetail>
                   </ListItem>
@@ -296,21 +304,20 @@ export default function BulkUploadResultModal({ results, onClose }) {
             </Section>
           )}
 
+          {/* NADA QUE MOSTRAR */}
           {results.exitosos.length === 0 && results.fallidos.length === 0 && (
-            <EmptyState>No hay resultados para mostrar</EmptyState>
+            <EmptyState>No hay resultados para mostrar.</EmptyState>
           )}
         </Content>
 
         <Footer>
           {results.fallidos.length > 0 && (
             <Button $variant="secondary" onClick={handleDownloadErrors}>
-              <Download size={18} />
-              Descargar Errores
+              <Download size={18} /> Descargar Errores
             </Button>
           )}
-          <Button $variant="primary" onClick={onClose}>
-            Cerrar
-          </Button>
+
+          <Button $variant="primary" onClick={onClose}>Cerrar</Button>
         </Footer>
       </Modal>
     </Overlay>
