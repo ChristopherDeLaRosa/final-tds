@@ -242,7 +242,7 @@ const Dashboard = () => {
             </SearchWrapper>
           </TopBar>
           
-          <Subtitle>Bienvenido al sistema de gestión escolar EduCore ERP</Subtitle>
+          <Subtitle>Bienvenido al sistema de gestión escolar Zirak ERP</Subtitle>
         </Header>
 
         <StatsGrid>

@@ -472,7 +472,7 @@ export default function Gradebook() {
           Libro de Calificaciones
         </Title>
         <Subtitle>
-          Registro masivo de notas y evaluaciones - EduCore Gradebook
+          Registro masivo de notas y evaluaciones - Zirak Gradebook
         </Subtitle>
       </Header>
 

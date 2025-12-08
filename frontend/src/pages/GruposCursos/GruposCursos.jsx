@@ -359,7 +359,7 @@ export default function GruposCursos() {
   return (
     <CrudPage
       title="Gestión de Secciones Académicas"
-      subtitle="Asignación de cursos por grado y sección - EduCore"
+      subtitle="Asignación de cursos por grado y sección - Zirak"
       addButtonText="Agregar Sección"
       emptyMessage="No hay grupos registrados"
       loadingMessage="Cargando grupos..."

@@ -254,7 +254,7 @@ export default function Calificaciones() {
   return (
     <CrudPage
       title="Gestión de Calificaciones"
-      subtitle="Registro de notas y evaluaciones - EduCore"
+      subtitle="Registro de notas y evaluaciones - Zirak"
       addButtonText="Registrar Calificación"
       emptyMessage="No hay calificaciones registradas. ¡Registra la primera!"
       loadingMessage="Cargando calificaciones..."

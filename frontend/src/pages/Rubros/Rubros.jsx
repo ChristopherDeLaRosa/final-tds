@@ -278,7 +278,7 @@ export default function Rubros() {
   return (
     <CrudPage
       title="Gestión de Rubros"
-      subtitle="Componentes de evaluación - EduCore"
+      subtitle="Componentes de evaluación - Zirak"
       addButtonText="Agregar Rubro"
       emptyMessage="No hay rubros registrados. ¡Agrega el primero!"
       loadingMessage="Cargando rubros..."

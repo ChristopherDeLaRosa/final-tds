@@ -222,7 +222,7 @@ export default function Sesiones() {
   return (
     <CrudPage
       title="Gestión de Sesiones"
-      subtitle="Programación de clases - EduCore"
+      subtitle="Programación de clases - Zirak"
       addButtonText="Agregar Sesión"
       emptyMessage="No hay sesiones registradas. ¡Agrega la primera!"
       loadingMessage="Cargando sesiones..."

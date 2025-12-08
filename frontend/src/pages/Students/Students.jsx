@@ -279,7 +279,7 @@ export default function Students() {
   return (
     <CrudPage
       title="Gestión de Estudiantes"
-      subtitle="Sistema de registro escolar - EduCore"
+      subtitle="Sistema de registro escolar - Zirak"
       addButtonText="Agregar Estudiante"
       emptyMessage="No hay estudiantes registrados. ¡Agrega el primero!"
       loadingMessage="Cargando estudiantes..."
