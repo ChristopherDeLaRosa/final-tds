@@ -339,5 +339,10 @@ namespace EduCore.API.Services.Implementations
                 Activo = estudiante.Activo
             };
         }
+        public async Task<int> GetTotalAsync()
+        {
+            return await _context.Estudiantes.CountAsync(e => e.Activo);
+        }
+
     }
 }
