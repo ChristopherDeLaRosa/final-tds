@@ -22,6 +22,7 @@ import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
 import Periodos from "../pages/Periodos/Periodos.jsx";
+import Gradebook from '../pages/Gradebook/Gradebook.jsx';
 
 export default function AppRouter() {
   return (
@@ -70,6 +71,7 @@ export default function AppRouter() {
           {/* <Route path="asistencias" element={<Asistencias />} /> */}
           <Route path="asistencias" element={<AsistenciasUnificado />} />
           <Route path="calificaciones" element={<Calificaciones />} />
+          <Route path="/gradebook" element={<Gradebook />} />
           
         </Route>
 

@@ -264,7 +264,7 @@ export default function Periodos() {
   return (
     <CrudPage
       title="Gestión de Períodos Académicos"
-      subtitle="Configuración de trimestres y años escolares - EduCore"
+      subtitle="Configuración de trimestres y años escolares - Zirak"
       addButtonText="Agregar Período"
       emptyMessage="No hay períodos registrados"
       loadingMessage="Cargando períodos..."

@@ -206,7 +206,7 @@ export default function Docentes() {
     <CrudPage
       // Títulos y mensajes
       title="Gestión de Docentes"
-      subtitle="Personal docente del colegio - EduCore"
+      subtitle="Personal docente del colegio - Zirak"
       addButtonText="Agregar Docente"
       emptyMessage="No hay docentes registrados. ¡Agrega el primero!"
       loadingMessage="Cargando docentes..."

@@ -14,7 +14,9 @@ import {
   Calendar,
   UserPlus,
   BookMarked,
-  Building2
+  Building2,
+  Notebook,
+  Search
 } from 'lucide-react';
 import styled from 'styled-components';
 import { storage } from '../../../utils/storage';
@@ -28,54 +30,168 @@ import authService from '../../../services/authService';
 import { MySwal, Toast } from '../../../utils/alerts';
 
 const SidebarWrapper = styled.aside`
-  background: ${theme.colors.bgDark};
+  background: linear-gradient(135deg, #1a1d2e 0%, #16192b 100%);
   height: 100vh;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid ${theme.colors.border};
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
-  transition: width 0.3s ease;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   width: ${props => props.$collapsed ? '72px' : `${props.$width}px`};
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
 `;
 
 const SidebarHeader = styled.div`
-  padding: 20px 16px;
+  padding: 24px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid ${theme.colors.border};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   flex-shrink: 0;
+  background: rgba(37, 99, 235, 0.03);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #2563EB, transparent);
+    opacity: 0.5;
+  }
 `;
 
 const AppTitle = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
 `;
 
 const AppName = styled.span`
-  font-weight: 700;
-  font-size: 18px;
-  color: ${theme.colors.text};
+  font-weight: 800;
+  font-size: 20px;
+  color: #FFFFFF;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #93C5FD 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 `;
 
 const UserInfo = styled.div`
-  font-size: 12px;
-  color: ${theme.colors.textMuted};
   display: flex;
   flex-direction: column;
   gap: 2px;
 `;
 
 const UserName = styled.span`
-  font-weight: 500;
-  color: ${theme.colors.text};
+  font-weight: 600;
+  font-size: 13px;
+  color: #E2E8F0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const UserRole = styled.span`
   font-size: 11px;
-  color: ${theme.colors.textMuted};
-  text-transform: capitalize;
+  color: #94A3B8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #10B981;
+    border-radius: 50%;
+    box-shadow: 0 0 8px #10B981;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+`;
+
+const CollapseButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(37, 99, 235, 0.1);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  color: #93C5FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.2);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #FFFFFF;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+`;
+
+const SearchSection = styled.div`
+  padding: 16px;
+  background: rgba(37, 99, 235, 0.02);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 12px;
+  color: #64748B;
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+`;
+
+const SearchInputStyled = styled.input`
+  width: 100%;
+  padding: 10px 12px 10px 40px;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  color: #E2E8F0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: #64748B;
+  }
+
+  &:focus {
+    outline: none;
+    background: rgba(15, 23, 42, 0.6);
+    border-color: #2563EB;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
 `;
 
 const SidebarContent = styled.nav`
@@ -89,7 +205,7 @@ const NavigationSection = styled.div`
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 12px;
+  padding: 16px 12px;
 
   &::-webkit-scrollbar {
     width: 6px;
@@ -100,47 +216,100 @@ const NavigationSection = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background: ${theme.colors.border};
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.15);
   }
 `;
 
+const SectionDivider = styled.div`
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+  margin: 20px 0;
+`;
+
 const FooterSection = styled.div`
-  border-top: 1px solid ${theme.colors.border};
-  padding: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 16px;
   flex-shrink: 0;
-  background: ${theme.colors.bgDark};
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
 `;
 
 const LogoutButton = styled.button`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: ${theme.radius};
-  color: ${theme.colors.text};
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #E2E8F0;
   text-decoration: none;
-  transition: ${theme.transition};
+  transition: all 0.2s ease;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
   width: 100%;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
 
   &:hover {
-    background: ${theme.colors.bgHover};
-    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #FCA5A5;
+    transform: translateY(-1px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    transform: none;
   }
 
   ${props => props.$collapsed && `
     justify-content: center;
     padding: 12px;
   `}
+
+  svg {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  span {
+    position: relative;
+    z-index: 1;
+  }
 `;
 
 const Resizer = styled.div`
@@ -151,14 +320,15 @@ const Resizer = styled.div`
   width: 6px;
   cursor: col-resize;
   background: transparent;
-  transition: background 0.2s;
+  transition: all 0.2s ease;
+  z-index: 10;
 
   &:hover {
-    background: ${theme.colors.accent};
+    background: rgba(37, 99, 235, 0.3);
   }
 
   &:active {
-    background: ${theme.colors.accent};
+    background: #2563EB;
   }
 `;
 
@@ -187,7 +357,7 @@ const menuSections = [
     items: [
       { path: '/sesiones', label: 'Sesiones', icon: Calendar },
       { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
-      { path: '/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+      { path: '/gradebook', label: 'Libro de Calificaciones', icon: Notebook}
     ]
   }
 ];
@@ -217,10 +387,9 @@ export const Sidebar = () => {
   };
 
   const handleLogout = async () => {
-    // Confirmación con SweetAlert
     const result = await MySwal.fire({
       title: '¿Cerrar sesión?',
-      text: 'Se cerrará tu sesión actual en EduCore.',
+      text: 'Se cerrará tu sesión actual en Zirak.',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Sí, cerrar sesión',
@@ -234,7 +403,6 @@ export const Sidebar = () => {
     setIsLoggingOut(true);
 
     try {
-      // Loader mientras se cierra sesión
       MySwal.fire({
         title: 'Cerrando sesión...',
         didOpen: () => MySwal.showLoading(),
@@ -287,7 +455,6 @@ export const Sidebar = () => {
     };
   }, [isResizing]);
 
-  // Filtrar items por búsqueda
   const getFilteredSections = () => {
     if (!searchQuery) return menuSections;
 
@@ -301,7 +468,6 @@ export const Sidebar = () => {
 
   const filteredSections = getFilteredSections();
 
-  // Rol en español
   const getRoleLabel = (role) => {
     const roleMap = {
       'Admin': 'Administrador',
@@ -322,40 +488,44 @@ export const Sidebar = () => {
       <SidebarHeader>
         {!collapsed ? (
           <AppTitle>
-            <AppName>EduCore</AppName>
+            <AppName>Zirak</AppName>
             <UserInfo>
               <UserName>{user?.nombreUsuario || 'Usuario'}</UserName>
               <UserRole>{getRoleLabel(user?.rol)}</UserRole>
             </UserInfo>
           </AppTitle>
         ) : (
-          <AppName>EC</AppName>
+          <AppName>ZK</AppName>
         )}
-        <IconButton 
+        <CollapseButton 
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
         >
-          {collapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-        </IconButton>
+          {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+        </CollapseButton>
       </SidebarHeader>
 
+      {/* SEARCH */}
       {!collapsed && (
-        <div style={{ padding: '16px 12px' }}>
-          <SearchInput
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar..."
-          />
-        </div>
+        <SearchSection>
+          <SearchWrapper>
+            <SearchIcon>
+              <Search size={16} />
+            </SearchIcon>
+            <SearchInputStyled
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar en el menú..."
+            />
+          </SearchWrapper>
+        </SearchSection>
       )}
 
       <SidebarContent>
         <NavigationSection>
           {filteredSections.map((section, index) => (
             <div key={section.title}>
-              {!collapsed && index > 0 && (
-                <div style={{ margin: '16px 0' }} />
-              )}
+              {!collapsed && index > 0 && <SectionDivider />}
               <SectionHeader collapsed={collapsed}>
                 {section.title}
               </SectionHeader>

@@ -7,29 +7,54 @@ const NavItemWrapper = styled(NavLink)`
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border-radius: ${theme.radius};
-  color: ${theme.colors.text};
+  border-radius: ${theme.borderRadius.md};
+  color: #c0bfbf;
   text-decoration: none;
-  transition: ${theme.transition};
+  transition: ${theme.transition.normal};
   position: relative;
-  border-left: 2px solid transparent;
+  border-left: 3px solid transparent;
   margin: 2px 0;
 
+  /* ICONO (normal) */
+  svg {
+    color: ${theme.colors.textSecondary};
+    transition: ${theme.transition.normal};
+  }
+
+  /* HOVER */
   &:hover {
-    background: ${theme.colors.bgHover};
-  }
-
-  &.active {
-    background: ${theme.colors.bgHover};
-    border-left-color: ${theme.colors.accent};
+    background: ${theme.colors.secondaryLight};
     color: ${theme.colors.text};
+
+    svg {
+      color: ${theme.colors.accent};
+    }
   }
 
+  /* ACTIVO */
+  &.active {
+    background: ${theme.colors.accentLight};
+    border-left-color: ${theme.colors.accent};
+    color: ${theme.colors.accent};
+
+    svg {
+      color: ${theme.colors.accent};
+    }
+
+    font-weight: ${theme.fontWeight.semibold};
+  }
+
+  /* COLAPSADO */
   ${props => props.$collapsed && `
     justify-content: center;
     padding: 12px;
+
+    span {
+      display: none;
+    }
   `}
 `;
+
 
 const NavItemLabel = styled.span`
   font-size: 14px;

@@ -82,6 +82,51 @@ export const sesionesSearchFields = [
   'seccion'
 ];
 
+// Opciones de filtros dinámicos con metadata
+export const getSesionesFilterOptions = (sesiones = []) => {
+  // Obtener cursos únicos
+  const cursosUnicos = [...new Set(sesiones.map(s => s.nombreCurso))]
+    .filter(Boolean)
+    .sort();
+
+  // Obtener fechas únicas (agrupadas por mes)
+  const fechasUnicas = [...new Set(sesiones.map(s => {
+    const fecha = new Date(s.fecha);
+    return `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
+  }))].sort().reverse();
+
+  return {
+    nombreCurso: {
+      label: 'Curso',
+      options: [
+        { value: '', label: 'Todos los cursos' },
+        ...cursosUnicos.map(curso => ({
+          value: curso,
+          label: curso
+        }))
+      ]
+    },
+    fechaMes: {
+      label: 'Mes',
+      options: [
+        { value: '', label: 'Todos los meses' },
+        ...fechasUnicas.map(fechaMes => {
+          const [year, month] = fechaMes.split('-');
+          const fecha = new Date(year, parseInt(month) - 1);
+          const nombreMes = fecha.toLocaleDateString('es-DO', { 
+            month: 'long', 
+            year: 'numeric' 
+          });
+          return {
+            value: fechaMes,
+            label: nombreMes.charAt(0).toUpperCase() + nombreMes.slice(1)
+          };
+        })
+      ]
+    }
+  };
+};
+
 // Campos del formulario
 export const getSesionesFormFields = (isEditing, gruposCursos = []) => [
   {

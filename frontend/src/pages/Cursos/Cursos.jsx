@@ -203,7 +203,7 @@ export default function Cursos() {
   return (
     <CrudPage
       title="Gestión de Cursos"
-      subtitle="Catálogo de materias - EduCore"
+      subtitle="Catálogo de materias - Zirak"
       addButtonText="Agregar Curso"
       emptyMessage="No hay cursos registrados. Agrega uno nuevo."
       loadingMessage="Cargando cursos..."

@@ -16,6 +16,7 @@ import {
   getInitialSesionFormData,
   formatSesionForForm,
   formatSesionDataForAPI,
+  getSesionesFilterOptions,
 } from './sesionesConfig';
 
 export default function Sesiones() {
@@ -107,6 +108,9 @@ export default function Sesiones() {
       icon: <BarChart3 size={28} />,
     },
   ];
+
+  // opciones de filtro
+  const filterOptions = getSesionesFilterOptions(sesiones);
 
   // =======================
   //      HANDLERS
@@ -218,7 +222,7 @@ export default function Sesiones() {
   return (
     <CrudPage
       title="Gestión de Sesiones"
-      subtitle="Programación de clases - EduCore"
+      subtitle="Programación de clases - Zirak"
       addButtonText="Agregar Sesión"
       emptyMessage="No hay sesiones registradas. ¡Agrega la primera!"
       loadingMessage="Cargando sesiones..."
@@ -230,6 +234,7 @@ export default function Sesiones() {
 
       columns={sesionesColumns}
       searchFields={sesionesSearchFields}
+      filterOptions={filterOptions} 
 
       isModalOpen={isModalOpen}
       modalTitle={selectedSesion ? 'Editar Sesión' : 'Nueva Sesión'}

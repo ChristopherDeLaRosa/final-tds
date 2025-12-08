@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import React from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -17,6 +17,7 @@ import {
   Grid3x3,
   List,
   Edit,
+  Lock,
 } from 'lucide-react';
 import { theme } from '../../styles';
 import aulaService from '../../services/aulaService';
@@ -195,29 +196,43 @@ const DayHeader = styled.div`
 `;
 
 const ClassSlot = styled.div`
-  background: ${props => props.$hasClass ? props.$color || theme.colors.primary + '20' : theme.colors.bg};
+  background: ${props => {
+    if (props.$isOccupied) return '#f1f5f9';
+    return props.$hasClass ? props.$color || theme.colors.primary + '20' : theme.colors.bg;
+  }};
   padding: ${theme.spacing.sm};
   min-height: 80px;
-  cursor: ${props => props.$hasClass ? 'pointer' : 'default'};
+  cursor: ${props => {
+    if (props.$isOccupied) return 'not-allowed';
+    return props.$hasClass ? 'pointer' : 'pointer';
+  }};
   position: relative;
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  opacity: ${props => props.$isOccupied ? 0.6 : 1};
 
   &:hover {
-    ${props => props.$hasClass && `
+    ${props => props.$hasClass && !props.$isOccupied && `
       transform: scale(1.02);
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
       z-index: 1;
     `}
   }
 
-  ${props => !props.$hasClass && `
+  ${props => !props.$hasClass && !props.$isOccupied && `
     border: 2px dashed transparent;
     &:hover {
       border-color: ${theme.colors.border};
       background: ${theme.colors.bgSecondary};
+    }
+  `}
+
+  ${props => props.$isOccupied && `
+    border: 2px solid ${theme.colors.border};
+    &:hover {
+      opacity: 0.7;
     }
   `}
 `;
@@ -428,6 +443,20 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+const NewBadge = styled.div`
+  position: absolute;
+  top: 4px;
+  right: 28px;
+  background: #10b981;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
 const ConflictBadge = styled.div`
   position: absolute;
   top: 4px;
@@ -438,6 +467,19 @@ const ConflictBadge = styled.div`
   border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
+`;
+
+const OccupiedBadge = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: ${theme.colors.textMuted};
+  pointer-events: none;
 `;
 
 // Datos
@@ -530,6 +572,15 @@ export default function ConfigurarAula() {
     activo: true,
   });
 
+  // Memoizar cálculos que se usan en múltiples lugares
+  const horariosNuevos = useMemo(() => {
+    return horarios.filter(h => String(h.id).startsWith('temp-'));
+  }, [horarios]);
+
+  const horariosExistentes = useMemo(() => {
+    return horarios.filter(h => !String(h.id).startsWith('temp-'));
+  }, [horarios]);
+
   useEffect(() => {
     loadData();
   }, [id]);
@@ -607,7 +658,28 @@ export default function ConfigurarAula() {
     setConflictos(nuevosConflictos);
   };
 
+  // Función para verificar si un slot está ocupado por un horario guardado (no temporal)
+  const isSlotOccupied = (dia, hora) => {
+    return horarios.some(h => {
+      const esHorarioGuardado = !String(h.id).startsWith('temp-');
+      const mismoDia = h.diaSemana === dia;
+      const mismaHora = h.horaInicio.substring(0, 5) === hora;
+      
+      return esHorarioGuardado && mismoDia && mismaHora;
+    });
+  };
+
   const handleOpenQuickAdd = (dia, hora) => {
+    // Verificar si el slot ya está ocupado por un horario guardado
+    if (isSlotOccupied(dia, hora)) {
+      Toast.fire({
+        icon: 'info',
+        title: 'Este horario ya está configurado',
+        text: 'Si deseas modificarlo, usa el botón de editar o elimínalo primero',
+      });
+      return;
+    }
+
     setSelectedSlot({ dia, hora });
     setShowQuickAdd(true);
   };
@@ -621,9 +693,32 @@ export default function ConfigurarAula() {
       return;
     }
 
+    // Verificar si el curso ya tiene un horario (existente o temporal)
+    const cursoYaExiste = horarios.some(h => h.cursoId === parseInt(quickAdd.cursoId));
+    
+    if (cursoYaExiste) {
+      const curso = cursos.find(c => c.id === parseInt(quickAdd.cursoId));
+      Toast.fire({
+        icon: 'warning',
+        title: 'Curso ya tiene horario',
+        text: `${curso?.nombre} ya tiene un horario configurado en esta aula. Elimina el existente si deseas cambiarlo.`,
+      });
+      return;
+    }
+
     const plantilla = PLANTILLAS_HORARIO.find(p => p.id === quickAdd.plantilla);
     
     if (quickAdd.plantilla === 'personalizado' && selectedSlot) {
+      // Verificar si el slot está ocupado
+      if (isSlotOccupied(selectedSlot.dia, quickAdd.horaInicio)) {
+        Toast.fire({
+          icon: 'warning',
+          title: 'Este horario ya está ocupado',
+          text: 'Por favor selecciona otro horario',
+        });
+        return;
+      }
+
       const horarioNuevo = crearHorario(
         selectedSlot.dia,
         quickAdd.horaInicio,
@@ -634,7 +729,15 @@ export default function ConfigurarAula() {
       setHorarios([...horarios, horarioNuevo]);
     } else {
       const nuevosHorarios = [];
+      let slotsOcupados = 0;
+
       DIAS_SEMANA.forEach(dia => {
+        // Verificar si el slot está ocupado
+        if (isSlotOccupied(dia.value, plantilla.horaInicio)) {
+          slotsOcupados++;
+          return;
+        }
+
         const horarioNuevo = crearHorario(
           dia.value,
           plantilla.horaInicio,
@@ -644,7 +747,24 @@ export default function ConfigurarAula() {
         );
         nuevosHorarios.push(horarioNuevo);
       });
-      setHorarios([...horarios, ...nuevosHorarios]);
+
+      if (slotsOcupados > 0) {
+        Toast.fire({
+          icon: 'info',
+          title: `${slotsOcupados} horario(s) ya ocupado(s)`,
+          text: 'Se agregaron solo los horarios disponibles',
+        });
+      }
+
+      if (nuevosHorarios.length > 0) {
+        setHorarios([...horarios, ...nuevosHorarios]);
+      } else {
+        Toast.fire({
+          icon: 'warning',
+          title: 'Todos los horarios ya están ocupados',
+        });
+        return;
+      }
     }
 
     setShowQuickAdd(false);
@@ -885,15 +1005,60 @@ export default function ConfigurarAula() {
   };
 
   const handleGuardarConfiguracion = async () => {
-    if (horarios.length === 0) {
+    // Usar el valor memoizado
+    if (horariosNuevos.length === 0) {
       Toast.fire({
-        icon: 'warning',
-        title: 'Debes agregar al menos un horario',
+        icon: 'info',
+        title: 'No hay horarios nuevos para guardar',
+        text: 'Todos los horarios ya están guardados en la base de datos',
       });
       return;
     }
 
-    const horariosInvalidos = horarios.filter(h => {
+    // Verificar si algún horario nuevo tiene el mismo curso que uno existente
+    const cursosExistentes = horariosExistentes.map(h => h.cursoId);
+    const cursosNuevos = horariosNuevos.map(h => h.cursoId);
+    const cursosDuplicados = cursosNuevos.filter(cursoId => cursosExistentes.includes(cursoId));
+
+    if (cursosDuplicados.length > 0) {
+      const cursosConflicto = cursosDuplicados
+        .map(cursoId => cursos.find(c => c.id === cursoId)?.nombre)
+        .filter(Boolean);
+
+      const { isConfirmed } = await MySwal.fire({
+        icon: 'warning',
+        title: 'Cursos Duplicados Detectados',
+        html: `
+          <div style="text-align: left;">
+            <p style="margin-bottom: 1rem;">
+              Estás intentando agregar horarios para cursos que ya tienen horarios configurados en esta aula.
+            </p>
+            
+            <p style="font-weight: 600; color: #ef4444; margin-bottom: 0.5rem;">
+              Cursos con horarios existentes:
+            </p>
+            <ul style="font-size: 14px; color: #64748b;">
+              ${cursosConflicto.map(curso => `<li>${curso}</li>`).join('')}
+            </ul>
+            
+            <br>
+            <p style="font-size: 13px; color: #64748b;">
+              <strong>Nota:</strong> Un curso solo puede tener un grupo-curso por aula. 
+              Si deseas cambiar el horario, elimina el horario existente primero.
+            </p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Entendido',
+        cancelButtonText: 'Cancelar',
+        showConfirmButton: true,
+        confirmButtonColor: '#3b82f6',
+      });
+
+      return; // No continuar con el guardado
+    }
+
+    const horariosInvalidos = horariosNuevos.filter(h => {
       return !h.horaInicio.includes(':00:00') || !h.horaFin.includes(':00:00');
     });
 
@@ -906,10 +1071,17 @@ export default function ConfigurarAula() {
       return;
     }
 
-    if (conflictos.length > 0) {
+    // Solo verificar conflictos en los horarios nuevos
+    const conflictosEnNuevos = conflictos.filter(c => {
+      const horario1EsNuevo = String(c.horario1).startsWith('temp-');
+      const horario2EsNuevo = String(c.horario2).startsWith('temp-');
+      return horario1EsNuevo || horario2EsNuevo;
+    });
+
+    if (conflictosEnNuevos.length > 0) {
       const { isConfirmed } = await MySwal.fire({
         title: 'Atención',
-        html: `Hay ${conflictos.length} conflicto(s) detectado(s). ¿Deseas continuar de todos modos?`,
+        html: `Hay ${conflictosEnNuevos.length} conflicto(s) detectado(s) en los nuevos horarios. ¿Deseas continuar de todos modos?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Sí, continuar',
@@ -920,10 +1092,13 @@ export default function ConfigurarAula() {
     }
 
     const { isConfirmed, value: opciones } = await MySwal.fire({
-      title: 'Configurar Aula Completa',
+      title: 'Configurar Nuevos Horarios',
       html: `
         <div style="text-align: left;">
-          <p><strong>Se crearán ${horarios.length} horarios</strong></p>
+          <p><strong>Se crearán ${horariosNuevos.length} horario(s) nuevo(s)</strong></p>
+          <p style="color: #64748b; font-size: 14px; margin-top: 8px;">
+            Los ${horariosExistentes.length} horario(s) existente(s) no se modificarán
+          </p>
           <br>
           <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
             <input type="checkbox" id="generarGrupos" checked>
@@ -953,13 +1128,14 @@ export default function ConfigurarAula() {
       setSaving(true);
 
       MySwal.fire({
-        title: 'Configurando aula...',
+        title: 'Configurando horarios nuevos...',
         html: 'Esto puede tomar unos momentos',
         didOpen: () => MySwal.showLoading(),
         allowOutsideClick: false,
       });
 
-      const horariosParaEnviar = horarios.map(h => ({
+      // Solo enviar los horarios nuevos (temporales)
+      const horariosParaEnviar = horariosNuevos.map(h => ({
         aulaId: parseInt(id),
         cursoId: parseInt(h.cursoId),
         docenteId: parseInt(h.docenteId),
@@ -1019,22 +1195,56 @@ export default function ConfigurarAula() {
         const { status, data } = error.response;
         
         if (status === 400) {
-          MySwal.fire({
-            icon: 'error',
-            title: 'Error de Validación',
-            html: `
-              <div style="text-align: left;">
-                <p>${data.message || 'Los datos enviados no son válidos'}</p>
-                ${data.errores ? `
-                  <br>
-                  <p style="font-weight: 600; color: #64748b;">Detalles:</p>
-                  <ul style="font-size: 13px; color: #64748b;">
-                    ${data.errores.map(e => `<li>${e}</li>`).join('')}
-                  </ul>
-                ` : ''}
-              </div>
-            `,
-          });
+          // Verificar si el error es por grupos existentes
+          const mensajeError = data.message || '';
+          const erroresArray = data.errores || [];
+          const esErrorGruposExistentes = mensajeError.toLowerCase().includes('ya existe') || 
+                                          erroresArray.some(e => e.toLowerCase().includes('ya existe'));
+          
+          if (esErrorGruposExistentes) {
+            await MySwal.fire({
+              icon: 'info',
+              title: 'Grupos Ya Existentes',
+              html: `
+                <div style="text-align: left;">
+                  
+                  ${erroresArray.length > 0 ? `
+                    <p style="font-weight: 600; color: #64748b; margin-bottom: 0.5rem;">Grupos Actuales:</p>
+                    <ul style="font-size: 13px; color: #035a11; margin-bottom: 1rem;">
+                      ${erroresArray.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                  ` : ''}
+                  
+                  <p style="font-size: 13px; color: #3b82f6; font-weight: 600;">
+                    Recomendación: Recarga la página para ver el estado actual de los horarios
+                  </p>
+                </div>
+              `,
+              confirmButtonText: 'Recargar Página',
+              confirmButtonColor: '#3b82f6',
+            });
+
+            // Recargar automáticamente
+            window.location.reload();
+          } else {
+            // Error de validación genérico
+            MySwal.fire({
+              icon: 'error',
+              title: 'Error de Validación',
+              html: `
+                <div style="text-align: left;">
+                  <p>${data.message || 'Los datos enviados no son válidos'}</p>
+                  ${erroresArray.length > 0 ? `
+                    <br>
+                    <p style="font-weight: 600; color: #64748b;">Detalles:</p>
+                    <ul style="font-size: 13px; color: #64748b;">
+                      ${erroresArray.map(e => `<li>${e}</li>`).join('')}
+                    </ul>
+                  ` : ''}
+                </div>
+              `,
+            });
+          }
         } else {
           MySwal.fire({
             icon: 'error',
@@ -1074,17 +1284,28 @@ export default function ConfigurarAula() {
                 conflictos.some(c => c.horario1 === h.id || c.horario2 === h.id)
               );
 
+              // Verificar si hay un horario guardado (no temporal) en este slot
+              const horarioGuardado = horariosEnSlot.find(h => !String(h.id).startsWith('temp-'));
+              const slotOcupado = !!horarioGuardado;
+
               if (horariosEnSlot.length > 0) {
                 const horario = horariosEnSlot[0];
+                const esHorarioTemporal = String(horario.id).startsWith('temp-');
+                
                 return (
                   <ClassSlot
                     key={`slot-${dia.value}-${hora.value}`}
                     $hasClass={true}
                     $color={horario.color}
+                    $isOccupied={false}
                   >
                     {tieneConflicto && <ConflictBadge>!</ConflictBadge>}
                     
-                    {!String(horario.id).startsWith('temp-') && (
+                    {/* Badge para horarios nuevos */}
+                    {esHorarioTemporal && <NewBadge>NEW</NewBadge>}
+                    
+                    {/* Solo mostrar botón de editar si es un horario guardado */}
+                    {!esHorarioTemporal && (
                       <EditButton onClick={(e) => {
                         e.stopPropagation();
                         handleOpenEditModal(horario);
@@ -1109,10 +1330,29 @@ export default function ConfigurarAula() {
                 );
               }
 
+              // Si el slot está ocupado por un horario guardado, mostrar indicador
+              if (slotOcupado) {
+                return (
+                  <ClassSlot
+                    key={`slot-${dia.value}-${hora.value}`}
+                    $hasClass={false}
+                    $isOccupied={true}
+                    onClick={() => handleOpenQuickAdd(dia.value, hora.value)}
+                  >
+                    <OccupiedBadge>
+                      <Lock size={16} />
+                      <span style={{ fontSize: '10px' }}>Ocupado</span>
+                    </OccupiedBadge>
+                  </ClassSlot>
+                );
+              }
+
+              // Slot vacío y disponible
               return (
                 <ClassSlot
                   key={`slot-${dia.value}-${hora.value}`}
                   $hasClass={false}
+                  $isOccupied={false}
                   onClick={() => handleOpenQuickAdd(dia.value, hora.value)}
                 />
               );
@@ -1174,8 +1414,20 @@ export default function ConfigurarAula() {
             <Calendar size={24} />
           </StatIcon>
           <StatContent>
-            <StatLabel>Horarios Creados</StatLabel>
+            <StatLabel>Total Horarios</StatLabel>
             <StatValue>{horarios.length}</StatValue>
+          </StatContent>
+        </StatCard>
+
+        <StatCard>
+          <StatIcon $color="#10b981">
+            <Plus size={24} />
+          </StatIcon>
+          <StatContent>
+            <StatLabel>Nuevos (sin guardar)</StatLabel>
+            <StatValue style={{ color: '#10b981' }}>
+              {horariosNuevos.length}
+            </StatValue>
           </StatContent>
         </StatCard>
 
@@ -1186,16 +1438,6 @@ export default function ConfigurarAula() {
           <StatContent>
             <StatLabel>Materias</StatLabel>
             <StatValue>{materiasProgramadas}</StatValue>
-          </StatContent>
-        </StatCard>
-
-        <StatCard>
-          <StatIcon $color="#10b981">
-            <Users size={24} />
-          </StatIcon>
-          <StatContent>
-            <StatLabel>Docentes</StatLabel>
-            <StatValue>{docentesAsignados}</StatValue>
           </StatContent>
         </StatCard>
 
@@ -1259,7 +1501,9 @@ export default function ConfigurarAula() {
       <Card>
         <AlertBox $type="info">
           <Zap size={20} />
-          Al guardar se crearán automáticamente los grupos-cursos y todas las sesiones del periodo escolar.
+          {horariosNuevos.length > 0 
+            ? `Al guardar se crearán ${horariosNuevos.length} nuevo(s) horario(s) con sus grupos-cursos y sesiones correspondientes.`
+            : 'Agrega nuevos horarios para guardarlos. Los horarios existentes ya están configurados.'}
         </AlertBox>
 
         <ActionsBar>
@@ -1268,7 +1512,7 @@ export default function ConfigurarAula() {
           </Button>
           <Button
             onClick={handleGuardarConfiguracion}
-            disabled={saving || horarios.length === 0}
+            disabled={saving || horariosNuevos.length === 0}
             style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             {saving ? (
@@ -1279,7 +1523,7 @@ export default function ConfigurarAula() {
             ) : (
               <>
                 <Save size={18} />
-                Guardar Configuración ({horarios.length} horarios)
+                Guardar Nuevos ({horariosNuevos.length} horarios)
               </>
             )}
           </Button>
