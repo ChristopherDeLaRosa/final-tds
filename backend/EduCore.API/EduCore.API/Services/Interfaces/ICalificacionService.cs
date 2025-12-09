@@ -34,5 +34,7 @@ namespace EduCore.API.Services.Interfaces
         // Validaciones
         Task<bool> ExistsAsync(int id);
         Task<bool> YaRegistradaAsync(int estudianteId, int rubroId);
+        //para el dashboard
+        Task<RendimientoDashboardDto> GetEstadisticasGeneralesAsync();
     }
 }

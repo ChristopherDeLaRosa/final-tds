@@ -631,6 +631,29 @@ namespace EduCore.API.Services.Implementations
                               !c.Recuperacion);
         }
 
+        public async Task<RendimientoDashboardDto> GetEstadisticasGeneralesAsync()
+        {
+            var inscripciones = await _context.Inscripciones
+                .Where(i => i.Activo && i.PromedioFinal.HasValue)
+                .ToListAsync();
+
+            if (!inscripciones.Any())
+                return new RendimientoDashboardDto();
+
+            var promedios = inscripciones.Select(i => i.PromedioFinal!.Value).ToList();
+            var aprobadas = promedios.Count(p => p >= 70);
+            var reprobadas = promedios.Count(p => p < 70);
+
+            return new RendimientoDashboardDto
+            {
+                PromedioGeneral = Math.Round(promedios.Average(), 2),
+                Aprobadas = aprobadas,
+                Reprobadas = reprobadas,
+                PorcentajeAprobacion = Math.Round((decimal)aprobadas / promedios.Count * 100, 2)
+            };
+        }
+
+
         private CalificacionDto MapToDto(Calificacion calificacion)
         {
             return new CalificacionDto
