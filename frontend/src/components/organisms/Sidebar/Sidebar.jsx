@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
   ChevronLeft,
   ChevronRight,
   LayoutDashboard,
@@ -8,7 +8,7 @@ import {
   BookOpen,
   GraduationCap,
   Users,
-  UserCheck, 
+  UserCheck,
   LogOut,
   Layers,
   Calendar,
@@ -16,18 +16,19 @@ import {
   BookMarked,
   Building2,
   Notebook,
-  Search
-} from 'lucide-react';
-import styled from 'styled-components';
-import { storage } from '../../../utils/storage';
-import { IconButton } from '../../atoms/IconButton/IconButton';
-import { SearchInput } from '../../molecules/SearchInput/SearchInput';
-import { NavItem } from '../../molecules/NavItem/NavItem';
-import { SectionHeader } from '../../molecules/SectionHeader/SectionHeader';
-import { theme } from '../../../styles/theme';
-import authService from '../../../services/authService';
+  Search,
+  Lock,
+} from "lucide-react";
+import styled from "styled-components";
+import { storage } from "../../../utils/storage";
+import { IconButton } from "../../atoms/IconButton/IconButton";
+import { SearchInput } from "../../molecules/SearchInput/SearchInput";
+import { NavItem } from "../../molecules/NavItem/NavItem";
+import { SectionHeader } from "../../molecules/SectionHeader/SectionHeader";
+import { theme } from "../../../styles/theme";
+import authService from "../../../services/authService";
 // SweetAlert utils
-import { MySwal, Toast } from '../../../utils/alerts';
+import { MySwal, Toast } from "../../../utils/alerts";
 
 const SidebarWrapper = styled.aside`
   background: linear-gradient(135deg, #1a1d2e 0%, #16192b 100%);
@@ -37,7 +38,7 @@ const SidebarWrapper = styled.aside`
   border-right: 1px solid rgba(255, 255, 255, 0.06);
   position: relative;
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  width: ${props => props.$collapsed ? '72px' : `${props.$width}px`};
+  width: ${(props) => (props.$collapsed ? "72px" : `${props.$width}px`)};
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
 `;
 
@@ -53,13 +54,13 @@ const SidebarHeader = styled.div`
   overflow: hidden;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, #2563EB, transparent);
+    background: linear-gradient(90deg, transparent, #2563eb, transparent);
     opacity: 0.5;
   }
 `;
@@ -75,9 +76,9 @@ const AppTitle = styled.div`
 const AppName = styled.span`
   font-weight: 800;
   font-size: 20px;
-  color: #FFFFFF;
+  color: #ffffff;
   letter-spacing: -0.5px;
-  background: linear-gradient(135deg, #FFFFFF 0%, #93C5FD 100%);
+  background: linear-gradient(135deg, #ffffff 0%, #93c5fd 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -92,7 +93,7 @@ const UserInfo = styled.div`
 const UserName = styled.span`
   font-weight: 600;
   font-size: 13px;
-  color: #E2E8F0;
+  color: #e2e8f0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -100,7 +101,7 @@ const UserName = styled.span`
 
 const UserRole = styled.span`
   font-size: 11px;
-  color: #94A3B8;
+  color: #94a3b8;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -109,18 +110,23 @@ const UserRole = styled.span`
   gap: 4px;
 
   &::before {
-    content: '';
+    content: "";
     width: 6px;
     height: 6px;
-    background: #10B981;
+    background: #10b981;
     border-radius: 50%;
-    box-shadow: 0 0 8px #10B981;
+    box-shadow: 0 0 8px #10b981;
     animation: pulse 2s infinite;
   }
 
   @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 `;
 
@@ -130,7 +136,7 @@ const CollapseButton = styled.button`
   border-radius: 8px;
   background: rgba(37, 99, 235, 0.1);
   border: 1px solid rgba(37, 99, 235, 0.2);
-  color: #93C5FD;
+  color: #93c5fd;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -141,7 +147,7 @@ const CollapseButton = styled.button`
   &:hover {
     background: rgba(37, 99, 235, 0.2);
     border-color: rgba(37, 99, 235, 0.4);
-    color: #FFFFFF;
+    color: #ffffff;
     transform: scale(1.05);
   }
 
@@ -165,7 +171,7 @@ const SearchWrapper = styled.div`
 const SearchIcon = styled.div`
   position: absolute;
   left: 12px;
-  color: #64748B;
+  color: #64748b;
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -177,19 +183,19 @@ const SearchInputStyled = styled.input`
   background: rgba(15, 23, 42, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
-  color: #E2E8F0;
+  color: #e2e8f0;
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
 
   &::placeholder {
-    color: #64748B;
+    color: #64748b;
   }
 
   &:focus {
     outline: none;
     background: rgba(15, 23, 42, 0.6);
-    border-color: #2563EB;
+    border-color: #2563eb;
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   }
 `;
@@ -250,7 +256,7 @@ const LogoutButton = styled.button`
   gap: 12px;
   padding: 12px 14px;
   border-radius: 10px;
-  color: #E2E8F0;
+  color: #e2e8f0;
   text-decoration: none;
   transition: all 0.2s ease;
   background: transparent;
@@ -263,13 +269,17 @@ const LogoutButton = styled.button`
   overflow: hidden;
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+    background: linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.1),
+      rgba(220, 38, 38, 0.1)
+    );
     opacity: 0;
     transition: opacity 0.2s ease;
   }
@@ -277,7 +287,7 @@ const LogoutButton = styled.button`
   &:hover {
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.3);
-    color: #FCA5A5;
+    color: #fca5a5;
     transform: translateY(-1px);
 
     &::before {
@@ -295,7 +305,9 @@ const LogoutButton = styled.button`
     transform: none;
   }
 
-  ${props => props.$collapsed && `
+  ${(props) =>
+    props.$collapsed &&
+    `
     justify-content: center;
     padding: 12px;
   `}
@@ -328,45 +340,61 @@ const Resizer = styled.div`
   }
 
   &:active {
-    background: #2563EB;
+    background: #2563eb;
   }
 `;
 
 const menuSections = [
   {
-    title: 'Principal',
-    items: [
-      { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    ]
+    title: "Principal",
+    items: [{ path: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
-    title: 'Gestión Académica',
+    title: "Gestión Académica",
     items: [
-      { path: '/estudiantes', label: 'Estudiantes', icon: Users },
-      { path: '/docentes', label: 'Docentes', icon: UserCheck },
-      { path: '/periodos', label: 'Períodos', icon: Calendar },
-      { path: '/aulas', label: 'Aulas', icon: Building2 },
-      { path: '/cursos', label: 'Asignaturas', icon: BookOpen },
-      { path: '/grupos-cursos', label: 'Secciones Académicas', icon: Layers },
-      { path: '/inscripciones', label: 'Inscripciones', icon: UserPlus },
-      { path: '/rubros', label: 'Rubros', icon: BookMarked },
-    ]
+      { path: "/estudiantes", label: "Estudiantes", icon: Users },
+      { path: "/docentes", label: "Docentes", icon: UserCheck },
+      { path: "/periodos", label: "Períodos", icon: Calendar },
+      { path: "/aulas", label: "Aulas", icon: Building2 },
+      { path: "/cursos", label: "Asignaturas", icon: BookOpen },
+      { path: "/grupos-cursos", label: "Secciones Académicas", icon: Layers },
+      { path: "/inscripciones", label: "Inscripciones", icon: UserPlus },
+      { path: "/rubros", label: "Rubros", icon: BookMarked },
+    ],
   },
   {
-    title: 'Gestión de Clases',
+    title: "Gestión de Clases",
     items: [
-      { path: '/sesiones', label: 'Sesiones', icon: Calendar },
-      { path: '/asistencias', label: 'Asistencias', icon: CalendarCheck },
-      { path: '/gradebook', label: 'Libro de Calificaciones', icon: Notebook}
-    ]
-  }
+      { path: "/sesiones", label: "Sesiones", icon: Calendar },
+      { path: "/asistencias", label: "Asistencias", icon: CalendarCheck },
+      { path: "/gradebook", label: "Libro de Calificaciones", icon: Notebook },
+    ],
+  },
+  {
+    title: "Gestión del Sistema",
+    items: [
+      {
+        path: "/mi-perfil/cambiar-password",
+        label: "Cambiar Contraseña",
+        icon: Lock,
+      },
+      {
+        path: "/admin/usuarios/crear",
+        label: "Crear Usuario",
+        icon: UserPlus,
+        role: "Admin",
+      },
+    ],
+  },
 ];
 
 export const Sidebar = () => {
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(() => storage.get('sidebarCollapsed', false));
-  const [width, setWidth] = useState(() => storage.get('sidebarWidth', 280));
-  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsed, setCollapsed] = useState(() =>
+    storage.get("sidebarCollapsed", false)
+  );
+  const [width, setWidth] = useState(() => storage.get("sidebarWidth", 280));
+  const [searchQuery, setSearchQuery] = useState("");
   const [isResizing, setIsResizing] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -374,11 +402,11 @@ export const Sidebar = () => {
   const user = authService.getCurrentUser();
 
   useEffect(() => {
-    storage.set('sidebarCollapsed', collapsed);
+    storage.set("sidebarCollapsed", collapsed);
   }, [collapsed]);
 
   useEffect(() => {
-    storage.set('sidebarWidth', width);
+    storage.set("sidebarWidth", width);
   }, [width]);
 
   const handleMouseDown = (e) => {
@@ -388,12 +416,12 @@ export const Sidebar = () => {
 
   const handleLogout = async () => {
     const result = await MySwal.fire({
-      title: '¿Cerrar sesión?',
-      text: 'Se cerrará tu sesión actual en Zirak.',
-      icon: 'warning',
+      title: "¿Cerrar sesión?",
+      text: "Se cerrará tu sesión actual en Zirak.",
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonText: 'Sí, cerrar sesión',
-      cancelButtonText: 'Cancelar',
+      confirmButtonText: "Sí, cerrar sesión",
+      cancelButtonText: "Cancelar",
       reverseButtons: true,
       focusCancel: true,
     });
@@ -404,7 +432,7 @@ export const Sidebar = () => {
 
     try {
       MySwal.fire({
-        title: 'Cerrando sesión...',
+        title: "Cerrando sesión...",
         didOpen: () => MySwal.showLoading(),
         allowOutsideClick: false,
         allowEscapeKey: false,
@@ -413,20 +441,20 @@ export const Sidebar = () => {
       await authService.logout();
 
       MySwal.close();
-      Toast.fire({ icon: 'success', title: 'Sesión cerrada' });
-      navigate('/login', { replace: true });
+      Toast.fire({ icon: "success", title: "Sesión cerrada" });
+      navigate("/login", { replace: true });
     } catch (error) {
-      console.error('Error al cerrar sesión:', error);
+      console.error("Error al cerrar sesión:", error);
 
       MySwal.close();
       await MySwal.fire({
-        icon: 'error',
-        title: 'No se pudo cerrar sesión correctamente',
-        text: 'Se forzará el cierre de sesión.',
-        confirmButtonText: 'Continuar',
+        icon: "error",
+        title: "No se pudo cerrar sesión correctamente",
+        text: "Se forzará el cierre de sesión.",
+        confirmButtonText: "Continuar",
       });
 
-      navigate('/login', { replace: true });
+      navigate("/login", { replace: true });
     } finally {
       setIsLoggingOut(false);
     }
@@ -445,42 +473,44 @@ export const Sidebar = () => {
     };
 
     if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isResizing]);
 
   const getFilteredSections = () => {
     if (!searchQuery) return menuSections;
 
-    return menuSections.map(section => ({
-      ...section,
-      items: section.items.filter(item =>
-        item.label.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    })).filter(section => section.items.length > 0);
+    return menuSections
+      .map((section) => ({
+        ...section,
+        items: section.items.filter((item) =>
+          item.label.toLowerCase().includes(searchQuery.toLowerCase())
+        ),
+      }))
+      .filter((section) => section.items.length > 0);
   };
 
   const filteredSections = getFilteredSections();
 
   const getRoleLabel = (role) => {
     const roleMap = {
-      'Admin': 'Administrador',
-      'Docente': 'Docente',
-      'Estudiante': 'Estudiante'
+      Admin: "Administrador",
+      Docente: "Docente",
+      Estudiante: "Estudiante",
     };
     return roleMap[role] || role;
   };
 
   return (
-    <SidebarWrapper 
-      ref={sidebarRef} 
-      $collapsed={collapsed} 
+    <SidebarWrapper
+      ref={sidebarRef}
+      $collapsed={collapsed}
       $width={width}
       aria-label="Primary navigation"
     >
@@ -490,16 +520,16 @@ export const Sidebar = () => {
           <AppTitle>
             <AppName>Zirak</AppName>
             <UserInfo>
-              <UserName>{user?.nombreUsuario || 'Usuario'}</UserName>
+              <UserName>{user?.nombreUsuario || "Usuario"}</UserName>
               <UserRole>{getRoleLabel(user?.rol)}</UserRole>
             </UserInfo>
           </AppTitle>
         ) : (
           <AppName>ZK</AppName>
         )}
-        <CollapseButton 
+        <CollapseButton
           onClick={() => setCollapsed(!collapsed)}
-          aria-label={collapsed ? 'Expandir sidebar' : 'Contraer sidebar'}
+          aria-label={collapsed ? "Expandir sidebar" : "Contraer sidebar"}
         >
           {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
         </CollapseButton>
@@ -529,29 +559,33 @@ export const Sidebar = () => {
               <SectionHeader collapsed={collapsed}>
                 {section.title}
               </SectionHeader>
-              {section.items.map(item => (
-                <NavItem
-                  key={item.path}
-                  to={item.path}
-                  icon={item.icon}
-                  label={item.label}
-                  collapsed={collapsed}
-                />
-              ))}
+              {section.items
+                .filter((item) => !item.role || item.role === user?.rol) // FILTRO POR ROL
+                .map((item) => (
+                  <NavItem
+                    key={item.path}
+                    to={item.path}
+                    icon={item.icon}
+                    label={item.label}
+                    collapsed={collapsed}
+                  />
+                ))}
             </div>
           ))}
         </NavigationSection>
 
         {/* FOOTER: Cerrar sesión */}
         <FooterSection>
-          <LogoutButton 
+          <LogoutButton
             onClick={handleLogout}
             $collapsed={collapsed}
             disabled={isLoggingOut}
             title={collapsed ? "Cerrar Sesión" : ""}
           >
             <LogOut size={20} />
-            {!collapsed && <span>{isLoggingOut ? 'Cerrando...' : 'Cerrar Sesión'}</span>}
+            {!collapsed && (
+              <span>{isLoggingOut ? "Cerrando..." : "Cerrar Sesión"}</span>
+            )}
           </LogoutButton>
         </FooterSection>
       </SidebarContent>

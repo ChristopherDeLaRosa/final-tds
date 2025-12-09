@@ -62,6 +62,7 @@ builder.Services.AddScoped<IHorarioAulaService, HorarioAulaService>();
 builder.Services.AddScoped<IPeriodoService, PeriodoService>();
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Configuración de Controllers
 builder.Services.AddControllers();

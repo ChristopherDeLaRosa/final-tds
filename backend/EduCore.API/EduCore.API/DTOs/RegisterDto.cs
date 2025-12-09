@@ -14,12 +14,10 @@ namespace EduCore.API.DTOs
         [MaxLength(150, ErrorMessage = "El email no puede exceder 150 caracteres")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "La contraseña es requerida")]
-        [MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres")]
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; } = null;
 
         [Required(ErrorMessage = "El rol es requerido")]
-        [RegularExpression("^(Admin|Docente|Estudiante)$", ErrorMessage = "Rol inválido")] // validar los roles permitidos
+        [RegularExpression("^(Admin|Docente|Estudiante)$", ErrorMessage = "Rol inválido")]
         public string Rol { get; set; } = string.Empty;
 
         public int? EstudianteId { get; set; }

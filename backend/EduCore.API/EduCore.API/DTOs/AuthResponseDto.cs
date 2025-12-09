@@ -8,4 +8,11 @@
         public string Rol { get; set; } = string.Empty;
         public DateTime Expiracion { get; set; }
     }
+
+    public class ChangePasswordDto
+    {
+        public string? OldPassword { get; set; }
+        public string? NewPassword { get; set; }
+    }
+
 }

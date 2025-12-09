@@ -8,5 +8,7 @@ namespace EduCore.API.Services.Interfaces
         Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto);
         Task<bool> UserExistsAsync(string nombreUsuario);
         Task<bool> EmailExistsAsync(string email);
+        Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto);
+
     }
 }
