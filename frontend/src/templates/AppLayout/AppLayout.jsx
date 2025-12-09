@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import styled from 'styled-components';
 import { Sidebar } from '../../components/organisms/Sidebar/Sidebar';
+import ChatWidget from '../../components/organisms/ChatWidget/ChatWidget';
 
 const LayoutWrapper = styled.div`
   display: flex;
@@ -16,12 +17,15 @@ const MainContent = styled.main`
 
 export const AppLayout = () => {
   return (
+    <>
     <LayoutWrapper>
       <Sidebar />
       <MainContent>
         <Outlet />
       </MainContent>
     </LayoutWrapper>
+    <ChatWidget/>
+    </>
   );
 };
 
