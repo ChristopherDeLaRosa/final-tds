@@ -33,15 +33,12 @@ namespace EduCore.API.Services.Implementations
             if (usuario == null)
                 return null;
 
-            // Verificar contraseña
             if (!BCrypt.Net.BCrypt.Verify(loginDto.Password, usuario.PasswordHash))
                 return null;
 
-            // actualizar último acceso
             usuario.UltimoAcceso = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            // Generar token
             var token = GenerateJwtToken(usuario);
             var expiracion = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
 
@@ -57,14 +54,12 @@ namespace EduCore.API.Services.Implementations
 
         public async Task<AuthResponseDto?> RegisterAsync(RegisterDto registerDto)
         {
-            // verificar si el usuario ya existe
             if (await UserExistsAsync(registerDto.NombreUsuario))
                 return null;
 
             if (await EmailExistsAsync(registerDto.Email))
                 return null;
 
-            // Validar referencia a estudiante o docente segun el rol
             if (registerDto.Rol == "Estudiante" && registerDto.EstudianteId.HasValue)
             {
                 var estudianteExists = await _context.Estudiantes
@@ -81,12 +76,13 @@ namespace EduCore.API.Services.Implementations
                     return null;
             }
 
-            // Crear usuario
+            string passwordTemporal = Guid.NewGuid().ToString("N")[..8];
+
             var usuario = new Usuario
             {
                 NombreUsuario = registerDto.NombreUsuario,
                 Email = registerDto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(registerDto.Password),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordTemporal),
                 Rol = registerDto.Rol,
                 EstudianteId = registerDto.EstudianteId,
                 DocenteId = registerDto.DocenteId,
@@ -96,10 +92,6 @@ namespace EduCore.API.Services.Implementations
 
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
-
-            // --- AQUÍ SE ENVÍA EL CORREO (ANTES DEL RETURN) ---
-
-            var passwordTemporal = registerDto.Password;
 
             var emailBody = $@"
                 <h2>Bienvenido al Sistema EduCore</h2>
@@ -111,11 +103,9 @@ namespace EduCore.API.Services.Implementations
                     <li><strong>Contraseña temporal:</strong> {passwordTemporal}</li>
                 </ul>
 
-                <p>Por seguridad, debes cambiar tu contraseña al iniciar sesión.</p>
+                <p>Debes cambiar esta contraseña al iniciar sesión.</p>
                 <p>Accede aquí: <a href='https://tusistema.com/login'>Iniciar sesión</a></p>
-
-                <p>Saludos,<br/>Equipo EduCore</p>
-    ";
+            ";
 
             await _emailService.SendEmailAsync(
                 usuario.Email,
@@ -123,7 +113,6 @@ namespace EduCore.API.Services.Implementations
                 emailBody
             );
 
-            // Generar token
             var token = GenerateJwtToken(usuario);
             var expiracion = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
 
@@ -137,7 +126,6 @@ namespace EduCore.API.Services.Implementations
             };
         }
 
-
         public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto)
         {
             var user = await _context.Usuarios.FindAsync(userId);
@@ -150,7 +138,6 @@ namespace EduCore.API.Services.Implementations
 
             return true;
         }
-
 
         public async Task<bool> UserExistsAsync(string nombreUsuario)
         {
@@ -173,7 +160,6 @@ namespace EduCore.API.Services.Implementations
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // Agregar claim adicional si es Estudiante o Docente
             if (usuario.EstudianteId.HasValue)
                 claims.Add(new Claim("EstudianteId", usuario.EstudianteId.Value.ToString()));
 

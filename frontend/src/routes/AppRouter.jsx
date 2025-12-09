@@ -22,7 +22,10 @@ import ProtectedRoute from "../routes/ProtectedRoute/ProtectedRoute.jsx";
 import { GlobalStyle } from "../styles/globalStyles.js";
 import authService from "../services/authService.js";
 import Periodos from "../pages/Periodos/Periodos.jsx";
-import Gradebook from '../pages/Gradebook/Gradebook.jsx';
+import Gradebook from "../pages/Gradebook/Gradebook.jsx";
+import CrearUsuario from "../pages/Usuarios/CrearUsuario.jsx";
+import CambiarPassword from "../pages/Perfil/CambiarPassword.jsx";
+
 
 export default function AppRouter() {
   return (
@@ -30,18 +33,20 @@ export default function AppRouter() {
       <GlobalStyle />
       <Routes>
         {/* Ruta de Login (pública) */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
-            authService.isAuthenticated() 
-              ? <Navigate to="/dashboard" replace /> 
-              : <Login />
-          } 
+            authService.isAuthenticated() ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Login />
+            )
+          }
         />
 
         {/* Rutas protegidas */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             <ProtectedRoute>
               <AppLayout />
@@ -51,7 +56,7 @@ export default function AppRouter() {
           {/* Dashboard */}
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
-          
+
           {/* Gestión Académica */}
           <Route path="estudiantes" element={<Students />} />
           <Route path="docentes" element={<Docentes />} />
@@ -62,51 +67,58 @@ export default function AppRouter() {
           <Route path="grupos-cursos" element={<GruposCursos />} />
           <Route path="inscripciones" element={<Inscripciones />} />
           <Route path="rubros" element={<Rubros />} />
-          
+
           {/* Gestión de Clases */}
           <Route path="sesiones" element={<Sesiones />} />
-          <Route path="pase-lista" element={<PaseLista />} /> 
+          <Route path="pase-lista" element={<PaseLista />} />
           <Route path="reportes-asistencia" element={<ReportesAsistencia />} />
-          <Route path="historial-asistencias" element={<HistorialAsistencias />} />
+          <Route
+            path="historial-asistencias"
+            element={<HistorialAsistencias />}
+          />
           {/* <Route path="asistencias" element={<Asistencias />} /> */}
           <Route path="asistencias" element={<AsistenciasUnificado />} />
           <Route path="calificaciones" element={<Calificaciones />} />
           <Route path="/gradebook" element={<Gradebook />} />
-          
+          {/* para la gestión de usuarios */}
+          <Route path="/admin/usuarios/crear" element={<CrearUsuario />} />
+          <Route path="/mi-perfil/cambiar-password"element={<CambiarPassword />}/>
         </Route>
 
         {/* Ruta para no autorizados */}
-        <Route 
-          path="/unauthorized" 
+        <Route
+          path="/unauthorized"
           element={
-            <div style={{ 
-              padding: '20px', 
-              textAlign: 'center',
-              minHeight: '100vh',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
+            <div
+              style={{
+                padding: "20px",
+                textAlign: "center",
+                minHeight: "100vh",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <h1>Acceso Denegado</h1>
               <p>No tienes permisos para acceder a esta página.</p>
-              <button 
-                onClick={() => window.location.href = '/dashboard'}
+              <button
+                onClick={() => (window.location.href = "/dashboard")}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#4F8CFF',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '16px',
-                  marginTop: '20px'
+                  padding: "10px 20px",
+                  backgroundColor: "#4F8CFF",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  marginTop: "20px",
                 }}
               >
                 Volver al Dashboard
               </button>
             </div>
-          } 
+          }
         />
 
         {/* Ruta catch-all */}
@@ -115,4 +127,3 @@ export default function AppRouter() {
     </BrowserRouter>
   );
 }
-
