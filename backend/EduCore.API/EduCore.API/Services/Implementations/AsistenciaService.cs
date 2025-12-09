@@ -336,6 +336,32 @@ namespace EduCore.API.Services.Implementations
                 .AnyAsync(a => a.SesionId == sesionId && a.EstudianteId == estudianteId);
         }
 
+        public async Task<AsistenciaDashboardDto> GetAsistenciaGlobalHoyAsync()
+        {
+            var hoy = DateTime.Today;
+
+            var asistencias = await _context.Asistencias
+                .Include(a => a.Sesion)
+                .Where(a => a.Sesion.Fecha.Date == hoy)
+                .ToListAsync();
+
+            if (!asistencias.Any())
+                return new AsistenciaDashboardDto { Total = 0, Presentes = 0, Porcentaje = 0 };
+
+            var total = asistencias.Count;
+            var presentes = asistencias.Count(a => a.Estado == "Presente");
+
+            return new AsistenciaDashboardDto
+            {
+                Total = total,
+                Presentes = presentes,
+                Porcentaje = total > 0
+                    ? Math.Round((decimal)presentes / total * 100, 2)
+                    : 0
+            };
+        }
+
+
         private AsistenciaDto MapToDto(Asistencia asistencia)
         {
             return new AsistenciaDto

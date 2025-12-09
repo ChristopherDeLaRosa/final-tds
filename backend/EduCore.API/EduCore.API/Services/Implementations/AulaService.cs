@@ -623,6 +623,32 @@ namespace EduCore.API.Services.Implementations
 
         #endregion
 
+        public async Task<AsistenciaDashboardDto> GetAsistenciaGlobalHoyAsync()
+        {
+            var hoy = DateTime.Today;
+
+            var asistencias = await _context.Asistencias
+                .Include(a => a.Sesion)
+                .Where(a => a.Sesion.Fecha.Date == hoy)
+                .ToListAsync();
+
+            if (!asistencias.Any())
+                return new AsistenciaDashboardDto { Total = 0, Presentes = 0, Porcentaje = 0 };
+
+            var total = asistencias.Count;
+            var presentes = asistencias.Count(a => a.Estado == "Presente");
+
+            return new AsistenciaDashboardDto
+            {
+                Total = total,
+                Presentes = presentes,
+                Porcentaje = total > 0
+                    ? Math.Round((decimal)presentes / total * 100, 2)
+                    : 0
+            };
+        }
+
+
         #region Mapper
 
         private AulaDto MapToDto(Aula aula)
