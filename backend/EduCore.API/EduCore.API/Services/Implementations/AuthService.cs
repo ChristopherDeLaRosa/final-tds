@@ -16,11 +16,13 @@ namespace EduCore.API.Services.Implementations
     {
         private readonly EduCoreDbContext _context;
         private readonly JwtSettings _jwtSettings;
+        private readonly IEmailService _emailService;
 
-        public AuthService(EduCoreDbContext context, IOptions<JwtSettings> jwtSettings)
+        public AuthService(EduCoreDbContext context, IOptions<JwtSettings> jwtSettings, IEmailService emailService)
         {
             _context = context;
             _jwtSettings = jwtSettings.Value;
+            _emailService = emailService;
         }
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
@@ -95,6 +97,32 @@ namespace EduCore.API.Services.Implementations
             _context.Usuarios.Add(usuario);
             await _context.SaveChangesAsync();
 
+            // --- AQUÍ SE ENVÍA EL CORREO (ANTES DEL RETURN) ---
+
+            var passwordTemporal = registerDto.Password;
+
+            var emailBody = $@"
+                <h2>Bienvenido al Sistema EduCore</h2>
+                <p>Hola <strong>{usuario.NombreUsuario}</strong>, tu cuenta ha sido creada.</p>
+
+                <p><strong>Credenciales de acceso:</strong></p>
+                <ul>
+                    <li><strong>Usuario:</strong> {usuario.NombreUsuario}</li>
+                    <li><strong>Contraseña temporal:</strong> {passwordTemporal}</li>
+                </ul>
+
+                <p>Por seguridad, debes cambiar tu contraseña al iniciar sesión.</p>
+                <p>Accede aquí: <a href='https://tusistema.com/login'>Iniciar sesión</a></p>
+
+                <p>Saludos,<br/>Equipo EduCore</p>
+    ";
+
+            await _emailService.SendEmailAsync(
+                usuario.Email,
+                "Credenciales de acceso - EduCore",
+                emailBody
+            );
+
             // Generar token
             var token = GenerateJwtToken(usuario);
             var expiracion = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
@@ -108,6 +136,21 @@ namespace EduCore.API.Services.Implementations
                 Expiracion = expiracion
             };
         }
+
+
+        public async Task<bool> ChangePasswordAsync(int userId, ChangePasswordDto dto)
+        {
+            var user = await _context.Usuarios.FindAsync(userId);
+
+            if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
+                return false;
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            await _context.SaveChangesAsync();
+
+            return true;
+        }
+
 
         public async Task<bool> UserExistsAsync(string nombreUsuario)
         {

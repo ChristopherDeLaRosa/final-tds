@@ -2,6 +2,7 @@
 using EduCore.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EduCore.API.Controllers
 {
@@ -179,5 +180,20 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+
+        [HttpPost("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
+            var result = await _authService.ChangePasswordAsync(userId, dto);
+
+            if (!result)
+                return BadRequest(new { message = "Contraseña actual incorrecta" });
+
+            return Ok(new { message = "Contraseña actualizada correctamente" });
+        }
+
     }
 }
