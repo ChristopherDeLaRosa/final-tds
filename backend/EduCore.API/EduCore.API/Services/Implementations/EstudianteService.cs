@@ -268,17 +268,24 @@ namespace EduCore.API.Services.Implementations
 
                 gruposHistorial.Add(new HistorialGrupoDto
                 {
-                    CodigoCurso = inscripcion.GrupoCurso.Curso.Codigo,
-                    NombreCurso = inscripcion.GrupoCurso.Curso.Nombre,
-                    AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
+                    CodigoCurso = inscripcion.GrupoCurso.Curso?.Codigo ?? "N/A",
+                    NombreCurso = inscripcion.GrupoCurso.Curso?.Nombre ?? "Curso sin asignar",
+                    AreaConocimiento = inscripcion.GrupoCurso.Curso?.AreaConocimiento ?? "N/A",
+
                     Grado = inscripcion.GrupoCurso.Grado,
                     Seccion = inscripcion.GrupoCurso.Seccion,
-                    Periodo = inscripcion.GrupoCurso.Periodo.Nombre,
-                    Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
+
+                    Periodo = inscripcion.GrupoCurso.Periodo?.Nombre ?? "Periodo no asignado",
+
+                    Docente = inscripcion.GrupoCurso.Docente != null
+        ? $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}"
+        : "Docente no asignado",
+
                     PromedioFinal = inscripcion.PromedioFinal,
                     Estado = inscripcion.Estado,
                     PorcentajeAsistencia = Math.Round(porcentajeAsistencia, 2)
                 });
+
             }
 
             // Calcular estadísticas generales
