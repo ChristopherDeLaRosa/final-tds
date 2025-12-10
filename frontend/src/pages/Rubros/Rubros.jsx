@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Layers, CheckCircle, Percent, ClipboardList } from 'lucide-react';
 import { theme } from '../../styles';
 import rubroService from '../../services/rubroService';
 import grupoCursoService from '../../services/grupoCursoService';
@@ -48,12 +49,15 @@ export default function Rubros() {
   const [gruposCursos, setGruposCursos] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
+  // ===========================
+  //   FETCH RELATED DATA
+  // ===========================
   useEffect(() => {
     const fetchRelatedData = async () => {
       try {
         setLoadingRelated(true);
+
         const gruposData = await grupoCursoService.getAll();
-        
         setGruposCursos(gruposData.filter(g => g.activo));
       } catch (err) {
         console.error('Error al cargar grupos-cursos:', err);
@@ -69,6 +73,9 @@ export default function Rubros() {
     fetchRelatedData();
   }, []);
 
+  // ===========================
+  //    ENRIQUECER RUBROS
+  // ===========================
   const rubrosEnriquecidos = rubros.map(r => {
     const grupo = gruposCursos.find(g => g.id === r.grupoCursoId);
     return {
@@ -79,20 +86,25 @@ export default function Rubros() {
     };
   });
 
+  // ===========================
+  //        STATS
+  // ===========================
   const totalRubros = rubrosEnriquecidos.length;
   const rubrosActivos = rubrosEnriquecidos.filter(r => r.activo).length;
+
+  // % total activos
   const porcentajeTotal = rubrosEnriquecidos
     .filter(r => r.activo)
     .reduce((sum, r) => sum + (r.porcentaje || 0), 0);
-  
+
+  // rubros agrupados por curso
   const rubrosPorGrupo = rubrosEnriquecidos.reduce((acc, r) => {
-    if (!acc[r.grupoCursoId]) {
-      acc[r.grupoCursoId] = [];
-    }
+    if (!acc[r.grupoCursoId]) acc[r.grupoCursoId] = [];
     acc[r.grupoCursoId].push(r);
     return acc;
   }, {});
-  
+
+  // grupos donde suman 100%
   const gruposCompletos = Object.values(rubrosPorGrupo).filter(rubrosGrupo => {
     const totalPorcentaje = rubrosGrupo
       .filter(r => r.activo)
@@ -105,24 +117,31 @@ export default function Rubros() {
       label: 'Total Rubros',
       value: totalRubros,
       color: theme.colors.accent,
+      icon: <Layers size={28} />,
     },
     {
       label: 'Rubros Activos',
       value: rubrosActivos,
-      color: '#10b981',
+      color: theme.colors.success,
+      icon: <CheckCircle size={28} />,
     },
     {
       label: 'Grupos Completos (100%)',
       value: gruposCompletos,
-      color: '#3b82f6',
+      color: theme.colors.info,
+      icon: <Percent size={28} />,
     },
     {
       label: 'Grupos-Cursos',
       value: gruposCursos.length,
-      color: '#8b5cf6',
+      color: theme.colors.warning,
+      icon: <ClipboardList size={28} />,
     },
   ];
 
+  // ===========================
+  //        HANDLERS
+  // ===========================
   const handleAddRubro = () => {
     if (loadingRelated) {
       Toast.fire({
@@ -131,7 +150,7 @@ export default function Rubros() {
       });
       return;
     }
-    
+
     if (gruposCursos.length === 0) {
       Toast.fire({
         icon: 'warning',
@@ -140,7 +159,7 @@ export default function Rubros() {
       });
       return;
     }
-    
+
     setFormData(getInitialRubroFormData());
     clearAllErrors();
     openModal(null);
@@ -154,6 +173,7 @@ export default function Rubros() {
       });
       return;
     }
+
     setFormData(formatRubroForForm(rubro));
     clearAllErrors();
     openModal(rubro);
@@ -166,35 +186,32 @@ export default function Rubros() {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    if (formErrors[name]) {
-      clearError(name);
-    }
+    if (formErrors[name]) clearError(name);
   };
 
   const handleSaveRubro = async () => {
-    if (!validate(formData)) {
-      return;
-    }
-    
+    if (!validate(formData)) return;
+
     setIsSubmitting(true);
-    
+
     try {
       const dataToSend = formatRubroDataForAPI(formData);
 
+      // Validar % por curso
       const rubrosDelGrupo = rubrosEnriquecidos.filter(
-        r => r.grupoCursoId === dataToSend.grupoCursoId && 
-             r.activo && 
+        r => r.grupoCursoId === dataToSend.grupoCursoId &&
+             r.activo &&
              (!selectedRubro || r.id !== selectedRubro.id)
       );
-      
+
       const totalPorcentaje = rubrosDelGrupo.reduce((sum, r) => sum + (r.porcentaje || 0), 0);
       const nuevoTotal = totalPorcentaje + dataToSend.porcentaje;
-      
+
       if (nuevoTotal > 100) {
         Toast.fire({
           icon: 'error',
           title: 'El total de porcentajes excede 100%',
-          text: `Total actual: ${totalPorcentaje.toFixed(2)}% + Nuevo: ${dataToSend.porcentaje}% = ${nuevoTotal.toFixed(2)}%`,
+          text: `Actual: ${totalPorcentaje.toFixed(2)}% + Nuevo: ${dataToSend.porcentaje}% = ${nuevoTotal.toFixed(2)}%`,
         });
         setIsSubmitting(false);
         return;
@@ -205,15 +222,15 @@ export default function Rubros() {
       } else {
         await create(dataToSend);
       }
-      
+
       if (Math.abs(nuevoTotal - 100) > 0.01) {
         Toast.fire({
           icon: 'warning',
           title: 'Rubro guardado',
-          text: `Total de porcentajes: ${nuevoTotal.toFixed(2)}% (falta ${(100 - nuevoTotal).toFixed(2)}%)`,
+          text: `Total de porcentajes: ${nuevoTotal.toFixed(2)}% (faltan ${(100 - nuevoTotal).toFixed(2)}%)`,
         });
       }
-      
+
       closeModal();
       setFormData(getInitialRubroFormData());
     } catch (err) {
@@ -241,8 +258,6 @@ export default function Rubros() {
       MySwal.fire({
         title: 'Recargando...',
         didOpen: () => MySwal.showLoading(),
-        allowOutsideClick: false,
-        allowEscapeKey: false,
       });
       await fetchAll();
       MySwal.close();
@@ -257,25 +272,32 @@ export default function Rubros() {
     }
   };
 
+  // ===========================
+  //          RENDER
+  // ===========================
   return (
     <CrudPage
       title="Gestión de Rubros"
-      subtitle="Componentes de evaluación - EduCore"
+      subtitle="Componentes de evaluación - Zirak"
       addButtonText="Agregar Rubro"
       emptyMessage="No hay rubros registrados. ¡Agrega el primero!"
       loadingMessage="Cargando rubros..."
+
       data={rubrosEnriquecidos}
       loading={loading}
       error={error}
       stats={stats}
+
       columns={rubrosColumns}
       searchFields={rubrosSearchFields}
+
       isModalOpen={isModalOpen}
       modalTitle={selectedRubro ? 'Editar Rubro' : 'Nuevo Rubro'}
       formFields={getRubrosFormFields(!!selectedRubro, gruposCursos)}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}
+
       onAdd={handleAddRubro}
       onEdit={handleEditRubro}
       onDelete={handleDeleteRubro}

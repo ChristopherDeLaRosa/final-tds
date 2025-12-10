@@ -18,6 +18,31 @@ namespace EduCore.API.Services.Implementations
             _logger = logger;
         }
 
+        public async Task<string> GenerarCodigoAsync()
+        {
+            // Obtener el último código registrado
+            var ultimoCodigo = await _context.Docentes
+                .Where(d => d.Codigo.StartsWith("DOC-"))
+                .OrderByDescending(d => d.Codigo)
+                .Select(d => d.Codigo)
+                .FirstOrDefaultAsync();
+
+            int siguienteNumero = 1;
+
+            if (!string.IsNullOrEmpty(ultimoCodigo))
+            {
+                // Extraer el número del último código (formato: DOC-NNN)
+                var partes = ultimoCodigo.Split('-');
+                if (partes.Length == 2 && int.TryParse(partes[1], out int numeroActual))
+                {
+                    siguienteNumero = numeroActual + 1;
+                }
+            }
+
+            // Formato: DOC-001, DOC-002, etc.
+            return $"DOC-{siguienteNumero:D3}";
+        }
+
         public async Task<IEnumerable<DocenteDto>> GetAllAsync()
         {
             var docentes = await _context.Docentes
@@ -56,7 +81,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(d => d.GrupoCursos)
                     .ThenInclude(g => g.Curso)
                 .Include(d => d.GrupoCursos)
-                    .ThenInclude(g => g.Aula) 
+                    .ThenInclude(g => g.Aula)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (docente == null)
@@ -75,7 +100,7 @@ namespace EduCore.API.Services.Implementations
                     NombreCurso = g.Curso.Nombre,
                     Grado = g.Grado,
                     Seccion = g.Seccion,
-                    Periodo = g.Periodo,
+                    Periodo = g.Periodo.Nombre,
                     CantidadEstudiantes = g.CantidadEstudiantes,
                     CapacidadMaxima = g.CapacidadMaxima,
                     Aula = g.Aula?.AulaFisica,
@@ -134,10 +159,18 @@ namespace EduCore.API.Services.Implementations
 
         public async Task<DocenteDto> CreateAsync(CreateDocenteDto createDto)
         {
-            // Validar código único
-            if (await CodigoExisteAsync(createDto.Codigo))
+            // Si el código está vacío, generarlo automáticamente
+            if (string.IsNullOrWhiteSpace(createDto.Codigo))
             {
-                throw new InvalidOperationException($"El código '{createDto.Codigo}' ya existe");
+                createDto.Codigo = await GenerarCodigoAsync();
+            }
+            else
+            {
+                // Validar código único si fue proporcionado
+                if (await CodigoExisteAsync(createDto.Codigo))
+                {
+                    throw new InvalidOperationException($"El código '{createDto.Codigo}' ya existe");
+                }
             }
 
             // Validar email único
@@ -259,7 +292,7 @@ namespace EduCore.API.Services.Implementations
             // Filtro por periodo
             if (!string.IsNullOrWhiteSpace(filtros.Periodo))
             {
-                query = query.Where(d => d.GrupoCursos.Any(g => g.Periodo == filtros.Periodo && g.Activo));
+                query = query.Where(d => d.GrupoCursos.Any(g => g.Periodo.Nombre == filtros.Periodo && g.Activo));
             }
 
             var docentes = await query
@@ -409,7 +442,7 @@ namespace EduCore.API.Services.Implementations
 
             if (!string.IsNullOrWhiteSpace(periodo))
             {
-                query = query.Where(g => g.Periodo == periodo);
+                query = query.Where(g => g.Periodo.Nombre == periodo);
             }
 
             var grupos = await query
@@ -431,7 +464,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = g.Grado,
                 Seccion = g.Seccion,
                 Anio = g.Anio,
-                Periodo = g.Periodo,
+                Periodo = g.Periodo.Nombre,
                 AulaId = g.AulaId,
                 AulaFisica = g.Aula?.AulaFisica,
                 Horario = g.Horario,
@@ -449,7 +482,7 @@ namespace EduCore.API.Services.Implementations
 
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
-                .Where(g => g.DocenteId == docenteId && g.Periodo == periodo && g.Activo)
+                .Where(g => g.DocenteId == docenteId && g.Periodo.Nombre == periodo && g.Activo)
                 .ToListAsync();
 
             // Obtener sesiones para calcular horas semanales
@@ -519,7 +552,7 @@ namespace EduCore.API.Services.Implementations
 
             var grupos = await _context.GruposCursos
                 .Include(g => g.Curso)
-                .Where(g => g.DocenteId == docenteId && g.Periodo == periodo && g.Activo)
+                .Where(g => g.DocenteId == docenteId && g.Periodo.Nombre == periodo && g.Activo)
                 .ToListAsync();
 
             var gruposIds = grupos.Select(g => g.Id).ToList();

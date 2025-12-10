@@ -59,6 +59,7 @@ namespace EduCore.API.Services.Implementations
         {
             var grupoCurso = await _context.GruposCursos
                 .Include(g => g.Curso)
+                .Include(g => g.Periodo)
                 .FirstOrDefaultAsync(g => g.Id == grupoCursoId);
 
             if (grupoCurso == null)
@@ -109,7 +110,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo,
+                Periodo = grupoCurso.Periodo.Nombre,
                 Rubros = rubrosDetalle,
                 TotalPorcentaje = totalPorcentaje,
                 PorcentajeCompleto = totalPorcentaje == 100

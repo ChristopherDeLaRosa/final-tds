@@ -48,9 +48,8 @@ namespace EduCore.API.DTOs
         [Required]
         public int Anio { get; set; }
 
-        [Required]
-        [MaxLength(20)]
-        public string Periodo { get; set; } = string.Empty;
+        [Required(ErrorMessage = "El período es requerido")]
+        public int PeriodoId { get; set; }
 
         public int? AulaId { get; set; }
 

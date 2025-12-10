@@ -23,5 +23,10 @@ namespace EduCore.API.Services.Interfaces
         // Validaciones
         Task<bool> ExistsAsync(int id);
         Task<bool> MatriculaExistsAsync(string matricula);
+
+        //Genera la siguiente matrícula disponible en formato "2025-0001"
+        Task<string> GenerarMatriculaAsync();
+        //para la ia
+        Task<int> GetTotalAsync();
     }
 }

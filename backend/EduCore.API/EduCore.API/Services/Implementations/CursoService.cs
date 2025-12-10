@@ -162,9 +162,9 @@ namespace EduCore.API.Services.Implementations
             string periodo)
         {
             var cursos = await _context.Cursos
-                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo == periodo))
+                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo.Nombre == periodo))
                     .ThenInclude(g => g.Docente)
-                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo == periodo))
+                .Include(c => c.GruposCursos.Where(g => g.Activo && g.Grado == grado && g.Periodo.Nombre == periodo))
                     .ThenInclude(g => g.Aula)
                 .Where(c => c.Activo && c.NivelGrado == grado)
                 .OrderBy(c => c.Orden)

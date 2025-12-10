@@ -1,8 +1,11 @@
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Users, TrendingUp, Award, DollarSign, Search } from 'lucide-react';
-import styled from 'styled-components';
-import { theme } from '../../styles/theme';
+import { useState, useEffect } from "react";
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { Users, TrendingUp, Award, DollarSign, Search } from "lucide-react";
+import styled from "styled-components";
+import { theme } from "../../styles/theme";
+import dashboardService from "../../services/dashboardService";
 
+// ------------------- ESTILOS -------------------
 const Container = styled.div`
   min-height: 100vh;
   background-color: ${theme.colors.bg};
@@ -151,7 +154,7 @@ const StatChange = styled.p`
 `;
 
 const IconWrapper = styled.div`
-  background-color: ${props => props.bg || 'rgba(79, 140, 255, 0.15)'};
+  background-color: ${props => props.bg || "rgba(79, 140, 255, 0.15)"};
   padding: ${theme.spacing.md};
   border-radius: ${theme.borderRadius.md};
   display: flex;
@@ -184,31 +187,24 @@ const ChartTitle = styled.h2`
   margin-bottom: ${theme.spacing.xl};
 `;
 
+// ------------------- COMPONENTE -------------------
 const Dashboard = () => {
-  const attendanceData = [
-    { month: 'Ene', value: 92 },
-    { month: 'Feb', value: 95 },
-    { month: 'Mar', value: 93 },
-    { month: 'Abr', value: 94 },
-    { month: 'May', value: 96 },
-    { month: 'Jun', value: 92 },
-    { month: 'Jul', value: 90 },
-    { month: 'Ago', value: 95 },
-    { month: 'Sep', value: 97 },
-    { month: 'Oct', value: 94 }
-  ];
+  const [stats, setStats] = useState(null);
 
-  const gradesData = [
-    { curso: '1ro', promedio: 88 },
-    { curso: '2do', promedio: 92 },
-    { curso: '3ro', promedio: 90 },
-    { curso: '4to', promedio: 87 },
-    { curso: '5to', promedio: 85 },
-    { curso: '6to', promedio: 83 },
-    { curso: 'Bach 1ro', promedio: 91 },
-    { curso: 'Bach 2ro', promedio: 89 },
-    { curso: 'Bach 3ro', promedio: 93 }
-  ];
+  useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        const data = await dashboardService.getDashboard();
+        setStats(data);
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  if (!stats) return <p style={{ color: "white", padding: "20px" }}>Cargando...</p>;
 
   const StatCardComponent = ({ title, value, change, icon: Icon, iconBg }) => (
     <StatCard>
@@ -219,7 +215,7 @@ const Dashboard = () => {
           <StatChange>{change}</StatChange>
         </StatInfo>
         <IconWrapper bg={iconBg}>
-          <Icon style={{ width: '1.5rem', height: '1.5rem', color: theme.colors.accent }} />
+          <Icon style={{ width: "1.5rem", height: "1.5rem", color: theme.colors.accent }} />
         </IconWrapper>
       </StatCardContent>
     </StatCard>
@@ -233,112 +229,75 @@ const Dashboard = () => {
             <TitleSection>
               <Title>Dashboard</Title>
             </TitleSection>
+
             <SearchWrapper>
               <SearchIcon />
-              <SearchInput
-                type="text"
-                placeholder="Buscar estudiantes, docentes..."
-              />
+              <SearchInput type="text" placeholder="Buscar estudiantes, docentes..." />
             </SearchWrapper>
           </TopBar>
-          
-          <Subtitle>Bienvenido al sistema de gestión escolar EduCore ERP</Subtitle>
+
+          <Subtitle>Bienvenido al sistema de gestión escolar Zirak ERP</Subtitle>
         </Header>
 
+        {/* ---------- TARJETAS CON DATOS REALES ---------- */}
         <StatsGrid>
           <StatCardComponent
             title="Total Estudiantes"
-            value="8"
-            change="+12% vs mes anterior"
+            value={stats.totalEstudiantes}
+            change={`${stats.totalEstudiantes} estudiantes activos`}
             icon={Users}
             iconBg="rgba(79, 140, 255, 0.15)"
           />
+
           <StatCardComponent
-            title="Asistencia del Mes"
-            value="94%"
-            change="+2.5% vs mes anterior"
+            title="Asistencia de Hoy"
+            value={`${stats.asistencia.porcentaje}%`}
+            change={`${stats.asistencia.presentes}/${stats.asistencia.total} presentes`}
             icon={TrendingUp}
             iconBg="rgba(79, 140, 255, 0.15)"
           />
+
           <StatCardComponent
             title="Promedio General"
-            value="90"
-            change="+1.2 puntos"
+            value={stats.rendimiento.promedioGeneral}
+            change={`${stats.rendimiento.porcentajeAprobacion}% aprobación`}
             icon={Award}
             iconBg="rgba(79, 140, 255, 0.15)"
           />
+
           <StatCardComponent
-            title="Pagos Pendientes"
-            value="1"
-            change="-5 vs semana anterior"
+            title="Aprobados"
+            value={stats.rendimiento.aprobadas}
+            change={`${stats.rendimiento.reprobadas} reprobadas`}
             icon={DollarSign}
             iconBg="rgba(79, 140, 255, 0.15)"
           />
         </StatsGrid>
 
+        {/* ---------- GRÁFICAS (POR AHORA SE MANTIENEN STATIC UNTIL BACKEND READY) ---------- */}
         <ChartsGrid>
           <ChartCard>
             <ChartTitle>Tendencia de Asistencia</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={attendanceData}>
+              <LineChart data={[{ month: "Hoy", value: stats.asistencia.porcentaje }]}>
                 <CartesianGrid strokeDasharray="3 3" stroke={theme.colors.border} />
-                <XAxis 
-                  dataKey="month" 
-                  stroke={theme.colors.textMuted} 
-                  style={{ fontSize: '0.75rem' }} 
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  stroke={theme.colors.textMuted} 
-                  style={{ fontSize: '0.75rem' }} 
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: theme.colors.bgDark,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
-                    color: theme.colors.text
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={theme.colors.accent} 
-                  strokeWidth={2} 
-                  dot={{ fill: theme.colors.accent, r: 4 }} 
-                />
+                <XAxis dataKey="month" stroke={theme.colors.textMuted} />
+                <YAxis domain={[0, 100]} stroke={theme.colors.textMuted} />
+                <Tooltip />
+                <Line type="monotone" dataKey="value" stroke={theme.colors.accent} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
 
           <ChartCard>
-            <ChartTitle>Promedio de Calificaciones por Curso</ChartTitle>
+            <ChartTitle>Rendimiento Promedio</ChartTitle>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={gradesData}>
-                <CartesianGrid strokeDasharray="3 3" stroke={theme.colors.border} />
-                <XAxis 
-                  dataKey="curso" 
-                  stroke={theme.colors.textMuted} 
-                  style={{ fontSize: '0.75rem' }} 
-                />
-                <YAxis 
-                  domain={[0, 100]} 
-                  stroke={theme.colors.textMuted} 
-                  style={{ fontSize: '0.75rem' }} 
-                />
-                <Tooltip 
-                  contentStyle={{
-                    backgroundColor: theme.colors.bgDark,
-                    border: `1px solid ${theme.colors.border}`,
-                    borderRadius: theme.borderRadius.md,
-                    color: theme.colors.text
-                  }}
-                />
-                <Bar 
-                  dataKey="promedio" 
-                  fill="#22c55e" 
-                  radius={[4, 4, 0, 0]} 
-                />
+              <BarChart data={[{ curso: "General", promedio: stats.rendimiento.promedioGeneral }]}>
+                <CartesianGrid stroke="#333" />
+                <XAxis dataKey="curso" stroke={theme.colors.textMuted} />
+                <YAxis domain={[0, 100]} stroke={theme.colors.textMuted} />
+                <Tooltip />
+                <Bar dataKey="promedio" fill="#22c55e" />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>

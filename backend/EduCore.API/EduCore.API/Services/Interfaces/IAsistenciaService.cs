@@ -27,5 +27,8 @@ namespace EduCore.API.Services.Interfaces
         // Validaciones
         Task<bool> ExistsAsync(int id);
         Task<bool> YaRegistradaAsync(int sesionId, int estudianteId);
+
+        // para el dashboard
+        Task<AsistenciaDashboardDto> GetAsistenciaGlobalHoyAsync();
     }
 }

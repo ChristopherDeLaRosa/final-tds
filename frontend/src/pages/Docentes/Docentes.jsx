@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import docenteService from '../../services/docenteService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useModal } from '../../hooks/useModal';
 import { MySwal, Toast } from '../../utils/alerts';
+import { Upload, FileSpreadsheet } from "lucide-react";
+import { useExcelUpload } from "../../hooks/useExcelUpload";
+import BulkUploadResultModal from '../../components/molecules/BulkUploadResultModal/BulkUploadResultModal';
+
+
 import {
   docentesColumns,
   docentesSearchFields,
@@ -17,17 +22,18 @@ import {
 } from './docentesConfig';
 
 export default function Docentes() {
-  // Custom Hooks
+
+  // CRUD HOOK
   const { 
     data: docentes, 
     loading, 
     error, 
     create, 
     update, 
-    remove,
     fetchAll,
   } = useCrud(docenteService);
 
+  // FORM VALIDATION
   const { 
     errors: formErrors, 
     validate, 
@@ -35,6 +41,7 @@ export default function Docentes() {
     clearAllErrors 
   } = useFormValidation(docentesValidationRules);
 
+  // MODAL
   const { 
     isOpen: isModalOpen, 
     modalData: selectedDocente, 
@@ -42,97 +49,119 @@ export default function Docentes() {
     close: closeModal 
   } = useModal();
 
-  // Estados del formulario
+  // FORM DATA
   const [formData, setFormData] = useState(getInitialDocenteFormData());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Calcular estadísticas con iconos
+  // EXCEL UPLOAD
+  const {
+    isProcessing,
+    setIsProcessing,
+    readExcelFile,
+    generateDocenteTemplate,
+    validateAndTransformDocentes
+  } = useExcelUpload();
+
+  // RESULT MODAL
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [uploadResults, setUploadResults] = useState(null);
+
+  // FILE INPUT REF
+  const fileInputRef = useRef(null);
+
+  // STATS
   const stats = getDocentesStats(docentes);
 
-  // Handler para abrir modal de crear
-  const handleAddDocente = () => {
-    setFormData(getInitialDocenteFormData());
+  // -------------------------------
+  // ADD DOCENTE
+  // -------------------------------
+  const handleAddDocente = async () => {
+    const initialData = getInitialDocenteFormData();
+
+    try {
+      const codigoGenerado = await docenteService.generarCodigo();
+      initialData.codigo = codigoGenerado;
+
+      Toast.fire({
+        icon: 'info',
+        title: `Código generado: ${codigoGenerado}`,
+        timer: 2000,
+      });
+    } catch {
+      Toast.fire({ icon: "warning", title: "No se pudo generar código automático" });
+    }
+
+    setFormData(initialData);
     clearAllErrors();
     openModal(null);
   };
 
-  // Handler para abrir modal de editar
+  // -------------------------------
+  // EDIT DOCENTE
+  // -------------------------------
   const handleEditDocente = (docente) => {
     setFormData(formatDocenteForForm(docente));
     clearAllErrors();
     openModal(docente);
   };
 
-  // Handler para cambios en el formulario
+  // -------------------------------
+  // INPUT CHANGE
+  // -------------------------------
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    if (name === 'codigo') return;
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
-    if (formErrors[name]) {
-      clearError(name);
-    }
+
+    if (formErrors[name]) clearError(name);
   };
 
-  // Handler para guardar docente
+  // -------------------------------
+  // SAVE DOCENTE
+  // -------------------------------
   const handleSaveDocente = async () => {
-    if (!validate(formData)) {
-      return;
-    }
-    
+    if (!validate(formData)) return;
     setIsSubmitting(true);
-    
+
     try {
       const dataToSend = formatDocenteDataForAPI(formData);
 
-      if (selectedDocente) {
+      if (selectedDocente)
         await update(selectedDocente.id, dataToSend);
-      } else {
-        // Verificar si el código ya existe
-        const codigoExists = await docenteService.codigoExists(dataToSend.codigo);
-        if (codigoExists) {
-          Toast.fire({
-            icon: 'error',
-            title: 'El código ya existe',
-          });
-          setIsSubmitting(false);
-          return;
-        }
+      else
         await create(dataToSend);
-      }
-      
+
       closeModal();
       setFormData(getInitialDocenteFormData());
-    } catch (err) {
-      console.error('Error saving docente:', err);
+      await fetchAll();
+
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Handler para desactivar/activar docente
+  // -------------------------------
+  // TOGGLE STATUS
+  // -------------------------------
   const handleToggleStatus = async (docente) => {
-    const action = docente.activo ? 'desactivar' : 'activar';
-    const actionPast = docente.activo ? 'desactivado' : 'activado';
-    
-    // Mostrar confirmación con MySwal
+    const action = docente.activo ? "desactivar" : "activar";
+
     const result = await MySwal.fire({
-      title: `¿${action.charAt(0).toUpperCase() + action.slice(1)} docente?`,
-      text: `¿Está seguro de ${action} a ${docente.nombreCompleto}?`,
-      icon: 'question',
+      title: `¿${action} docente?`,
+      text: `¿Seguro que deseas ${action} a ${docente.nombreCompleto}?`,
+      icon: "question",
       showCancelButton: true,
       confirmButtonText: `Sí, ${action}`,
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#2563EB',
-      cancelButtonColor: '#6B7280',
+      cancelButtonText: "Cancelar",
     });
 
     if (!result.isConfirmed) return;
 
     try {
-      // Actualizar el campo 'activo', NO eliminar
       const updatedData = {
         nombres: docente.nombres,
         apellidos: docente.apellidos,
@@ -140,28 +169,22 @@ export default function Docentes() {
         telefono: docente.telefono,
         especialidad: docente.especialidad,
         fechaContratacion: docente.fechaContratacion,
-        activo: !docente.activo  // Solo cambiar el estado
+        activo: !docente.activo
       };
 
       await docenteService.update(docente.id, updatedData);
-      
-      // Mostrar éxito
-      Toast.fire({
-        icon: 'success',
-        title: `Docente ${actionPast} exitosamente`,
-      });
-      
-      fetchAll(); // Recargar datos
-    } catch (error) {
-      // Mostrar error
-      Toast.fire({
-        icon: 'error',
-        title: error.message || `Error al ${action} docente`,
-      });
+
+      Toast.fire({ icon: "success", title: `Docente ${action} correctamente` });
+      fetchAll();
+
+    } catch (err) {
+      Toast.fire({ icon: "error", title: "Error al actualizar docente" });
     }
   };
 
-  // Handler para cerrar modal
+  // -------------------------------
+  // CANCEL MODAL
+  // -------------------------------
   const handleCancelModal = () => {
     if (!isSubmitting) {
       closeModal();
@@ -170,64 +193,169 @@ export default function Docentes() {
     }
   };
 
-  // Handler para reintentar cargar datos
+  // -------------------------------
+  // RETRY
+  // -------------------------------
   const handleRetry = async () => {
     try {
-      MySwal.fire({
-        title: 'Recargando...',
-        didOpen: () => MySwal.showLoading(),
-        allowOutsideClick: false,
-        allowEscapeKey: false,
-      });
+      MySwal.fire({ title: "Cargando...", didOpen: () => MySwal.showLoading() });
       await fetchAll();
       MySwal.close();
-      Toast.fire({ icon: 'success', title: 'Lista actualizada' });
+      Toast.fire({ icon: "success", title: "Lista actualizada" });
     } catch {
       MySwal.close();
-      MySwal.fire({
-        icon: 'error',
-        title: 'No se pudo recargar',
-        text: 'Verifica tu conexión.',
-      });
+      Toast.fire({ icon: "error", title: "No se pudo recargar" });
     }
   };
 
+  // -------------------------------
+  // DOWNLOAD TEMPLATE
+  // -------------------------------
+  const handleDownloadTemplate = () => {
+    generateDocenteTemplate();
+    Toast.fire({
+      icon: "success",
+      title: "Plantilla descargada exitosamente"
+    });
+  };
+
+  // -------------------------------
+  // OPEN FILE SELECTOR
+  // -------------------------------
+  const handleBulkUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // -------------------------------
+  // HANDLE FILE SELECT
+  // -------------------------------
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      MySwal.fire({
+        title: "Procesando archivo...",
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+      });
+
+      const jsonData = await readExcelFile(file);
+
+      const { validData, errors } = validateAndTransformDocentes(jsonData);
+
+      if (errors.length > 0) {
+        MySwal.close();
+
+        await MySwal.fire({
+          title: "Errores en el archivo",
+          html: `
+            <p>Se encontraron <strong>${errors.length}</strong> filas con errores.</p>
+            <p>Solo se cargarán las filas válidas.</p>
+          `,
+          icon: "warning"
+        });
+      }
+
+      if (validData.length === 0) {
+        Toast.fire({ icon: "error", title: "No hay filas válidas para procesar" });
+        return;
+      }
+
+      MySwal.update({
+        title: "Creando docentes...",
+        text: `Procesando ${validData.length} docentes`
+      });
+
+      setIsProcessing(true);
+
+      const results = await docenteService.bulkCreate(validData);
+
+      setUploadResults(results);
+      setShowResultsModal(true);
+
+      if (results.exitosos.length > 0) await fetchAll();
+
+      MySwal.close();
+
+    } catch (error) {
+      MySwal.close();
+      Toast.fire({
+        icon: "error",
+        title: "Error al procesar archivo",
+        text: error.message
+      });
+    } finally {
+      setIsProcessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // -------------------------------
+  // RENDER
+  // -------------------------------
   return (
-    <CrudPage
-      // Títulos y mensajes
-      title="Gestión de Docentes"
-      subtitle="Personal docente del colegio - EduCore"
-      addButtonText="Agregar Docente"
-      emptyMessage="No hay docentes registrados. ¡Agrega el primero!"
-      loadingMessage="Cargando docentes..."
-      
-      // Datos
-      data={docentes}
-      loading={loading}
-      error={error}
-      stats={stats}
-      
-      // Tabla
-      columns={docentesColumns}
-      searchFields={docentesSearchFields}
-      
-      // Modal
-      isModalOpen={isModalOpen}
-      modalTitle={selectedDocente ? 'Editar Docente' : 'Nuevo Docente'}
-      formFields={getDocentesFormFields(!!selectedDocente)}
-      formData={formData}
-      formErrors={formErrors}
-      isSubmitting={isSubmitting}
-      
-      // Handlers
-      onAdd={handleAddDocente}
-      onEdit={handleEditDocente}
-      onDelete={handleToggleStatus}
-      onSave={handleSaveDocente}
-      onCancel={handleCancelModal}
-      onInputChange={handleInputChange}
-      onRetry={handleRetry}
-    />
+    <>
+      {/* FILE INPUT INVISIBLE */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileSelect}
+        style={{ display: "none" }}
+      />
+
+      <CrudPage
+        title="Gestión de Docentes"
+        subtitle="Personal docente del colegio - Zirak"
+        addButtonText="Agregar Docente"
+        emptyMessage="No hay docentes registrados."
+        loadingMessage="Cargando docentes..."
+
+        data={docentes}
+        loading={loading}
+        error={error}
+        stats={stats}
+
+        columns={docentesColumns}
+        searchFields={docentesSearchFields}
+
+        isModalOpen={isModalOpen}
+        modalTitle={selectedDocente ? "Editar Docente" : "Nuevo Docente"}
+        formFields={getDocentesFormFields(!!selectedDocente)}
+        formData={formData}
+        formErrors={formErrors}
+        isSubmitting={isSubmitting}
+
+        onAdd={handleAddDocente}
+        onEdit={handleEditDocente}
+        onDelete={handleToggleStatus}
+        onSave={handleSaveDocente}
+        onCancel={handleCancelModal}
+        onInputChange={handleInputChange}
+        onRetry={handleRetry}
+
+        additionalActions={[
+          {
+            label: "Descargar Plantilla",
+            icon: <FileSpreadsheet size={20} />,
+            onClick: handleDownloadTemplate,
+          },
+          {
+            label: isProcessing ? "Procesando..." : "Carga Masiva",
+            icon: <Upload size={20} />,
+            onClick: handleBulkUpload,
+            disabled: isProcessing,
+          }
+        ]}
+      />
+
+      {showResultsModal && uploadResults && (
+        <BulkUploadResultModal
+          results={uploadResults}
+          onClose={() => setShowResultsModal(false)}
+        />
+      )}
+    </>
   );
 }
-

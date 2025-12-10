@@ -27,6 +27,7 @@ namespace EduCore.API.Services.Implementations
         public async Task<IEnumerable<AulaDto>> GetAllAsync()
         {
             var aulas = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.Horarios)
                 .Where(a => a.Activo)
@@ -40,6 +41,7 @@ namespace EduCore.API.Services.Implementations
         public async Task<AulaDto?> GetByIdAsync(int id)
         {
             var aula = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.Horarios)
                 .FirstOrDefaultAsync(a => a.Id == id);
@@ -50,11 +52,14 @@ namespace EduCore.API.Services.Implementations
         public async Task<AulaDetalleDto?> GetDetalleByIdAsync(int id)
         {
             var aula = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.GruposCursos)
                     .ThenInclude(g => g.Curso)
                 .Include(a => a.GruposCursos)
                     .ThenInclude(g => g.Docente)
+                .Include(a => a.GruposCursos)
+                    .ThenInclude(g => g.Periodo)
                 .FirstOrDefaultAsync(a => a.Id == id);
 
             if (aula == null)
@@ -106,7 +111,7 @@ namespace EduCore.API.Services.Implementations
                         Grado = g.Grado,
                         Seccion = g.Seccion,
                         Anio = g.Anio,
-                        Periodo = g.Periodo,
+                        Periodo = g.Periodo.Nombre,
                         AulaId = g.AulaId,
                         AulaFisica = aula.AulaFisica,
                         Horario = g.Horario,
@@ -120,11 +125,12 @@ namespace EduCore.API.Services.Implementations
         public async Task<AulaDto?> GetByGradoSeccionPeriodoAsync(int grado, string seccion, string periodo)
         {
             var aula = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.Horarios)
                 .FirstOrDefaultAsync(a => a.Grado == grado &&
                                          a.Seccion == seccion &&
-                                         a.Periodo == periodo &&
+                                         a.Periodo.Nombre == periodo &&
                                          a.Activo);
 
             return aula != null ? MapToDto(aula) : null;
@@ -133,9 +139,10 @@ namespace EduCore.API.Services.Implementations
         public async Task<IEnumerable<AulaDto>> GetByPeriodoAsync(string periodo)
         {
             var aulas = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.Horarios)
-                .Where(a => a.Periodo == periodo && a.Activo)
+                .Where(a => a.Periodo.Nombre == periodo && a.Activo)
                 .OrderBy(a => a.Grado)
                 .ThenBy(a => a.Seccion)
                 .ToListAsync();
@@ -149,13 +156,13 @@ namespace EduCore.API.Services.Implementations
             var existe = await _context.Aulas
                 .AnyAsync(a => a.Grado == createDto.Grado &&
                               a.Seccion == createDto.Seccion &&
-                              a.Periodo == createDto.Periodo &&
+                              a.PeriodoId == createDto.PeriodoId &&
                               a.Activo);
 
             if (existe)
             {
                 throw new InvalidOperationException(
-                    $"Ya existe un aula para {createDto.Grado}° {createDto.Seccion} en el periodo {createDto.Periodo}"
+                    $"Ya existe un aula para {createDto.Grado}° {createDto.Seccion} en el periodo especificado"
                 );
             }
 
@@ -167,7 +174,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = createDto.Grado,
                 Seccion = createDto.Seccion,
                 Anio = createDto.Anio,
-                Periodo = createDto.Periodo,
+                PeriodoId = createDto.PeriodoId,
                 AulaFisica = createDto.AulaFisica,
                 CapacidadMaxima = createDto.CapacidadMaxima,
                 FechaInicio = createDto.FechaInicio.Date,
@@ -179,9 +186,14 @@ namespace EduCore.API.Services.Implementations
             _context.Aulas.Add(aula);
             await _context.SaveChangesAsync();
 
+            // Cargar la relación con Periodo para el log
+            await _context.Entry(aula)
+                .Reference(a => a.Periodo)
+                .LoadAsync();
+
             _logger.LogInformation(
                 "Aula creada: {Codigo} - {Grado}° {Seccion} - Periodo: {Periodo}",
-                aula.Codigo, aula.Grado, aula.Seccion, aula.Periodo
+                aula.Codigo, aula.Grado, aula.Seccion, aula.Periodo.Nombre
             );
 
             return MapToDto(aula);
@@ -190,6 +202,7 @@ namespace EduCore.API.Services.Implementations
         public async Task<AulaDto?> UpdateAsync(int id, UpdateAulaDto updateDto)
         {
             var aula = await _context.Aulas
+                .Include(a => a.Periodo)
                 .Include(a => a.Estudiantes)
                 .Include(a => a.Horarios)
                 .FirstOrDefaultAsync(a => a.Id == id);
@@ -497,6 +510,17 @@ namespace EduCore.API.Services.Implementations
 
             try
             {
+                // Buscar el periodo por nombre
+                var periodo = await _context.Periodos
+                    .FirstOrDefaultAsync(p => p.Nombre == dto.Periodo && p.Activo);
+
+                if (periodo == null)
+                {
+                    resultado.Errores.Add($"Periodo {dto.Periodo} no encontrado");
+                    resultado.Exitoso = false;
+                    return resultado;
+                }
+
                 foreach (var gradoConfig in dto.Grados)
                 {
                     foreach (var seccion in gradoConfig.Secciones)
@@ -507,7 +531,7 @@ namespace EduCore.API.Services.Implementations
                             var existe = await _context.Aulas
                                 .AnyAsync(a => a.Grado == gradoConfig.Grado &&
                                               a.Seccion == seccion &&
-                                              a.Periodo == dto.Periodo &&
+                                              a.PeriodoId == periodo.Id &&
                                               a.Activo);
 
                             if (existe)
@@ -536,7 +560,7 @@ namespace EduCore.API.Services.Implementations
                                 Grado = gradoConfig.Grado,
                                 Seccion = seccion,
                                 Anio = dto.Anio,
-                                Periodo = dto.Periodo,
+                                PeriodoId = periodo.Id,
                                 AulaFisica = aulaFisica,
                                 CapacidadMaxima = capacidad,
                                 FechaInicio = dto.FechaInicio.Date,
@@ -547,9 +571,6 @@ namespace EduCore.API.Services.Implementations
 
                             _context.Aulas.Add(aula);
                             resultado.AulasCreadas++;
-
-                            // Agregar a la lista de aulas nuevas
-                            resultado.AulasNuevas.Add(MapToDto(aula));
 
                             _logger.LogInformation(
                                 "Aula masiva creada: {Codigo} - {Grado}° {Seccion}",
@@ -566,6 +587,18 @@ namespace EduCore.API.Services.Implementations
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Cargar las aulas creadas con sus relaciones para el resultado
+                var aulasCreadas = await _context.Aulas
+                    .Include(a => a.Periodo)
+                    .Where(a => a.PeriodoId == periodo.Id &&
+                               dto.Grados.Select(g => g.Grado).Contains(a.Grado))
+                    .ToListAsync();
+
+                resultado.AulasNuevas = aulasCreadas
+                    .Where(a => !resultado.AulasNuevas.Any(an => an.Id == a.Id))
+                    .Select(a => MapToDto(a))
+                    .ToList();
 
                 resultado.Exitoso = resultado.AulasCreadas > 0;
                 resultado.Mensaje = resultado.Exitoso
@@ -590,6 +623,32 @@ namespace EduCore.API.Services.Implementations
 
         #endregion
 
+        public async Task<AsistenciaDashboardDto> GetAsistenciaGlobalHoyAsync()
+        {
+            var hoy = DateTime.Today;
+
+            var asistencias = await _context.Asistencias
+                .Include(a => a.Sesion)
+                .Where(a => a.Sesion.Fecha.Date == hoy)
+                .ToListAsync();
+
+            if (!asistencias.Any())
+                return new AsistenciaDashboardDto { Total = 0, Presentes = 0, Porcentaje = 0 };
+
+            var total = asistencias.Count;
+            var presentes = asistencias.Count(a => a.Estado == "Presente");
+
+            return new AsistenciaDashboardDto
+            {
+                Total = total,
+                Presentes = presentes,
+                Porcentaje = total > 0
+                    ? Math.Round((decimal)presentes / total * 100, 2)
+                    : 0
+            };
+        }
+
+
         #region Mapper
 
         private AulaDto MapToDto(Aula aula)
@@ -603,7 +662,7 @@ namespace EduCore.API.Services.Implementations
                 Grado = aula.Grado,
                 Seccion = aula.Seccion,
                 Anio = aula.Anio,
-                Periodo = aula.Periodo,
+                Periodo = aula.Periodo?.Nombre ?? string.Empty,
                 AulaFisica = aula.AulaFisica,
                 CapacidadMaxima = aula.CapacidadMaxima,
                 CantidadEstudiantes = aula.CantidadEstudiantes,

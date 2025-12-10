@@ -30,14 +30,9 @@ const STORAGE = {
 };
 
 class AuthService {
-  /**
-   * Login de usuario
-   * @param {{ nombreUsuario: string, password: string, remember?: boolean }} params
-   * @returns {Promise<{ token:string, nombreUsuario:string, email:string, rol:string, expiracion:string }>}
-   */
+
   async login({ nombreUsuario, password, remember = false }) {
     try {
-      // Tu backend espera LoginDto { NombreUsuario, Password }
       const payload = { nombreUsuario, password };
       const { data } = await axiosInstance.post('/Auth/login', payload);
 
@@ -62,25 +57,9 @@ class AuthService {
     }
   }
 
-  /**
-   * Registro (rol Admin)
-   */
   async register(userData) {
     try {
       const { data } = await axiosInstance.post('/Auth/register', userData);
-      if (data?.token) {
-        // por si quieres mantener la sesión tras registro
-        STORAGE.setToken(data.token, true);
-        STORAGE.setUser(
-          {
-            nombreUsuario: data.nombreUsuario,
-            email: data.email,
-            rol: data.rol,
-            expiracion: data.expiracion
-          },
-          true
-        );
-      }
       return data;
     } catch (error) {
       const msg = error?.response?.data?.message || 'Error al registrar usuario';
@@ -88,20 +67,27 @@ class AuthService {
     }
   }
 
+  // ← FALTABA ESTE MÉTODO
+  async changePassword(dto) {
+    try {
+      const { data } = await axiosInstance.post('/Auth/change-password', dto);
+      return data;
+    } catch (error) {
+      const msg = error?.response?.data?.message || 'No se pudo cambiar la contraseña';
+      throw msg;
+    }
+  }
+
   async logout() {
     try {
-      // opcional: tu backend soporta /Auth/logout (Authorize) pero manejas logout en cliente
       await axiosInstance.post('/Auth/logout');
-    } catch {
-      /* noop */
-    } finally {
-      STORAGE.clear();
-    }
+    } catch {}
+    STORAGE.clear();
   }
 
   async verifyToken() {
     const { data } = await axiosInstance.get('/Auth/verify');
-    return data; // { userId, userName, userEmail, userRole, message }
+    return data;
   }
 
   async checkUsername(nombreUsuario) {

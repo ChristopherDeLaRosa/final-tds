@@ -579,7 +579,7 @@ namespace EduCore.API.Services.Implementations
             {
                 GrupoCursoId = grupoCurso.Id,
                 NombreCurso = grupoCurso.Curso.Nombre,
-                Periodo = periodo ?? grupoCurso.Periodo,
+                Periodo = periodo ?? grupoCurso.Periodo.Nombre,
                 TotalSesionesProgramadas = totalSesiones,
                 SesionesRealizadas = realizadas,
                 SesionesPendientes = pendientes,

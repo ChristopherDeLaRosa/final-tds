@@ -182,10 +182,12 @@ namespace EduCore.API.Services.Implementations
             return true;
         }
 
+
         public async Task<List<CalificacionDto>> RegistrarCalificacionesGrupoAsync(
             RegistrarCalificacionesGrupoDto registroDto)
         {
             var calificacionesCreadas = new List<Calificacion>();
+            var calificacionesActualizadas = new List<Calificacion>();
             var gruposCursosActualizar = new HashSet<(int estudianteId, int grupoCursoId)>();
 
             // Obtener el GrupoCursoId del rubro
@@ -195,33 +197,44 @@ namespace EduCore.API.Services.Implementations
 
             foreach (var calificacionDto in registroDto.Calificaciones)
             {
-                // Verificar si ya existe
-                var yaRegistrada = await YaRegistradaAsync(
-                    calificacionDto.EstudianteId,
-                    registroDto.RubroId
-                );
+                // Buscar si ya existe la calificación (sin contar recuperaciones)
+                var calificacionExistente = await _context.Calificaciones
+                    .FirstOrDefaultAsync(c =>
+                        c.EstudianteId == calificacionDto.EstudianteId &&
+                        c.RubroId == registroDto.RubroId &&
+                        !c.Recuperacion);
 
-                if (yaRegistrada)
+                if (calificacionExistente != null)
                 {
-                    _logger.LogWarning(
-                        "Calificación ya registrada para estudiante {EstudianteId} en rubro {RubroId}",
+                    // ACTUALIZAR calificación existente
+                    calificacionExistente.Nota = calificacionDto.Nota;
+                    calificacionExistente.Observaciones = calificacionDto.Observaciones;
+                    calificacionExistente.FechaModificacion = DateTime.UtcNow;
+
+                    calificacionesActualizadas.Add(calificacionExistente);
+
+                    _logger.LogInformation(
+                        "Calificación actualizada para estudiante {EstudianteId} en rubro {RubroId}",
                         calificacionDto.EstudianteId, registroDto.RubroId
                     );
-                    continue;
+                }
+                else
+                {
+                    // CREAR nueva calificación
+                    var calificacion = new Calificacion
+                    {
+                        EstudianteId = calificacionDto.EstudianteId,
+                        RubroId = registroDto.RubroId,
+                        Nota = calificacionDto.Nota,
+                        Observaciones = calificacionDto.Observaciones,
+                        FechaRegistro = DateTime.UtcNow,
+                        Recuperacion = false
+                    };
+
+                    _context.Calificaciones.Add(calificacion);
+                    calificacionesCreadas.Add(calificacion);
                 }
 
-                var calificacion = new Calificacion
-                {
-                    EstudianteId = calificacionDto.EstudianteId,
-                    RubroId = registroDto.RubroId,
-                    Nota = calificacionDto.Nota,
-                    Observaciones = calificacionDto.Observaciones,
-                    FechaRegistro = DateTime.UtcNow,
-                    Recuperacion = false
-                };
-
-                _context.Calificaciones.Add(calificacion);
-                calificacionesCreadas.Add(calificacion);
                 gruposCursosActualizar.Add((calificacionDto.EstudianteId, rubro.GrupoCursoId));
             }
 
@@ -234,12 +247,17 @@ namespace EduCore.API.Services.Implementations
             }
 
             _logger.LogInformation(
-                "Calificaciones grupales registradas: {Cantidad} estudiantes en rubro {RubroId}",
-                calificacionesCreadas.Count, registroDto.RubroId
+                "Calificaciones procesadas: {Creadas} creadas, {Actualizadas} actualizadas en rubro {RubroId}",
+                calificacionesCreadas.Count,
+                calificacionesActualizadas.Count,
+                registroDto.RubroId
             );
 
+            // Combinar todas las calificaciones procesadas
+            var todasCalificaciones = calificacionesCreadas.Concat(calificacionesActualizadas).ToList();
+
             // Recargar con relaciones
-            foreach (var calificacion in calificacionesCreadas)
+            foreach (var calificacion in todasCalificaciones)
             {
                 await _context.Entry(calificacion)
                     .Reference(c => c.Estudiante)
@@ -255,7 +273,7 @@ namespace EduCore.API.Services.Implementations
                     .LoadAsync();
             }
 
-            return calificacionesCreadas.Select(c => MapToDto(c)).ToList();
+            return todasCalificaciones.Select(c => MapToDto(c)).ToList();
         }
 
         public async Task<CalificacionesGrupoCursoDto?> GetCalificacionesGrupoCursoAsync(int grupoCursoId)
@@ -327,7 +345,7 @@ namespace EduCore.API.Services.Implementations
                 NombreCurso = grupoCurso.Curso.Nombre,
                 Grado = grupoCurso.Grado,
                 Seccion = grupoCurso.Seccion,
-                Periodo = grupoCurso.Periodo,
+                Periodo = grupoCurso.Periodo?.Nombre ?? string.Empty,
                 Rubros = rubros.Select(r => new RubroResumenDto
                 {
                     RubroId = r.Id,
@@ -355,7 +373,7 @@ namespace EduCore.API.Services.Implementations
                 .Include(i => i.GrupoCurso)
                     .ThenInclude(g => g.Docente)
                 .Where(i => i.EstudianteId == estudianteId &&
-                           i.GrupoCurso.Periodo == periodo &&
+                           i.GrupoCurso.Periodo.Nombre == periodo &&
                            i.Activo)
                 .ToListAsync();
 
@@ -612,6 +630,29 @@ namespace EduCore.API.Services.Implementations
                               c.RubroId == rubroId &&
                               !c.Recuperacion);
         }
+
+        public async Task<RendimientoDashboardDto> GetEstadisticasGeneralesAsync()
+        {
+            var inscripciones = await _context.Inscripciones
+                .Where(i => i.Activo && i.PromedioFinal.HasValue)
+                .ToListAsync();
+
+            if (!inscripciones.Any())
+                return new RendimientoDashboardDto();
+
+            var promedios = inscripciones.Select(i => i.PromedioFinal!.Value).ToList();
+            var aprobadas = promedios.Count(p => p >= 70);
+            var reprobadas = promedios.Count(p => p < 70);
+
+            return new RendimientoDashboardDto
+            {
+                PromedioGeneral = Math.Round(promedios.Average(), 2),
+                Aprobadas = aprobadas,
+                Reprobadas = reprobadas,
+                PorcentajeAprobacion = Math.Round((decimal)aprobadas / promedios.Count * 100, 2)
+            };
+        }
+
 
         private CalificacionDto MapToDto(Calificacion calificacion)
         {

@@ -244,7 +244,7 @@ export default function Inscripciones() {
     <>
       <CrudPage
         title="Gestión de Inscripciones"
-        subtitle="Matrícula de estudiantes en grupos-cursos - EduCore"
+        subtitle="Matrícula de estudiantes en grupos-cursos - Zirak"
         addButtonText="Agregar Inscripción"
         emptyMessage="No hay inscripciones registradas"
         loadingMessage="Cargando inscripciones..."

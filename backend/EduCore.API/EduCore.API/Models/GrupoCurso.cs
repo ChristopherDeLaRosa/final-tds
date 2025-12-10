@@ -14,13 +14,11 @@ namespace EduCore.API.Models
 
         [Required]
         public int CursoId { get; set; }
-
         [ForeignKey("CursoId")]
         public virtual Curso Curso { get; set; } = null!;
 
         [Required]
         public int DocenteId { get; set; }
-
         [ForeignKey("DocenteId")]
         public virtual Docente Docente { get; set; } = null!;
 
@@ -36,9 +34,13 @@ namespace EduCore.API.Models
         [Required]
         public int Anio { get; set; } // 2024, 2025
 
+        // ============ RELACIÓN CON PERIODO ============
         [Required]
-        [MaxLength(20)]
-        public string Periodo { get; set; } = string.Empty; // "2024-2025"
+        public int PeriodoId { get; set; }
+        [ForeignKey("PeriodoId")]
+        public virtual Periodo Periodo { get; set; } = null!;
+        // ==============================================
+
         [ForeignKey("AulaId")]
         public int? AulaId { get; set; }
         public virtual Aula? Aula { get; set; }

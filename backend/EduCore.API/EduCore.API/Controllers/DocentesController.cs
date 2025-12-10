@@ -81,6 +81,26 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
+        /// Generar siguiente código disponible
+        /// </summary>
+        /// <returns>Siguiente código en formato DOC-NNN</returns>
+        [HttpGet("generar-codigo")]
+        [Authorize(Roles = "Admin,Coordinador")]
+        public async Task<ActionResult<object>> GenerarCodigo()
+        {
+            try
+            {
+                var codigo = await _docenteService.GenerarCodigoAsync();
+                return Ok(new { codigo });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al generar código");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
+
+        /// <summary>
         /// Obtener detalle completo de docente con estadísticas
         /// </summary>
         [HttpGet("{id}/detalle")]
@@ -358,3 +378,4 @@ namespace EduCore.API.Controllers
         }
     }
 }
+

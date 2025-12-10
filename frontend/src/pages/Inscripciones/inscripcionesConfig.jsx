@@ -15,7 +15,6 @@ const Badge = styled.span`
 
 // Columnas de la tabla
 export const inscripcionesColumns = [
-  { key: 'id', title: 'ID', width: '60px' },
   { key: 'matriculaEstudiante', title: 'Matrícula', width: '120px' },
   { key: 'nombreEstudiante', title: 'Estudiante' },
   { 

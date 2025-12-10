@@ -13,7 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Configuración de DbContext
 builder.Services.AddDbContext<EduCoreDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Configuración de JWT
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
@@ -59,7 +59,10 @@ builder.Services.AddScoped<IAsistenciaService, AsistenciaService>();
 builder.Services.AddScoped<IInscripcionService, InscripcionService>();
 builder.Services.AddScoped<IAulaService, AulaService>();
 builder.Services.AddScoped<IHorarioAulaService, HorarioAulaService>();
-
+builder.Services.AddScoped<IPeriodoService, PeriodoService>();
+builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddHttpClient<IAiService, AiService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Configuración de Controllers
 builder.Services.AddControllers();
@@ -77,46 +80,7 @@ builder.Services.AddCors(options =>
 
 // Configuración de Swagger
 builder.Services.AddEndpointsApiExplorer();
-//builder.Services.AddSwaggerGen(options =>
-//{
-//    options.SwaggerDoc("v1", new OpenApiInfo
-//    {
-//        Title = "EduCore API",
-//        Version = "v1",
-//        Description = "API para gestión académica - Sistema EduCore",
-//        Contact = new OpenApiContact
-//        {
-//            Name = "EduCore Team",
-//            Email = "support@educore.com"
-//        }
-//    });
 
-//    // Configuración de seguridad JWT en Swagger
-//    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-//    {
-//        Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
-//        Name = "Authorization",
-//        In = ParameterLocation.Header,
-//        Type = SecuritySchemeType.ApiKey,
-//        Scheme = "Bearer"
-//    });
-
-
-//    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-//    {
-//        {
-//            new OpenApiSecurityScheme
-//            {
-//                Reference = new OpenApiReference
-//                {
-//                    Type = ReferenceType.SecurityScheme,
-//                    Id = "Bearer"
-//                }
-//            },
-//            Array.Empty<string>()
-//        }
-//    });
-//});
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -128,7 +92,7 @@ builder.Services.AddSwaggerGen(options =>
         Contact = new OpenApiContact { Name = "EduCore Team", Email = "support@educore.com" }
     });
 
-    // >>> Esquema HTTP Bearer (JWT) — NO tendrás que escribir la palabra "Bearer"
+    //  HTTP Bearer (JWT) — para no tener que escribir la palabra "Bearer"
     options.AddSecurityDefinition("JWT", new OpenApiSecurityScheme
     {
         Type = SecuritySchemeType.Http,
@@ -152,6 +116,8 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 
 // Configuración de logging

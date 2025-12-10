@@ -17,6 +17,33 @@ namespace EduCore.API.Services.Implementations
             _logger = logger;
         }
 
+        public async Task<string> GenerarMatriculaAsync()
+        {
+            var anioActual = DateTime.Now.Year;
+
+            // Obtener la última matrícula del año actual
+            var ultimaMatricula = await _context.Estudiantes
+                .Where(e => e.Matricula.StartsWith(anioActual.ToString()))
+                .OrderByDescending(e => e.Matricula)
+                .Select(e => e.Matricula)
+                .FirstOrDefaultAsync();
+
+            int siguienteNumero = 1;
+
+            if (!string.IsNullOrEmpty(ultimaMatricula))
+            {
+                // Extraer el número de la última matrícula (formato: YYYY-NNN)
+                var partes = ultimaMatricula.Split('-');
+                if (partes.Length == 2 && int.TryParse(partes[1], out int numeroActual))
+                {
+                    siguienteNumero = numeroActual + 1;
+                }
+            }
+
+            // Formato: YYYY-001, YYYY-002, etc.
+            return $"{anioActual}-{siguienteNumero:D3}";
+        }
+
         public async Task<IEnumerable<EstudianteDto>> GetAllAsync()
         {
             var estudiantes = await _context.Estudiantes
@@ -206,10 +233,10 @@ namespace EduCore.API.Services.Implementations
         {
             var estudiante = await _context.Estudiantes
                 .Include(e => e.Inscripciones)
-                    .ThenInclude(i => i.GrupoCurso) // CAMBIO: Seccion -> GrupoCurso
+                    .ThenInclude(i => i.GrupoCurso)
                         .ThenInclude(g => g.Curso)
                 .Include(e => e.Inscripciones)
-                    .ThenInclude(i => i.GrupoCurso) // CAMBIO: Seccion -> GrupoCurso
+                    .ThenInclude(i => i.GrupoCurso)
                         .ThenInclude(g => g.Docente)
                 .Include(e => e.Asistencias)
                     .ThenInclude(a => a.Sesion)
@@ -224,14 +251,14 @@ namespace EduCore.API.Services.Implementations
             {
                 // Obtener total de sesiones del grupo
                 var totalSesiones = await _context.Sesiones
-                    .Where(s => s.GrupoCursoId == inscripcion.GrupoCursoId && s.Realizada) // CAMBIO
+                    .Where(s => s.GrupoCursoId == inscripcion.GrupoCursoId && s.Realizada)
                     .CountAsync();
 
                 // Contar asistencias del estudiante
                 var asistencias = await _context.Asistencias
                     .Include(a => a.Sesion)
                     .Where(a => a.EstudianteId == id &&
-                               a.Sesion.GrupoCursoId == inscripcion.GrupoCursoId && // CAMBIO
+                               a.Sesion.GrupoCursoId == inscripcion.GrupoCursoId &&
                                a.Estado == "Presente")
                     .CountAsync();
 
@@ -241,17 +268,24 @@ namespace EduCore.API.Services.Implementations
 
                 gruposHistorial.Add(new HistorialGrupoDto
                 {
-                    CodigoCurso = inscripcion.GrupoCurso.Curso.Codigo,
-                    NombreCurso = inscripcion.GrupoCurso.Curso.Nombre,
-                    AreaConocimiento = inscripcion.GrupoCurso.Curso.AreaConocimiento,
+                    CodigoCurso = inscripcion.GrupoCurso.Curso?.Codigo ?? "N/A",
+                    NombreCurso = inscripcion.GrupoCurso.Curso?.Nombre ?? "Curso sin asignar",
+                    AreaConocimiento = inscripcion.GrupoCurso.Curso?.AreaConocimiento ?? "N/A",
+
                     Grado = inscripcion.GrupoCurso.Grado,
                     Seccion = inscripcion.GrupoCurso.Seccion,
-                    Periodo = inscripcion.GrupoCurso.Periodo,
-                    Docente = $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}",
+
+                    Periodo = inscripcion.GrupoCurso.Periodo?.Nombre ?? "Periodo no asignado",
+
+                    Docente = inscripcion.GrupoCurso.Docente != null
+        ? $"{inscripcion.GrupoCurso.Docente.Nombres} {inscripcion.GrupoCurso.Docente.Apellidos}"
+        : "Docente no asignado",
+
                     PromedioFinal = inscripcion.PromedioFinal,
                     Estado = inscripcion.Estado,
                     PorcentajeAsistencia = Math.Round(porcentajeAsistencia, 2)
                 });
+
             }
 
             // Calcular estadísticas generales
@@ -312,5 +346,10 @@ namespace EduCore.API.Services.Implementations
                 Activo = estudiante.Activo
             };
         }
+        public async Task<int> GetTotalAsync()
+        {
+            return await _context.Estudiantes.CountAsync(e => e.Activo);
+        }
+
     }
 }

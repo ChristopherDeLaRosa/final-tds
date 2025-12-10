@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { CalendarCheck2, ClockAlert, Layers, BarChart3 } from 'lucide-react';
 import { theme } from '../../styles';
 import sesionService from '../../services/sesionService';
 import grupoCursoService from '../../services/grupoCursoService';
@@ -15,6 +16,7 @@ import {
   getInitialSesionFormData,
   formatSesionForForm,
   formatSesionDataForAPI,
+  getSesionesFilterOptions,
 } from './sesionesConfig';
 
 export default function Sesiones() {
@@ -53,7 +55,6 @@ export default function Sesiones() {
       try {
         setLoadingRelated(true);
         const gruposData = await grupoCursoService.getAll();
-        
         setGruposCursos(gruposData.filter(g => g.activo));
       } catch (err) {
         console.error('Error al cargar grupos-cursos:', err);
@@ -69,9 +70,14 @@ export default function Sesiones() {
     fetchRelatedData();
   }, []);
 
+  // =======================
+  //      ESTADÍSTICAS
+  // =======================
+
   const totalSesiones = sesiones.length;
   const sesionesRealizadas = sesiones.filter(s => s.realizada).length;
   const sesionesPendientes = totalSesiones - sesionesRealizadas;
+
   const porcentajeAvance = totalSesiones > 0 
     ? Math.round((sesionesRealizadas / totalSesiones) * 100) 
     : 0;
@@ -81,23 +87,34 @@ export default function Sesiones() {
       label: 'Total Sesiones',
       value: totalSesiones,
       color: theme.colors.accent,
+      icon: <Layers size={28} />,
     },
     {
       label: 'Realizadas',
       value: sesionesRealizadas,
-      color: '#10b981',
+      color: theme.colors.success,
+      icon: <CalendarCheck2 size={28} />,
     },
     {
       label: 'Pendientes',
       value: sesionesPendientes,
-      color: '#f59e0b',
+      color: theme.colors.warning,
+      icon: <ClockAlert size={28} />,
     },
     {
       label: 'Avance',
       value: `${porcentajeAvance}%`,
-      color: '#3b82f6',
+      color: theme.colors.info,
+      icon: <BarChart3 size={28} />,
     },
   ];
+
+  // opciones de filtro
+  const filterOptions = getSesionesFilterOptions(sesiones);
+
+  // =======================
+  //      HANDLERS
+  // =======================
 
   const handleAddSesion = () => {
     if (loadingRelated) {
@@ -132,18 +149,14 @@ export default function Sesiones() {
       [name]: type === 'checkbox' ? checked : value
     }));
     
-    if (formErrors[name]) {
-      clearError(name);
-    }
+    if (formErrors[name]) clearError(name);
   };
 
   const handleSaveSesion = async () => {
-    if (!validate(formData)) {
-      return;
-    }
+    if (!validate(formData)) return;
     
     setIsSubmitting(true);
-    
+
     try {
       const dataToSend = formatSesionDataForAPI(formData);
 
@@ -188,8 +201,6 @@ export default function Sesiones() {
       MySwal.fire({
         title: 'Recargando...',
         didOpen: () => MySwal.showLoading(),
-        allowOutsideClick: false,
-        allowEscapeKey: false,
       });
       await fetchAll();
       MySwal.close();
@@ -204,25 +215,34 @@ export default function Sesiones() {
     }
   };
 
+  // =======================
+  //        RENDER
+  // =======================
+
   return (
     <CrudPage
       title="Gestión de Sesiones"
-      subtitle="Programación de clases - EduCore"
+      subtitle="Programación de clases - Zirak"
       addButtonText="Agregar Sesión"
       emptyMessage="No hay sesiones registradas. ¡Agrega la primera!"
       loadingMessage="Cargando sesiones..."
+      
       data={sesiones}
       loading={loading}
       error={error}
       stats={stats}
+
       columns={sesionesColumns}
       searchFields={sesionesSearchFields}
+      filterOptions={filterOptions} 
+
       isModalOpen={isModalOpen}
       modalTitle={selectedSesion ? 'Editar Sesión' : 'Nueva Sesión'}
       formFields={getSesionesFormFields(!!selectedSesion, gruposCursos)}
       formData={formData}
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}
+
       onAdd={handleAddSesion}
       onEdit={handleEditSesion}
       onDelete={handleDeleteSesion}

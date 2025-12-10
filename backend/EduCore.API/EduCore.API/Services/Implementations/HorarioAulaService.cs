@@ -329,7 +329,7 @@ namespace EduCore.API.Services.Implementations
                         Grado = aula.Grado,
                         Seccion = aula.Seccion,
                         Anio = aula.Anio,
-                        Periodo = aula.Periodo,
+                        PeriodoId = aula.PeriodoId,
                         AulaId = aulaId,
                         Horario = horariosTexto,
                         CapacidadMaxima = aula.CapacidadMaxima,
