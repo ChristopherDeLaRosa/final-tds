@@ -278,17 +278,6 @@ Los archivos optimizados estarán en `frontend/dist/`
 - **Frontend:** Usar ESLint y Prettier (configurados en el proyecto)
 - **Commits:** Usar [Conventional Commits](https://www.conventionalcommits.org/)
 
----
-
-## 🐛 Reportar Bugs
-
-Si encuentras un bug, por favor abre un [issue](https://github.com/tuusuario/zirak/issues) con:
-
-- Descripción clara del problema
-- Pasos para reproducir
-- Comportamiento esperado vs. actual
-- Screenshots (si aplica)
-- Información del entorno (OS, versiones, etc.)
 
 ---
 
@@ -318,31 +307,9 @@ Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) par
 
 ---
 
-## 👥 Autores
+## 👥 Autor
 
-- **Tu Nombre** - *Desarrollo inicial* - [GitHub](https://github.com/tuusuario)
-
----
-
-## 🙏 Agradecimientos
-
-- Instituciones educativas dominicanas que inspiraron este proyecto
-- Comunidad de .NET y React
-- Todos los contribuidores y testers
-
----
-
-## 📞 Contacto
-
-- **Email:** contacto@zirak.com
-- **Website:** [zirak.com](https://zirak.com)
-- **LinkedIn:** [Tu LinkedIn](https://linkedin.com/in/tuusuario)
-
----
-
-## 🌟 Dale una estrella
-
-Si este proyecto te resulta útil, ¡considera darle una estrella ⭐ en GitHub!
+- **Christopher de la Rosa** - *Desarrollo inicial* - [GitHub](https://github.com/ChristopherDeLaRosa)
 
 ---
 
