@@ -62,7 +62,7 @@ export default function Login({ isDarkMode, toggleTheme }) {
             </h2>
 
             <p className={styles.brandDescription}>
-              La plataforma más avanzada para administración académica. 
+              Plataforma para administración académica. 
               Potencia tu institución con herramientas diseñadas para el éxito.
             </p>
 

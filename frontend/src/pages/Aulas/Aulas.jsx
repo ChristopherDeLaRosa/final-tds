@@ -5,7 +5,7 @@ import { Plus, Settings, Trash2, Edit, Users, Calendar, Zap } from 'lucide-react
 import aulaService from '../../services/aulaService';
 import { aulasConfig } from './aulasConfig';
 import CrearAulasMasivas from './CrearAulasMasivas';
-import { Toast } from '../../utils/alerts'; 
+import { Toast, MySwal } from '../../utils/alerts'; //  <--- IMPORTANTE
 
 const Aulas = () => {
   const navigate = useNavigate();
@@ -23,7 +23,8 @@ const Aulas = () => {
     capacidadMaxima: '',
     aulaFisica: '',
     fechaInicio: '',
-    fechaFin: ''
+    fechaFin: '',
+    activo: true
   });
 
   useEffect(() => {
@@ -34,11 +35,17 @@ const Aulas = () => {
     try {
       setLoading(true);
       setError(null);
+
       const data = await aulaService.getAll();
       setAulas(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Error al cargar aulas:', err);
-      setError(err.response?.data?.message || 'Error al cargar las aulas. Por favor, intente nuevamente.');
+
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error al cargar aulas',
+        text: err.response?.data?.message || 'No se pudieron cargar las aulas.'
+      });
     } finally {
       setLoading(false);
     }
@@ -52,12 +59,14 @@ const Aulas = () => {
     }));
   };
 
+  // ================================
+  //  GUARDAR / EDITAR AULA
+  // ================================
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
-      setError(null);
 
       const dataToSend = {
         grado: parseInt(formData.grado),
@@ -71,13 +80,26 @@ const Aulas = () => {
         activo: formData.activo !== false
       };
 
+      MySwal.fire({
+        title: editingAula ? 'Actualizando aula...' : 'Creando aula...',
+        allowOutsideClick: false,
+        didOpen: () => MySwal.showLoading()
+      });
+
       if (editingAula) {
         await aulaService.update(editingAula.id, dataToSend);
       } else {
         await aulaService.create(dataToSend);
       }
 
-      // Resetear form
+      MySwal.close();
+
+      Toast.fire({
+        icon: 'success',
+        title: editingAula ? 'Aula actualizada' : 'Aula creada'
+      });
+
+      // Reset form
       setFormData({
         grado: '',
         seccion: '',
@@ -89,19 +111,28 @@ const Aulas = () => {
         fechaFin: '',
         activo: true
       });
+
       setShowForm(false);
       setEditingAula(null);
-
-      // Recargar lista
       await loadAulas();
+
     } catch (err) {
       console.error('Error al guardar aula:', err);
-      setError(err.response?.data?.message || 'Error al guardar el aula');
+
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error al guardar aula',
+        text: err.response?.data?.message || 'Ocurrió un error'
+      });
+
     } finally {
       setLoading(false);
     }
   };
 
+  // ================================
+  //  EDITAR AULA
+  // ================================
   const handleEdit = (aula) => {
     setEditingAula(aula);
     setFormData({
@@ -118,16 +149,49 @@ const Aulas = () => {
     setShowForm(true);
   };
 
+  // ================================
+  //  ELIMINAR AULA (SweetAlert)
+  // ================================
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Está seguro de eliminar esta aula?')) return;
+    const { isConfirmed } = await MySwal.fire({
+      title: '¿Eliminar aula?',
+      text: 'Esta acción no se puede deshacer',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
+
+    if (!isConfirmed) return;
 
     try {
       setLoading(true);
+
+      MySwal.fire({
+        title: 'Eliminando...',
+        allowOutsideClick: false,
+        didOpen: () => MySwal.showLoading()
+      });
+
       await aulaService.delete(id);
       await loadAulas();
+
+      MySwal.close();
+
+      Toast.fire({
+        icon: 'success',
+        title: 'Aula eliminada correctamente'
+      });
+
     } catch (err) {
       console.error('Error al eliminar aula:', err);
-      setError(err.response?.data?.message || 'Error al eliminar el aula');
+
+      MySwal.fire({
+        icon: 'error',
+        title: 'Error al eliminar',
+        text: err.response?.data?.message || 'No se pudo eliminar.'
+      });
+
     } finally {
       setLoading(false);
     }
@@ -135,7 +199,6 @@ const Aulas = () => {
 
   const handleConfigurar = (aulaId) => {
     if (!aulaId) {
-      console.error('ID de aula no válido:', aulaId);
       setError('ID de aula no válido');
       return;
     }
@@ -170,6 +233,7 @@ const Aulas = () => {
     <Container>
       <Header>
         <Title>Gestión de Aulas</Title>
+
         {!showForm && (
           <div style={{ display: 'flex', gap: '1rem' }}>
             <ButtonPrimary 
@@ -177,28 +241,18 @@ const Aulas = () => {
               style={{ background: '#10b981' }}
             >
               <Zap size={20} />
-              Crear Año Completo
-            </ButtonPrimary>
-            <ButtonPrimary onClick={() => setShowForm(true)}>
-              <Plus size={20} />
-              Nueva Aula
+              Crear Aulas
             </ButtonPrimary>
           </div>
         )}
       </Header>
-
-      {error && (
-        <ErrorMessage>
-          {error}
-          <button onClick={() => setError(null)}>×</button>
-        </ErrorMessage>
-      )}
 
       {showForm ? (
         <FormCard>
           <FormTitle>
             {editingAula ? 'Editar Aula' : 'Nueva Aula'}
           </FormTitle>
+
           <Form onSubmit={handleSubmit}>
             <FormGrid>
               <FormGroup>
@@ -238,7 +292,6 @@ const Aulas = () => {
                   name="anio"
                   value={formData.anio}
                   onChange={handleInputChange}
-                  placeholder="Ej: 2024"
                   min="2020"
                   max="2030"
                   required
@@ -280,7 +333,6 @@ const Aulas = () => {
                   value={formData.aulaFisica}
                   onChange={handleInputChange}
                   placeholder="Ej: Edificio A, Sala 101"
-                  maxLength={100}
                 />
               </FormGroup>
 
@@ -311,6 +363,7 @@ const Aulas = () => {
               <ButtonSecondary type="button" onClick={cancelForm}>
                 Cancelar
               </ButtonSecondary>
+
               <ButtonPrimary type="submit" disabled={loading}>
                 {loading ? 'Guardando...' : editingAula ? 'Actualizar' : 'Crear'}
               </ButtonPrimary>
@@ -322,15 +375,13 @@ const Aulas = () => {
           {aulas.length === 0 ? (
             <EmptyState>
               <p>No hay aulas registradas</p>
-              <p>Haga clic en "Nueva Aula" para comenzar</p>
+              <p>Haga clic en "Crear Aulas" para comenzar</p>
             </EmptyState>
           ) : (
             aulas.map(aula => (
               <AulaCard key={aula.id}>
                 <CardHeader>
-                  <CardTitle>
-                    {aula.grado}° {aula.seccion}
-                  </CardTitle>
+                  <CardTitle>{aula.grado}° {aula.seccion}</CardTitle>
                   <CardPeriodo>{aula.periodo} ({aula.anio})</CardPeriodo>
                 </CardHeader>
 
@@ -341,60 +392,41 @@ const Aulas = () => {
                       <InfoValue>{aula.aulaFisica}</InfoValue>
                     </InfoRow>
                   )}
-                  
+
                   <InfoRow>
-                    <InfoLabel>
-                      <Users size={16} />
-                      Estudiantes:
-                    </InfoLabel>
-                    <InfoValue>
-                      {aula.cantidadEstudiantes || 0} / {aula.capacidadMaxima}
-                    </InfoValue>
+                    <InfoLabel><Users size={16}/> Estudiantes:</InfoLabel>
+                    <InfoValue>{aula.cantidadEstudiantes || 0} / {aula.capacidadMaxima}</InfoValue>
                   </InfoRow>
 
                   <InfoRow>
-                    <InfoLabel>
-                      <Calendar size={16} />
-                      Periodo:
-                    </InfoLabel>
+                    <InfoLabel><Calendar size={16}/> Periodo:</InfoLabel>
                     <InfoValue>
-                      {new Date(aula.fechaInicio).toLocaleDateString()} - {' '}
-                      {new Date(aula.fechaFin).toLocaleDateString()}
+                      {new Date(aula.fechaInicio).toLocaleDateString()} – {new Date(aula.fechaFin).toLocaleDateString()}
                     </InfoValue>
                   </InfoRow>
-
-                  {aula.cantidadGrupos > 0 && (
-                    <InfoRow>
-                      <InfoLabel>Grupos configurados:</InfoLabel>
-                      <InfoValue>{aula.cantidadGrupos}</InfoValue>
-                    </InfoRow>
-                  )}
                 </CardBody>
 
                 <CardActions>
-                  <ActionButton
+                  <ActionButton 
                     $color="#4CAF50"
                     onClick={() => handleConfigurar(aula.id)}
-                    title="Configurar horario"
                   >
-                    <Settings size={18} />
+                    <Settings size={18}/>
                     Configurar
                   </ActionButton>
-                  
-                  <ActionButton
+
+                  <ActionButton 
                     $color="#2196F3"
                     onClick={() => handleEdit(aula)}
-                    title="Editar"
                   >
-                    <Edit size={18} />
+                    <Edit size={18}/>
                   </ActionButton>
-                  
-                  <ActionButton
+
+                  <ActionButton 
                     $color="#f44336"
                     onClick={() => handleDelete(aula.id)}
-                    title="Eliminar"
                   >
-                    <Trash2 size={18} />
+                    <Trash2 size={18}/>
                   </ActionButton>
                 </CardActions>
               </AulaCard>
@@ -402,6 +434,7 @@ const Aulas = () => {
           )}
         </AulasGrid>
       )}
+
       <CrearAulasMasivas
         isOpen={showMasivaModal}
         onClose={() => setShowMasivaModal(false)}
@@ -418,6 +451,7 @@ const Aulas = () => {
 };
 
 // ==================== STYLED COMPONENTS ====================
+/* (Todo el bloque de styled-components permanece igual) */
 
 const Container = styled.div`
   padding: 2rem;
@@ -482,103 +516,6 @@ const LoadingMessage = styled.div`
   padding: 3rem;
   color: #64748b;
   font-size: 1.1rem;
-`;
-
-const ErrorMessage = styled.div`
-  background: #fee;
-  border: 1px solid #fcc;
-  color: #c33;
-  padding: 1rem;
-  border-radius: 8px;
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  button {
-    background: none;
-    border: none;
-    color: #c33;
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0 0.5rem;
-  }
-`;
-
-const FormCard = styled.div`
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-`;
-
-const FormTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 1.5rem;
-`;
-
-const Form = styled.form`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-`;
-
-const FormGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-`;
-
-const FormGroup = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const Label = styled.label`
-  font-weight: 500;
-  color: #475569;
-  font-size: 0.9rem;
-`;
-
-const Input = styled.input`
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const Select = styled.select`
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 1rem;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  }
-`;
-
-const FormActions = styled.div`
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  padding-top: 1rem;
-  border-top: 1px solid #e2e8f0;
 `;
 
 const AulasGrid = styled.div`
@@ -671,7 +608,7 @@ const ActionButton = styled.button`
   justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  background: ${props => props.$color || '#3b82f6'};
+  background: ${(p) => p.$color || '#3b82f6'};
   color: white;
   border: none;
   border-radius: 8px;
@@ -682,10 +619,6 @@ const ActionButton = styled.button`
   &:hover {
     opacity: 0.9;
     transform: translateY(-1px);
-  }
-
-  &:first-child {
-    flex: 2;
   }
 `;
 
