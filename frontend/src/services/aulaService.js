@@ -106,6 +106,11 @@ const aulaService = {
   },
 
   // ESTUDIANTES
+  async getEstudiantesDeAula(aulaId) {
+    const response = await axiosInstance.get(`/aulas/${aulaId}/estudiantes`);
+    return response.data;
+  },
+
   async asignarEstudiante(aulaId, estudianteId) {
     const response = await axiosInstance.post(
       `/aulas/${aulaId}/asignar-estudiante/${estudianteId}`

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Plus, Settings, Trash2, Edit, Users, Calendar, Zap } from 'lucide-react';
+import { Plus, Settings, Trash2, Edit, Users, Calendar, Zap, CalendarDays } from 'lucide-react';
 import aulaService from '../../services/aulaService';
 import { aulasConfig } from './aulasConfig';
 import CrearAulasMasivas from './CrearAulasMasivas';
-import { Toast, MySwal } from '../../utils/alerts'; //  <--- IMPORTANTE
+import ConfigurarHorarioNuevo from './ConfigurarHorarioNuevo';
+import { Toast, MySwal } from '../../utils/alerts';
 
 const Aulas = () => {
   const navigate = useNavigate();
@@ -15,6 +16,9 @@ const Aulas = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingAula, setEditingAula] = useState(null);
   const [showMasivaModal, setShowMasivaModal] = useState(false);
+  const [showHorarioModal, setShowHorarioModal] = useState(false);
+  const [aulaSeleccionadaHorario, setAulaSeleccionadaHorario] = useState(null);
+  
   const [formData, setFormData] = useState({
     grado: '',
     seccion: '',
@@ -195,6 +199,14 @@ const Aulas = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // ================================
+  //  CONFIGURAR HORARIO MODERNO
+  // ================================
+  const handleConfigurarHorario = (aula) => {
+    setAulaSeleccionadaHorario(aula);
+    setShowHorarioModal(true);
   };
 
   const handleConfigurar = (aulaId) => {
@@ -404,15 +416,28 @@ const Aulas = () => {
                       {new Date(aula.fechaInicio).toLocaleDateString()} – {new Date(aula.fechaFin).toLocaleDateString()}
                     </InfoValue>
                   </InfoRow>
+
+                  <InfoRow>
+                    <InfoLabel><CalendarDays size={16}/> Cursos:</InfoLabel>
+                    <InfoValue>{aula.cantidadCursos || 0} configurados</InfoValue>
+                  </InfoRow>
                 </CardBody>
 
                 <CardActions>
+                  <ActionButton 
+                    $color="#8b5cf6"
+                    onClick={() => handleConfigurarHorario(aula)}
+                    title="Configurar Horario"
+                  >
+                    <CalendarDays size={18}/>
+                    Horario
+                  </ActionButton>
+
                   <ActionButton 
                     $color="#4CAF50"
                     onClick={() => handleConfigurar(aula.id)}
                   >
                     <Settings size={18}/>
-                    Configurar
                   </ActionButton>
 
                   <ActionButton 
@@ -446,12 +471,26 @@ const Aulas = () => {
           });
         }}
       />
+
+      {showHorarioModal && aulaSeleccionadaHorario && (
+        <ConfigurarHorarioNuevo
+          aulaId={aulaSeleccionadaHorario.id}
+          onClose={() => {
+            setShowHorarioModal(false);
+            setAulaSeleccionadaHorario(null);
+          }}
+          onSuccess={() => {
+            loadAulas();
+            setShowHorarioModal(false);
+            setAulaSeleccionadaHorario(null);
+          }}
+        />
+      )}
     </Container>
   );
 };
 
 // ==================== STYLED COMPONENTS ====================
-/* (Todo el bloque de styled-components permanece igual) */
 
 const Container = styled.div`
   padding: 2rem;
@@ -516,6 +555,75 @@ const LoadingMessage = styled.div`
   padding: 3rem;
   color: #64748b;
   font-size: 1.1rem;
+`;
+
+const FormCard = styled.div`
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+`;
+
+const FormTitle = styled.h2`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+`;
+
+const Form = styled.form``;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+`;
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const Label = styled.label`
+  font-weight: 500;
+  color: #475569;
+  font-size: 0.9rem;
+`;
+
+const Input = styled.input`
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const Select = styled.select`
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const FormActions = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
 `;
 
 const AulasGrid = styled.div`
@@ -595,14 +703,14 @@ const InfoValue = styled.span`
 `;
 
 const CardActions = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr;
   gap: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid #e2e8f0;
 `;
 
 const ActionButton = styled.button`
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -613,6 +721,7 @@ const ActionButton = styled.button`
   border: none;
   border-radius: 8px;
   font-weight: 500;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
 
