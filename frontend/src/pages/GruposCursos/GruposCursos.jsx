@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { theme } from '../../styles';
+import BatchGrupoCursoModal from '../../components/organisms/BatchGrupoCursoModal/BatchGrupoCursoModal';
 import grupoCursoService from '../../services/grupoCursoService';
 import cursoService from '../../services/cursoService';
 import docenteService from '../../services/docenteService';
@@ -22,7 +23,7 @@ import {
   formatGrupoCursoDataForAPI,
 } from './gruposCursosConfig';
 
-import { Layers, CheckCircle, Users, AlertTriangle } from 'lucide-react';
+import { Layers, CheckCircle, Users, AlertTriangle, Zap } from 'lucide-react';
 
 export default function GruposCursos() {
   const { 
@@ -126,6 +127,16 @@ export default function GruposCursos() {
       icon: <AlertTriangle size={28} />
     },
   ];
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const handleBatchCreate = async (batchData) => {
+    try {
+      const result = await grupoCursoService.createBatch(batchData);
+      fetchAll(); // Recargar la lista
+      return result;
+    } catch (error) {
+      throw error;
+    }
+  };
 
   // Opciones de filtro
   const filterOptions = getGruposCursosFilterOptions(gruposCursos);
@@ -351,12 +362,21 @@ export default function GruposCursos() {
   };
 
   return (
+  <>
     <CrudPage
       title="Gestión de Secciones Académicas"
       subtitle="Asignación de cursos por grado y sección - Zirak"
       addButtonText="Agregar Sección"
       emptyMessage="No hay grupos registrados"
       loadingMessage="Cargando grupos..."
+
+      //para el batch
+      secondaryAction={{
+        text: "Creación Rápida",
+        icon: <Zap size={20} />,
+        onClick: () => setIsBatchModalOpen(true),
+        variant: "accent"
+      }}
 
       data={gruposCursos}
       loading={loading}
@@ -390,5 +410,17 @@ export default function GruposCursos() {
       onInputChange={handleInputChange}
       onRetry={handleRetry}
     />
-  );
+
+    {/* Modal de creación masiva */}
+    <BatchGrupoCursoModal
+      isOpen={isBatchModalOpen}
+      onClose={() => setIsBatchModalOpen(false)}
+      periodos={periodos || []}
+      aulas={aulas || []}
+      docentes={docentes || []}
+      cursos={cursos || []}
+      onSuccess={handleBatchCreate}
+    />
+  </>
+);
 }

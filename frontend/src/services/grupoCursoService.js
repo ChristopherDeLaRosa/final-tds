@@ -95,6 +95,12 @@ const grupoCursoService = {
     const response = await axiosInstance.delete(`${API_URL}/${id}`);
     return response.data;
   },
+
+  // Crear múltiples grupos en batch
+  createBatch: async (batchData) => {
+    const response = await axiosInstance.post(`${API_URL}/batch`, batchData);
+    return response.data;
+  },
 };
 
 export default grupoCursoService;

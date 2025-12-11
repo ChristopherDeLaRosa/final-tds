@@ -306,5 +306,43 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+
+        /// <summary>
+        /// Crear múltiples grupos-cursos en una sola operación
+        /// </summary>
+        /// <param name="batchDto">Datos para creación masiva</param>
+        /// <returns>Resultado de la operación masiva</returns>
+        [HttpPost("batch")]
+        [Authorize(Roles = "Admin,Coordinador")]
+        public async Task<ActionResult<BatchCreateResultDto>> CreateBatch([FromBody] CreateGruposCursosBatchDto batchDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                var result = await _grupoService.CreateBatchAsync(batchDto);
+
+                if (result.TotalCreados == 0)
+                {
+                    return BadRequest(new
+                    {
+                        message = "No se pudo crear ningún grupo",
+                        errores = result.Errores
+                    });
+                }
+
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error al crear grupos en batch");
+                return StatusCode(500, new { message = "Error interno del servidor" });
+            }
+        }
     }
 }

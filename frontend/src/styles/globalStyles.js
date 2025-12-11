@@ -20,4 +20,13 @@ export const GlobalStyle = createGlobalStyle`
     outline-offset: 2px;
   }
 
+  @keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
 `;

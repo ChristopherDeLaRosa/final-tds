@@ -337,6 +337,160 @@ namespace EduCore.API.Services.Implementations
             return await _context.GruposCursos.AnyAsync(g => g.Codigo == codigo);
         }
 
+        public async Task<BatchCreateResultDto> CreateBatchAsync(CreateGruposCursosBatchDto batchDto)
+        {
+            var result = new BatchCreateResultDto();
+
+            // Validar que el aula exista y obtener sus datos
+            var aula = await _context.Aulas
+                .Include(a => a.Periodo)
+                .FirstOrDefaultAsync(a => a.Id == batchDto.AulaId && a.Activo);
+
+            if (aula == null)
+            {
+                throw new InvalidOperationException("El aula especificada no existe o está inactiva");
+            }
+
+            // Validar que el período exista
+            var periodo = await _context.Periodos
+                .FirstOrDefaultAsync(p => p.Id == batchDto.PeriodoId && p.Activo);
+
+            if (periodo == null)
+            {
+                throw new InvalidOperationException("El período especificado no existe o está inactivo");
+            }
+
+            // Validar que el docente exista
+            var docente = await _context.Docentes
+                .FirstOrDefaultAsync(d => d.Id == batchDto.DocenteId && d.Activo);
+
+            if (docente == null)
+            {
+                throw new InvalidOperationException("El docente especificado no existe o está inactivo");
+            }
+
+            // Obtener todos los cursos solicitados
+            var cursosIds = batchDto.Cursos.Select(c => c.CursoId).ToList();
+            var cursos = await _context.Cursos
+                .Where(c => cursosIds.Contains(c.Id) && c.Activo)
+                .ToListAsync();
+
+            // Validar que todos los cursos correspondan al grado del aula
+            var cursosInvalidos = cursos
+                .Where(c => c.NivelGrado != aula.Grado)
+                .ToList();
+
+            if (cursosInvalidos.Any())
+            {
+                foreach (var curso in cursosInvalidos)
+                {
+                    result.Errores.Add(new BatchErrorDto
+                    {
+                        CursoId = curso.Id,
+                        NombreCurso = curso.Nombre,
+                        Mensaje = $"El curso es de grado {curso.NivelGrado}° pero el aula es de {aula.Grado}°"
+                    });
+                    result.TotalFallidos++;
+                }
+            }
+
+            // Usar transacción para crear todos los grupos
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                foreach (var cursoItem in batchDto.Cursos)
+                {
+                    var curso = cursos.FirstOrDefault(c => c.Id == cursoItem.CursoId);
+
+                    if (curso == null)
+                    {
+                        result.Errores.Add(new BatchErrorDto
+                        {
+                            CursoId = cursoItem.CursoId,
+                            NombreCurso = "Curso no encontrado",
+                            Mensaje = "El curso no existe o está inactivo"
+                        });
+                        result.TotalFallidos++;
+                        continue;
+                    }
+
+                    // Validar grado del curso
+                    if (curso.NivelGrado != aula.Grado)
+                    {
+                        continue; // Ya se agregó al error anteriormente
+                    }
+
+                    // Generar código automático
+                    var codigo = $"{aula.Grado}{aula.Seccion.ToUpper()}-{curso.Codigo}";
+
+                    // Verificar si ya existe
+                    if (await _context.GruposCursos.AnyAsync(g => g.Codigo == codigo && g.Activo))
+                    {
+                        result.Errores.Add(new BatchErrorDto
+                        {
+                            CursoId = curso.Id,
+                            NombreCurso = curso.Nombre,
+                            Mensaje = $"Ya existe un grupo con el código {codigo}"
+                        });
+                        result.TotalFallidos++;
+                        continue;
+                    }
+
+                    // Crear el grupo
+                    var grupo = new GrupoCurso
+                    {
+                        Codigo = codigo,
+                        CursoId = curso.Id,
+                        DocenteId = batchDto.DocenteId,
+                        Grado = aula.Grado,
+                        Seccion = aula.Seccion,
+                        Anio = aula.Anio,
+                        PeriodoId = batchDto.PeriodoId,
+                        AulaId = batchDto.AulaId,
+                        Horario = cursoItem.Horario?.Trim(),
+                        CapacidadMaxima = aula.CapacidadMaxima,
+                        CantidadEstudiantes = 0,
+                        Activo = true
+                    };
+
+                    _context.GruposCursos.Add(grupo);
+                    await _context.SaveChangesAsync();
+
+                    // Cargar las relaciones para el DTO
+                    await _context.Entry(grupo).Reference(g => g.Curso).LoadAsync();
+                    await _context.Entry(grupo).Reference(g => g.Docente).LoadAsync();
+                    await _context.Entry(grupo).Reference(g => g.Periodo).LoadAsync();
+                    await _context.Entry(grupo).Reference(g => g.Aula).LoadAsync();
+
+                    result.GruposCreados.Add(MapToDto(grupo));
+                    result.TotalCreados++;
+
+                    _logger.LogInformation(
+                        "Grupo creado en batch: {Codigo} - Docente: {Docente}",
+                        grupo.Codigo,
+                        $"{docente.Nombres} {docente.Apellidos}"
+                    );
+                }
+
+                await transaction.CommitAsync();
+
+                _logger.LogInformation(
+                    "Creación masiva completada: {TotalCreados} grupos creados, {TotalFallidos} fallidos",
+                    result.TotalCreados,
+                    result.TotalFallidos
+                );
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error en la creación masiva de grupos");
+                throw;
+            }
+        }
+
         private GrupoCursoDto MapToDto(GrupoCurso grupo)
         {
             return new GrupoCursoDto

@@ -131,4 +131,56 @@ namespace EduCore.API.DTOs
         public string? AulaFisica { get; set; }
         public string? Horario { get; set; }
     }
+
+    /// <summary>
+    /// DTO para creación masiva de grupos-cursos
+    /// </summary>
+    public class CreateGruposCursosBatchDto
+    {
+        [Required(ErrorMessage = "El período es requerido")]
+        public int PeriodoId { get; set; }
+
+        [Required(ErrorMessage = "El aula es requerida")]
+        public int AulaId { get; set; }
+
+        [Required(ErrorMessage = "El docente es requerido")]
+        public int DocenteId { get; set; }
+
+        [Required(ErrorMessage = "Debe seleccionar al menos un curso")]
+        [MinLength(1, ErrorMessage = "Debe seleccionar al menos un curso")]
+        public List<CursoBatchItemDto> Cursos { get; set; } = new();
+    }
+
+    /// <summary>
+    /// DTO para cada curso en la creación masiva
+    /// </summary>
+    public class CursoBatchItemDto
+    {
+        [Required(ErrorMessage = "El ID del curso es requerido")]
+        public int CursoId { get; set; }
+
+        [MaxLength(200, ErrorMessage = "El horario no puede exceder 200 caracteres")]
+        public string? Horario { get; set; }
+    }
+
+    /// <summary>
+    /// DTO de respuesta para la creación masiva
+    /// </summary>
+    public class BatchCreateResultDto
+    {
+        public int TotalCreados { get; set; }
+        public int TotalFallidos { get; set; }
+        public List<GrupoCursoDto> GruposCreados { get; set; } = new();
+        public List<BatchErrorDto> Errores { get; set; } = new();
+    }
+
+    /// <summary>
+    /// DTO para errores individuales en el batch
+    /// </summary>
+    public class BatchErrorDto
+    {
+        public int CursoId { get; set; }
+        public string NombreCurso { get; set; } = string.Empty;
+        public string Mensaje { get; set; } = string.Empty;
+    }
 }

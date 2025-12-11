@@ -24,6 +24,9 @@ namespace EduCore.API.Services.Interfaces
         // Validaciones
         Task<bool> ExistsAsync(int id);
         Task<bool> CodigoExistsAsync(string codigo);
+
+        // Creación masiva
+        Task<BatchCreateResultDto> CreateBatchAsync(CreateGruposCursosBatchDto batchDto);
     }
 }
 

@@ -307,6 +307,7 @@ export default function CrudPage({
   
   // Botones adicionales
   additionalActions = [],
+  secondaryAction
 }) {
   if (loading) {
     return (
@@ -342,6 +343,15 @@ export default function CrudPage({
         </HeaderContent>
         
         <ActionButtons>
+          {secondaryAction && (
+            <SecondaryButton 
+              onClick={secondaryAction.onClick}
+              disabled={loading || secondaryAction.disabled}
+            >
+              {secondaryAction.icon}
+              {secondaryAction.text}
+            </SecondaryButton>
+          )}
           {additionalActions && additionalActions.length > 0 && additionalActions.map((action, index) => (
             <SecondaryButton 
               key={index}
