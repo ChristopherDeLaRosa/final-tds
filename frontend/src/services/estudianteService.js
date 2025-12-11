@@ -83,42 +83,78 @@ const estudianteService = {
   },
 
   // Carga masiva de estudiantes
-bulkCreate: async (estudiantes) => {
-  const results = {
-    exitosos: [],
-    fallidos: [],
-    total: estudiantes.length,
-    tipo: 'estudiantes' // ✅ AGREGAR ESTO
-  };
+  bulkCreate: async (estudiantes) => {
+    const results = {
+      exitosos: [],
+      fallidos: [],
+      total: estudiantes.length,
+      tipo: 'estudiantes'
+    };
 
-  for (let i = 0; i < estudiantes.length; i++) {
-    try {
-      const matricula = await estudianteService.generarMatricula();
-      const estudianteData = {
-        ...estudiantes[i],
-        matricula: matricula
-      };
-      
-      const creado = await estudianteService.create(estudianteData);
-      
-      results.exitosos.push({
-        fila: i + 2,
-        matricula: creado.matricula,
-        nombres: creado.nombres,
-        apellidos: creado.apellidos,
-        gradoActual: creado.gradoActual
-      });
-    } catch (error) {
-      results.fallidos.push({
-        fila: i + 2,
-        datos: estudiantes[i],
-        error: error.response?.data?.message || error.message || 'Error desconocido'
-      });
+    for (let i = 0; i < estudiantes.length; i++) {
+      try {
+        const matricula = await estudianteService.generarMatricula();
+        const estudianteData = {
+          ...estudiantes[i],
+          matricula: matricula
+        };
+        
+        const creado = await estudianteService.create(estudianteData);
+        
+        results.exitosos.push({
+          fila: i + 2,
+          matricula: creado.matricula,
+          nombres: creado.nombres,
+          apellidos: creado.apellidos,
+          gradoActual: creado.gradoActual
+        });
+      } catch (error) {
+        results.fallidos.push({
+          fila: i + 2,
+          datos: estudiantes[i],
+          error: error.response?.data?.message || error.message || 'Error desconocido'
+        });
+      }
     }
-  }
 
-  return results;
-}
+    return results;
+  },
+
+  // Asignación masiva de estudiantes a un aula
+  bulkAssignToAula: async (aulaId, estudianteIds) => {
+    const results = {
+      exitosos: [],
+      fallidos: [],
+      total: estudianteIds.length
+    };
+
+    for (let i = 0; i < estudianteIds.length; i++) {
+      const estudianteId = estudianteIds[i];
+      try {
+        // Obtener el estudiante actual
+        const estudiante = await estudianteService.getById(estudianteId);
+        
+        // Actualizar con el nuevo aulaId
+        await estudianteService.update(estudianteId, {
+          ...estudiante,
+          aulaId: aulaId
+        });
+
+        results.exitosos.push({
+          id: estudianteId,
+          nombre: estudiante.nombreCompleto || `${estudiante.nombres} ${estudiante.apellidos}`,
+          matricula: estudiante.matricula
+        });
+      } catch (error) {
+        results.fallidos.push({
+          id: estudianteId,
+          error: error.response?.data?.message || error.message || 'Error desconocido'
+        });
+      }
+    }
+
+    return results;
+  }
 };
 
 export default estudianteService;

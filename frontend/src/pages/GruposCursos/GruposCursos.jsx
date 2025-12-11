@@ -15,6 +15,7 @@ import {
   gruposCursosColumns,
   gruposCursosSearchFields,
   getGruposCursosFormFields,
+  getGruposCursosFilterOptions,
   gruposCursosValidationRules,
   getInitialGrupoCursoFormData,
   formatGrupoCursoForForm,
@@ -126,6 +127,9 @@ export default function GruposCursos() {
     },
   ];
 
+  // Opciones de filtro
+  const filterOptions = getGruposCursosFilterOptions(gruposCursos);
+
   // Crear
   const handleAddGrupoCurso = () => {
     if (loadingRelated || loadingPeriodos) {
@@ -159,10 +163,8 @@ export default function GruposCursos() {
     
     // FIX: Si viene periodoId, usarlo; si no, buscarlo por nombre
     if (formattedData.periodoId) {
-      // Ya tiene periodoId, usarlo directamente
       setFormData(formattedData);
     } else if (grupoCurso.periodo) {
-      // Buscar periodoId por nombre usando el helper del hook
       const periodo = periodos.find(p => p.nombre === grupoCurso.periodo);
       if (periodo) {
         formattedData.periodoId = periodo.id;
@@ -198,17 +200,12 @@ export default function GruposCursos() {
       }
     }
 
-    // ← FIX: Selección de aula → auto-completar datos CON periodoId correcto
+    // Selección de aula → auto-completar datos CON periodoId correcto
     if (name === 'aulaId' && value) {
       const aulaSel = aulas.find(a => a.id === parseInt(value));
       if (aulaSel) {
-        // Buscar el periodoId basado en el nombre del periodo del aula
         const periodo = periodos.find(p => p.nombre === aulaSel.periodo);
         const periodoId = periodo ? periodo.id : null;
-        
-        console.log('Aula seleccionada:', aulaSel);
-        console.log('Periodo del aula:', aulaSel.periodo);
-        console.log('PeriodoId encontrado:', periodoId);
         
         if (!periodoId) {
           Toast.fire({ 
@@ -223,7 +220,7 @@ export default function GruposCursos() {
           grado: aulaSel.grado,
           seccion: aulaSel.seccion,
           anio: aulaSel.anio,
-          periodoId: periodoId, // ← FIX: Ahora usa el periodoId correcto
+          periodoId: periodoId,
           aula: aulaSel.aulaFisica || '',
           capacidadMaxima: aulaSel.capacidadMaxima || 30,
           cursoId: '',
@@ -259,7 +256,6 @@ export default function GruposCursos() {
 
   // Guardar
   const handleSaveGrupoCurso = async () => {
-    // FIX: Validación adicional del periodoId antes de guardar
     if (!formData.periodoId) {
       Toast.fire({ 
         icon: 'error', 
@@ -274,8 +270,6 @@ export default function GruposCursos() {
 
     try {
       const data = formatGrupoCursoDataForAPI(formData);
-      
-      console.log('Datos a enviar:', data); // ← Para debug
 
       if (selectedGrupoCurso) {
         await update(selectedGrupoCurso.id, data);
@@ -371,6 +365,7 @@ export default function GruposCursos() {
 
       columns={gruposCursosColumns}
       searchFields={gruposCursosSearchFields}
+      filterOptions={filterOptions}
 
       isModalOpen={isModalOpen}
       modalTitle={selectedGrupoCurso ? 'Editar Grupo-Curso' : 'Nuevo Grupo-Curso'}

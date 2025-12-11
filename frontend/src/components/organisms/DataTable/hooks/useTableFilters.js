@@ -25,7 +25,7 @@ export const useTableFilters = (data) => {
           }
           
           // Manejar otros tipos
-          return itemValue === value;
+          return String(itemValue) === String(value);
         });
       }
     });

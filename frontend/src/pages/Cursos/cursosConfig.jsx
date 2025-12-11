@@ -93,6 +93,57 @@ export const cursosColumns = [
 // Campos de búsqueda
 export const cursosSearchFields = ['codigo', 'nombre', 'nivel', 'areaConocimiento'];
 
+// Opciones de filtros dinámicos
+export const getCursosFilterOptions = (cursos = []) => {
+  // Obtener áreas únicas
+  const areasUnicas = [...new Set(cursos.map(c => c.areaConocimiento))]
+    .filter(Boolean)
+    .sort();
+
+  // Obtener grados únicos
+  const gradosUnicos = [...new Set(cursos.map(c => c.nivelGrado))]
+    .filter(Boolean)
+    .sort((a, b) => a - b);
+
+  // Obtener niveles únicos
+  const nivelesUnicos = [...new Set(cursos.map(c => c.nivel))]
+    .filter(Boolean)
+    .sort();
+
+  return {
+    areaConocimiento: {
+      label: 'Área de Conocimiento',
+      options: [
+        { value: '', label: 'Todas las áreas' },
+        ...areasUnicas.map(area => ({
+          value: area,
+          label: area
+        }))
+      ]
+    },
+    nivelGrado: {
+      label: 'Grado',
+      options: [
+        { value: '', label: 'Todos los grados' },
+        ...gradosUnicos.map(grado => ({
+          value: grado, // ✅ Mantener como número (requiere comparación flexible en useTableFilters)
+          label: `${grado}°`
+        }))
+      ]
+    },
+    nivel: {
+      label: 'Nivel Educativo',
+      options: [
+        { value: '', label: 'Todos los niveles' },
+        ...nivelesUnicos.map(nivel => ({
+          value: nivel,
+          label: nivel
+        }))
+      ]
+    }
+  };
+};
+
 // Campos del formulario
 export const getCursosFormFields = (isEditing) => [
   {

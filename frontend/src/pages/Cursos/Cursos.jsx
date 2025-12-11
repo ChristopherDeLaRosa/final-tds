@@ -17,6 +17,7 @@ import {
   getInitialCursoFormData,
   formatCursoForForm,
   formatCursoDataForAPI,
+  getCursosFilterOptions,
 } from './cursosConfig';
 
 import { BookOpen, CheckCircle, Layers, GraduationCap } from 'lucide-react';
@@ -93,6 +94,9 @@ export default function Cursos() {
       icon: <GraduationCap size={28} />,
     },
   ];
+
+  // Opciones de filtro
+  const filterOptions = getCursosFilterOptions(cursos);
 
   // Crear
   const handleAddCurso = () => {
@@ -368,6 +372,7 @@ export default function Cursos() {
 
         columns={cursosColumns}
         searchFields={cursosSearchFields}
+        filterOptions={filterOptions}
 
         isModalOpen={isModalOpen}
         modalTitle={selectedCurso ? 'Editar Curso' : 'Nuevo Curso'}

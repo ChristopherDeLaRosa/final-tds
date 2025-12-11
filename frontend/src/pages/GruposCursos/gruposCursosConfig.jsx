@@ -24,7 +24,7 @@ const CodigoBadge = styled.span`
   font-size: 12px;
 `;
 
-// Columnas de la tabla
+// Columnas de la tabla (SIN columna de aula)
 export const gruposCursosColumns = [
   { 
     key: 'codigo', 
@@ -32,7 +32,7 @@ export const gruposCursosColumns = [
     width: '120px',
     render: (value) => <CodigoBadge>{value}</CodigoBadge>
   },
-  { key: 'nombreCurso', title: 'Curso' },
+  { key: 'nombreCurso', title: 'Asignatura' },
   { 
     key: 'grado', 
     title: 'Grado',
@@ -40,8 +40,7 @@ export const gruposCursosColumns = [
     render: (value, row) => `${value}° ${row.seccion}`
   },
   { key: 'nombreDocente', title: 'Docente' },
-  { key: 'periodo', title: 'Período', width: '120px' }, // ← Se mantiene para mostrar el nombre
-  { key: 'aula', title: 'Aula', width: '80px' },
+  { key: 'periodo', title: 'Período', width: '120px' },
   { 
     key: 'cantidadEstudiantes', 
     title: 'Estudiantes',
@@ -72,28 +71,92 @@ export const gruposCursosColumns = [
   },
 ];
 
-// Campos de búsqueda
+// Campos de búsqueda (sin 'aula')
 export const gruposCursosSearchFields = [
   'codigo',
   'nombreCurso',
   'nombreDocente',
   'seccion',
-  'periodo',
-  'aula'
+  'periodo'
 ];
 
-// ← ACTUALIZADO: Ahora recibe períodos
+// Opciones de filtros dinámicos
+export const getGruposCursosFilterOptions = (gruposCursos = []) => {
+  // Obtener grados únicos
+  const gradosUnicos = [...new Set(gruposCursos.map(g => g.grado))]
+    .filter(v => v != null)
+    .map(v => Number(v))
+    .sort((a, b) => a - b);
+
+  // Obtener períodos únicos
+  const periodosUnicos = [...new Set(gruposCursos.map(g => g.periodo))]
+    .filter(Boolean)
+    .sort();
+
+  // Obtener cursos únicos
+  const cursosUnicos = [...new Set(gruposCursos.map(g => g.nombreCurso))]
+    .filter(Boolean)
+    .sort();
+
+  // Obtener docentes únicos
+  const docentesUnicos = [...new Set(gruposCursos.map(g => g.nombreDocente))]
+    .filter(Boolean)
+    .sort();
+
+  return {
+    grado: {
+      label: 'Grado',
+      options: [
+        { value: '', label: 'Todos los grados' },
+        ...gradosUnicos.map(grado => ({
+          value: grado,
+          label: `${grado}°`
+        }))
+      ]
+    },
+    periodo: {
+      label: 'Período',
+      options: [
+        { value: '', label: 'Todos los períodos' },
+        ...periodosUnicos.map(periodo => ({
+          value: periodo,
+          label: periodo
+        }))
+      ]
+    },
+    nombreCurso: {
+      label: 'Asignatura',
+      options: [
+        { value: '', label: 'Todas las Asignaturas' },
+        ...cursosUnicos.map(curso => ({
+          value: curso,
+          label: curso
+        }))
+      ]
+    },
+    nombreDocente: {
+      label: 'Docente',
+      options: [
+        { value: '', label: 'Todos los docentes' },
+        ...docentesUnicos.map(docente => ({
+          value: docente,
+          label: docente
+        }))
+      ]
+    }
+  };
+};
+
 export const getGruposCursosFormFields = (
   isEditing, 
   cursos = [], 
   docentes = [], 
   aulas = [], 
-  periodos = [], // ← NUEVO
+  periodos = [],
   showAutoFilledFields = false, 
   gradoSeleccionado = null
 ) => {
   const baseFields = [
-    // ← NUEVO: Campo de selección de período
     {
       name: 'periodoId',
       label: 'Período Académico',
@@ -129,7 +192,6 @@ export const getGruposCursosFormFields = (
     ? cursos.filter(c => c.nivelGrado === gradoSeleccionado)
     : cursos;
 
-  // Campos que solo se muestran después de seleccionar aula
   const autoFilledFields = showAutoFilledFields ? [
     {
       name: 'codigo',
@@ -207,7 +269,7 @@ export const gruposCursosValidationRules = {
       message: 'Solo letras mayúsculas, números y guiones',
     },
   },
-  periodoId: { // ← NUEVO
+  periodoId: {
     required: { message: 'El período es requerido' },
     validate: (value) => {
       if (!value || value === '') {
@@ -266,7 +328,6 @@ export const gruposCursosValidationRules = {
       return true;
     },
   },
-  // ← ELIMINADO: Ya no validamos 'periodo' como string
   aula: {
     maxLength: { value: 50, message: 'Máximo 50 caracteres' },
   },
@@ -285,7 +346,6 @@ export const gruposCursosValidationRules = {
   },
 };
 
-// ← ACTUALIZADO: Datos iniciales con periodoId
 export const getInitialGrupoCursoFormData = () => ({
   codigo: '',
   aulaId: '',
@@ -294,14 +354,13 @@ export const getInitialGrupoCursoFormData = () => ({
   grado: '',
   seccion: '',
   anio: new Date().getFullYear(),
-  periodoId: null, // ← CAMBIO: Ahora es periodoId (number)
+  periodoId: null,
   aula: '',
   horario: '',
   capacidadMaxima: 30,
   activo: true,
 });
 
-// ← ACTUALIZADO: Formatear con periodoId
 export const formatGrupoCursoForForm = (grupoCurso) => ({
   codigo: grupoCurso.codigo || '',
   aulaId: grupoCurso.aulaId || '',
@@ -310,14 +369,13 @@ export const formatGrupoCursoForForm = (grupoCurso) => ({
   grado: grupoCurso.grado || '',
   seccion: grupoCurso.seccion || '',
   anio: grupoCurso.anio || new Date().getFullYear(),
-  periodoId: grupoCurso.periodoId || null, // ← CAMBIO: Ahora es periodoId
+  periodoId: grupoCurso.periodoId || null,
   aula: grupoCurso.aula || '',
   horario: grupoCurso.horario || '',
   capacidadMaxima: grupoCurso.capacidadMaxima || 30,
   activo: grupoCurso.activo ?? true,
 });
 
-// ← ACTUALIZADO: Enviar periodoId a la API
 export const formatGrupoCursoDataForAPI = (formData) => ({
   codigo: formData.codigo.trim().toUpperCase(),
   aulaId: parseInt(formData.aulaId, 10),
@@ -326,7 +384,7 @@ export const formatGrupoCursoDataForAPI = (formData) => ({
   grado: parseInt(formData.grado, 10),
   seccion: formData.seccion.trim().toUpperCase(),
   anio: parseInt(formData.anio, 10),
-  periodoId: parseInt(formData.periodoId, 10), // ← CAMBIO: Ahora enviamos periodoId
+  periodoId: parseInt(formData.periodoId, 10),
   aula: formData.aula?.trim() || null,
   horario: formData.horario?.trim() || null,
   capacidadMaxima: parseInt(formData.capacidadMaxima, 10),

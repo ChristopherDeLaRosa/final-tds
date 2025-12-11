@@ -7,9 +7,10 @@ import { useCrud } from "../../hooks/useCrud";
 import { useFormValidation } from "../../hooks/useFormValidation";
 import { useModal } from "../../hooks/useModal";
 import { MySwal, Toast } from "../../utils/alerts";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { Upload, FileSpreadsheet, UserPlus } from "lucide-react";
 import { useExcelUpload } from "../../hooks/useExcelUpload";
 import BulkUploadResultModal from "../../components/molecules/BulkUploadResultModal/BulkUploadResultModal";
+import BulkAssignToAulaModal from "../../components/molecules/BulkAssignToAulaModal/BulkAssignToAulaModal";
 import {
   studentsColumns,
   studentsSearchFields,
@@ -52,9 +53,13 @@ export default function Students() {
   const [aulas, setAulas] = useState([]);
   const [aulasLoading, setAulasLoading] = useState(false);
 
+  // Estados para carga masiva de Excel
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [uploadResults, setUploadResults] = useState(null);
   const fileInputRef = useRef(null);
+
+  // Estados para asignación masiva a aula
+  const [showBulkAssignModal, setShowBulkAssignModal] = useState(false);
 
   const {
     isProcessing,
@@ -295,6 +300,10 @@ export default function Students() {
     }
   };
 
+  // ============================================================
+  // CARGA MASIVA DESDE EXCEL - HANDLERS
+  // ============================================================
+
   const handleDownloadTemplate = () => {
     generateExcelTemplate();
     Toast.fire({
@@ -419,6 +428,70 @@ export default function Students() {
     fileInputRef.current?.click();
   };
 
+  // ============================================================
+  // ASIGNACIÓN MASIVA A AULA - HANDLERS
+  // ============================================================
+
+  const handleOpenBulkAssign = () => {
+    setShowBulkAssignModal(true);
+  };
+
+  const handleBulkAssignToAula = async (aulaId, estudianteIds) => {
+    try {
+      MySwal.fire({
+        title: "Asignando estudiantes...",
+        text: `Procesando ${estudianteIds.length} estudiantes. Esto puede tomar unos momentos.`,
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+      });
+
+      const results = await estudianteService.bulkAssignToAula(aulaId, estudianteIds);
+
+      MySwal.close();
+
+      if (results.fallidos.length === 0) {
+        Toast.fire({
+          icon: "success",
+          title: `${results.exitosos.length} estudiantes asignados correctamente`,
+        });
+      } else {
+        await MySwal.fire({
+          title: "Asignación completada con errores",
+          html: `
+            <div style="text-align: left;">
+              <p><strong>${results.exitosos.length}</strong> estudiantes asignados exitosamente</p>
+              <p><strong>${results.fallidos.length}</strong> estudiantes fallaron:</p>
+              <ul style="max-height: 200px; overflow-y: auto; text-align: left;">
+                ${results.fallidos
+                  .slice(0, 5)
+                  .map((f) => `<li>ID ${f.id}: ${f.error}</li>`)
+                  .join("")}
+                ${
+                  results.fallidos.length > 5
+                    ? `<li>... y ${results.fallidos.length - 5} más</li>`
+                    : ""
+                }
+              </ul>
+            </div>
+          `,
+          icon: "warning",
+          confirmButtonText: "Entendido",
+        });
+      }
+
+      await fetchAll();
+      setShowBulkAssignModal(false);
+    } catch (error) {
+      console.error("Error en asignación masiva:", error);
+      MySwal.close();
+      Toast.fire({
+        icon: "error",
+        title: "Error en la asignación masiva",
+        text: error.message || "Ocurrió un error inesperado",
+      });
+    }
+  };
+
   return (
     <>
       <input
@@ -458,6 +531,11 @@ export default function Students() {
         onRetry={handleRetry}
         additionalActions={[
           {
+            label: "Asignar a Aula",
+            icon: <UserPlus size={20} />,
+            onClick: handleOpenBulkAssign,
+          },
+          {
             label: "Descargar Plantilla",
             icon: <FileSpreadsheet size={20} />,
             onClick: handleDownloadTemplate,
@@ -477,6 +555,13 @@ export default function Students() {
           onClose={() => setShowResultsModal(false)}
         />
       )}
+
+      <BulkAssignToAulaModal
+        isOpen={showBulkAssignModal}
+        onClose={() => setShowBulkAssignModal(false)}
+        aulas={aulas}
+        onAssign={handleBulkAssignToAula}
+      />
     </>
   );
 }
