@@ -37,5 +37,8 @@ namespace EduCore.API.Services.Interfaces
 
         // Crear Aulas por Lotes
         Task<ResultadoCreacionMasivaDto> CrearAulasMasivasAsync(CrearAulasMasivasDto dto);
+
+        // para visualizar estudiantes en un aula
+        Task<IEnumerable<EstudianteDto>> GetEstudiantesDeAulaAsync(int aulaId);
     }
 }

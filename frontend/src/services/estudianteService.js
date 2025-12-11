@@ -120,42 +120,68 @@ const estudianteService = {
     return results;
   },
 
-  // Asignación masiva de estudiantes a un aula
+  // ============================================================
+  // ASIGNACIÓN MASIVA A AULA - NUEVO MÉTODO OPTIMIZADO
+  // ============================================================
   bulkAssignToAula: async (aulaId, estudianteIds) => {
-    const results = {
-      exitosos: [],
-      fallidos: [],
-      total: estudianteIds.length
-    };
-
-    for (let i = 0; i < estudianteIds.length; i++) {
-      const estudianteId = estudianteIds[i];
-      try {
-        // Obtener el estudiante actual
-        const estudiante = await estudianteService.getById(estudianteId);
-        
-        // Actualizar con el nuevo aulaId
-        await estudianteService.update(estudianteId, {
-          ...estudiante,
-          aulaId: aulaId
-        });
-
-        results.exitosos.push({
-          id: estudianteId,
-          nombre: estudiante.nombreCompleto || `${estudiante.nombres} ${estudiante.apellidos}`,
-          matricula: estudiante.matricula
-        });
-      } catch (error) {
-        results.fallidos.push({
-          id: estudianteId,
-          error: error.response?.data?.message || error.message || 'Error desconocido'
-        });
-      }
+    try {
+      const response = await axiosInstance.post(`${API_URL}/bulk-assign-to-aula`, {
+        aulaId,
+        estudianteIds
+      });
+      
+      // El backend devuelve ResultadoOperacionMasivaDto
+      // Transformar al formato esperado por el frontend
+      return {
+        exitosos: response.data.exitosos.map(id => ({
+          id,
+          mensaje: 'Asignado exitosamente'
+        })),
+        fallidos: response.data.fallidos.map(error => ({
+          id: error.id,
+          error: error.error
+        })),
+        total: response.data.totalProcesados
+      };
+    } catch (error) {
+      console.error('Error en asignación masiva:', error);
+      throw new Error(
+        error.response?.data?.message || 
+        'Error al asignar estudiantes al aula'
+      );
     }
+  },
 
-    return results;
+  // ============================================================
+  // DESASIGNACIÓN MASIVA DE AULA - NUEVO MÉTODO OPTIMIZADO
+  // ============================================================
+  bulkUnassignFromAula: async (estudianteIds) => {
+    try {
+      const response = await axiosInstance.post(`${API_URL}/bulk-unassign-from-aula`, 
+        estudianteIds
+      );
+      
+      // El backend devuelve ResultadoOperacionMasivaDto
+      // Transformar al formato esperado por el frontend
+      return {
+        exitosos: response.data.exitosos.map(id => ({
+          id,
+          mensaje: 'Desasignado exitosamente'
+        })),
+        fallidos: response.data.fallidos.map(error => ({
+          id: error.id,
+          error: error.error
+        })),
+        total: response.data.totalProcesados
+      };
+    } catch (error) {
+      console.error('Error en desasignación masiva:', error);
+      throw new Error(
+        error.response?.data?.message || 
+        'Error al desasignar estudiantes del aula'
+      );
+    }
   }
 };
 
 export default estudianteService;
-

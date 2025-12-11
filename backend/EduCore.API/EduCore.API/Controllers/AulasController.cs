@@ -638,6 +638,22 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+        //para visualizar los estudiantes de un aula
+
+        [HttpGet("{id}/estudiantes")]
+        public async Task<ActionResult<IEnumerable<EstudianteDto>>> GetEstudiantesDeAula(int id)
+        {
+            try
+            {
+                var estudiantes = await _aulaService.GetEstudiantesDeAulaAsync(id);
+                return Ok(estudiantes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo estudiantes del aula {AulaId}", id);
+                return StatusCode(500, new { message = "Error al obtener estudiantes del aula" });
+            }
+        }
     }
 }
 

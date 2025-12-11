@@ -39,6 +39,33 @@ export const studentsColumns = [
     width: '80px',
     render: (value, row) => `${value}° ${row.seccionActual}`
   },
+  {
+    key: 'aulaId',
+    title: 'Aula',
+    width: '150px',
+    render: (value, row) => {
+      if (!value) {
+        return (
+          <Badge
+            $bgColor="rgba(156, 163, 175, 0.15)"
+            $textColor="#6B7280"
+            $borderColor="rgba(156, 163, 175, 0.3)"
+          >
+            Sin asignar
+          </Badge>
+        );
+      }
+      return (
+        <Badge
+          $bgColor="rgba(59, 130, 246, 0.15)"
+          $textColor="#3B82F6"
+          $borderColor="rgba(59, 130, 246, 0.3)"
+        >
+          Aula #{value}
+        </Badge>
+      );
+    }
+  },
   { key: 'email', title: 'Correo Electrónico' },
   { key: 'telefono', title: 'Teléfono', width: '130px' },
   {

@@ -312,8 +312,15 @@ export default function BulkAssignToAulaModal({
           selectedSeccion
         );
         
-        // Filtrar solo estudiantes activos y sin aula asignada
-        const estudiantesSinAula = data.filter(e => e.activo && !e.aulaId);
+        // FIX: Filtrar estudiantes activos SIN aula asignada (aulaId debe ser null o undefined)
+        const estudiantesSinAula = data.filter(e => 
+          e.activo && (e.aulaId === null || e.aulaId === undefined || e.aulaId === '')
+        );
+        
+        console.log('Total estudiantes:', data.length);
+        console.log('Estudiantes sin aula:', estudiantesSinAula.length);
+        console.log('Estudiantes filtrados:', estudiantesSinAula);
+        
         setStudents(estudiantesSinAula);
         
         // Seleccionar todos por defecto
@@ -525,3 +532,4 @@ export default function BulkAssignToAulaModal({
     </Overlay>
   );
 }
+

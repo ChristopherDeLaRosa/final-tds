@@ -28,5 +28,8 @@ namespace EduCore.API.Services.Interfaces
         Task<string> GenerarMatriculaAsync();
         //para la ia
         Task<int> GetTotalAsync();
+        // Asignación masiva a aulas
+        Task<ResultadoOperacionMasivaDto> BulkAssignToAulaAsync(int aulaId, List<int> estudianteIds);
+        Task<ResultadoOperacionMasivaDto> BulkUnassignFromAulaAsync(List<int> estudianteIds);
     }
 }

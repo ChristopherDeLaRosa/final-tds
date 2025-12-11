@@ -324,6 +324,211 @@ namespace EduCore.API.Services.Implementations
             return await _context.Estudiantes.AnyAsync(e => e.Matricula == matricula);
         }
 
+        #region Asignación Masiva a Aula
+
+        public async Task<ResultadoOperacionMasivaDto> BulkAssignToAulaAsync(int aulaId, List<int> estudianteIds)
+        {
+            var resultado = new ResultadoOperacionMasivaDto
+            {
+                TotalProcesados = estudianteIds.Count
+            };
+
+            var aula = await _context.Aulas.FindAsync(aulaId);
+            if (aula == null)
+            {
+                throw new InvalidOperationException("Aula no encontrada");
+            }
+
+            _logger.LogInformation("INICIANDO ASIGNACIÓN MASIVA");
+            _logger.LogInformation("Aula ID: {AulaId} - {Grado}° {Seccion}",
+                aulaId, aula.Grado, aula.Seccion);
+            _logger.LogInformation("Total estudiantes a procesar: {Total}", estudianteIds.Count);
+
+            foreach (var estudianteId in estudianteIds)
+            {
+                try
+                {
+                    var estudiante = await _context.Estudiantes.FindAsync(estudianteId);
+
+                    if (estudiante == null)
+                    {
+                        resultado.Fallidos.Add(new ErrorOperacionDto
+                        {
+                            Id = estudianteId,
+                            Error = "Estudiante no encontrado"
+                        });
+                        _logger.LogWarning("Estudiante {Id} no encontrado", estudianteId);
+                        continue;
+                    }
+
+                    if (!estudiante.Activo)
+                    {
+                        resultado.Fallidos.Add(new ErrorOperacionDto
+                        {
+                            Id = estudianteId,
+                            Error = "Estudiante inactivo"
+                        });
+                        _logger.LogWarning("Estudiante {Id} está inactivo", estudianteId);
+                        continue;
+                    }
+
+                    _logger.LogInformation(
+                        "Procesando estudiante: {Id} - {Nombre} - AulaId actual: {AulaActual}",
+                        estudiante.Id,
+                        $"{estudiante.Nombres} {estudiante.Apellidos}",
+                        estudiante.AulaId?.ToString() ?? "null"
+                    );
+
+                    // Remover de aula anterior si tiene
+                    if (estudiante.AulaId.HasValue)
+                    {
+                        var aulaAnterior = await _context.Aulas.FindAsync(estudiante.AulaId.Value);
+                        if (aulaAnterior != null && aulaAnterior.CantidadEstudiantes > 0)
+                        {
+                            aulaAnterior.CantidadEstudiantes--;
+                            _logger.LogInformation(
+                                "Decrementado contador aula anterior {AulaId}: {Cantidad}",
+                                aulaAnterior.Id,
+                                aulaAnterior.CantidadEstudiantes
+                            );
+                        }
+                    }
+
+                    // Asignar a nueva aula
+                    estudiante.AulaId = aulaId;
+                    estudiante.GradoActual = aula.Grado;
+                    estudiante.SeccionActual = aula.Seccion;
+
+                    // Incrementar contador del aula
+                    aula.CantidadEstudiantes++;
+
+                    resultado.Exitosos.Add(estudianteId);
+
+                    _logger.LogInformation(
+                        "Estudiante {Id} asignado exitosamente - Nuevo AulaId: {AulaId}",
+                        estudianteId, aulaId
+                    );
+                }
+                catch (Exception ex)
+                {
+                    resultado.Fallidos.Add(new ErrorOperacionDto
+                    {
+                        Id = estudianteId,
+                        Error = ex.Message
+                    });
+                    _logger.LogError(ex, "Error asignando estudiante {EstudianteId}", estudianteId);
+                }
+            }
+
+            // Guardar cambios
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Cambios guardados en la base de datos");
+
+            _logger.LogInformation(
+                "ASIGNACIÓN MASIVA COMPLETADA — Exitosos: {Exitosos} | Fallidos: {Fallidos}",
+                resultado.Exitosos.Count, resultado.Fallidos.Count
+            );
+
+            return resultado;
+        }
+
+        public async Task<ResultadoOperacionMasivaDto> BulkUnassignFromAulaAsync(List<int> estudianteIds)
+        {
+            var resultado = new ResultadoOperacionMasivaDto
+            {
+                TotalProcesados = estudianteIds.Count
+            };
+
+            _logger.LogInformation("INICIANDO DESASIGNACIÓN MASIVA");
+            _logger.LogInformation("Total estudiantes a procesar: {Total}", estudianteIds.Count);
+
+            foreach (var estudianteId in estudianteIds)
+            {
+                try
+                {
+                    var estudiante = await _context.Estudiantes.FindAsync(estudianteId);
+
+                    if (estudiante == null)
+                    {
+                        resultado.Fallidos.Add(new ErrorOperacionDto
+                        {
+                            Id = estudianteId,
+                            Error = "Estudiante no encontrado"
+                        });
+                        _logger.LogWarning("Estudiante {Id} no encontrado", estudianteId);
+                        continue;
+                    }
+
+                    if (!estudiante.AulaId.HasValue)
+                    {
+                        resultado.Fallidos.Add(new ErrorOperacionDto
+                        {
+                            Id = estudianteId,
+                            Error = "Estudiante no tiene aula asignada"
+                        });
+                        _logger.LogWarning("Estudiante {Id} no tiene aula asignada", estudianteId);
+                        continue;
+                    }
+
+                    var aulaId = estudiante.AulaId.Value;
+
+                    _logger.LogInformation(
+                        "Procesando estudiante: {Id} - {Nombre} - AulaId actual: {AulaId}",
+                        estudiante.Id,
+                        $"{estudiante.Nombres} {estudiante.Apellidos}",
+                        aulaId
+                    );
+
+                    // Decrementar contador del aula
+                    var aula = await _context.Aulas.FindAsync(aulaId);
+                    if (aula != null && aula.CantidadEstudiantes > 0)
+                    {
+                        aula.CantidadEstudiantes--;
+                        _logger.LogInformation(
+                            "Decrementado contador aula {AulaId}: {Cantidad}",
+                            aula.Id,
+                            aula.CantidadEstudiantes
+                        );
+                    }
+
+                    // Remover asignación
+                    estudiante.AulaId = null;
+
+                    resultado.Exitosos.Add(estudianteId);
+
+                    _logger.LogInformation(
+                        "Estudiante {Id} desasignado exitosamente",
+                        estudianteId
+                    );
+                }
+                catch (Exception ex)
+                {
+                    resultado.Fallidos.Add(new ErrorOperacionDto
+                    {
+                        Id = estudianteId,
+                        Error = ex.Message
+                    });
+                    _logger.LogError(ex, "Error desasignando estudiante {EstudianteId}", estudianteId);
+                }
+            }
+
+            // Guardar cambios
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Cambios guardados en la base de datos");
+
+            _logger.LogInformation(
+                "DESASIGNACIÓN MASIVA COMPLETADA — Exitosos: {Exitosos} | Fallidos: {Fallidos}",
+                resultado.Exitosos.Count, resultado.Fallidos.Count
+            );
+
+            return resultado;
+        }
+
+        #endregion
+
+
+
+
         private EstudianteDto MapToDto(Estudiante estudiante)
         {
             return new EstudianteDto
@@ -339,6 +544,7 @@ namespace EduCore.API.Services.Implementations
                 FechaIngreso = estudiante.FechaIngreso,
                 GradoActual = estudiante.GradoActual,
                 SeccionActual = estudiante.SeccionActual,
+                AulaId = estudiante.AulaId,
                 NombreTutor = estudiante.NombreTutor,
                 TelefonoTutor = estudiante.TelefonoTutor,
                 EmailTutor = estudiante.EmailTutor,

@@ -648,6 +648,43 @@ namespace EduCore.API.Services.Implementations
             };
         }
 
+        //para visualizar los estudiantes de esa aula
+        public async Task<IEnumerable<EstudianteDto>> GetEstudiantesDeAulaAsync(int aulaId)
+        {
+            var estudiantes = await _context.Estudiantes
+                .Where(e => e.AulaId == aulaId && e.Activo)
+                .OrderBy(e => e.Apellidos)
+                .ThenBy(e => e.Nombres)
+                .ToListAsync();
+
+            _logger.LogInformation(
+                "Aula {AulaId}: Se encontraron {Count} estudiantes asignados",
+                aulaId,
+                estudiantes.Count
+            );
+
+            return estudiantes.Select(e => new EstudianteDto
+            {
+                Id = e.Id,
+                Matricula = e.Matricula,
+                Nombres = e.Nombres,
+                Apellidos = e.Apellidos,
+                Email = e.Email,
+                Telefono = e.Telefono,
+                Direccion = e.Direccion,
+                FechaNacimiento = e.FechaNacimiento,
+                FechaIngreso = e.FechaIngreso,
+                GradoActual = e.GradoActual,
+                SeccionActual = e.SeccionActual,
+                AulaId = e.AulaId,
+                NombreTutor = e.NombreTutor,
+                TelefonoTutor = e.TelefonoTutor,
+                EmailTutor = e.EmailTutor,
+                ObservacionesMedicas = e.ObservacionesMedicas,
+                Activo = e.Activo
+            });
+        }
+
 
         #region Mapper
 

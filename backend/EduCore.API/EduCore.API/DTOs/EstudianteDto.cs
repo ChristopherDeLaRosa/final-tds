@@ -19,6 +19,7 @@ namespace EduCore.API.DTOs
         public int GradoActual { get; set; }
         public string SeccionActual { get; set; } = string.Empty;
         public string GradoSeccion => $"{GradoActual}° {SeccionActual}";
+        public int? AulaId { get; set; }
         public string? NombreTutor { get; set; }
         public string? TelefonoTutor { get; set; }
         public string? EmailTutor { get; set; }
@@ -162,5 +163,25 @@ namespace EduCore.API.DTOs
         public string Seccion { get; set; } = string.Empty;
         public int TotalEstudiantes { get; set; }
         public List<EstudianteDto> Estudiantes { get; set; } = new List<EstudianteDto>();
+    }
+
+    // DTO para asignación masiva de estudiantes a un aula
+    public class BulkAssignToAulaDto
+    {
+        public int AulaId { get; set; }
+        public List<int> EstudianteIds { get; set; } = new();
+    }
+
+    public class ResultadoOperacionMasivaDto
+    {
+        public int TotalProcesados { get; set; }
+        public List<int> Exitosos { get; set; } = new();
+        public List<ErrorOperacionDto> Fallidos { get; set; } = new();
+    }
+
+    public class ErrorOperacionDto
+    {
+        public int Id { get; set; }
+        public string Error { get; set; } = string.Empty;
     }
 }

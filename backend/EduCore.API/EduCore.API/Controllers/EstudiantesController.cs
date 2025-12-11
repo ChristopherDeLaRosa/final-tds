@@ -301,5 +301,57 @@ namespace EduCore.API.Controllers
                 return StatusCode(500, new { message = "Error interno del servidor" });
             }
         }
+
+        [HttpPost("bulk-assign-to-aula")]
+        public async Task<ActionResult<ResultadoOperacionMasivaDto>> BulkAssignToAula(
+    [FromBody] BulkAssignToAulaDto dto)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Solicitud de asignación masiva - AulaId: {AulaId}, Estudiantes: {Count}",
+                    dto.AulaId, dto.EstudianteIds.Count
+                );
+
+                var result = await _estudianteService.BulkAssignToAulaAsync(dto.AulaId, dto.EstudianteIds);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en asignación masiva a aula");
+                return StatusCode(500, new
+                {
+                    message = "Error al asignar estudiantes al aula",
+                    error = ex.Message
+                });
+            }
+        }
+
+        [HttpPost("bulk-unassign-from-aula")]
+        public async Task<ActionResult<ResultadoOperacionMasivaDto>> BulkUnassignFromAula(
+            [FromBody] List<int> estudianteIds)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Solicitud de desasignación masiva - Estudiantes: {Count}",
+                    estudianteIds.Count
+                );
+
+                var result = await _estudianteService.BulkUnassignFromAulaAsync(estudianteIds);
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error en desasignación masiva de aula");
+                return StatusCode(500, new
+                {
+                    message = "Error al desasignar estudiantes",
+                    error = ex.Message
+                });
+            }
+        }
     }
 }
