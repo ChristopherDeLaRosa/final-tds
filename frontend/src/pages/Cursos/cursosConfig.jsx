@@ -32,7 +32,7 @@ export const cursosColumns = [
     width: '100px',
     render: (value) => <CodigoBadge>{value}</CodigoBadge>
   },
-  { key: 'nombre', title: 'Nombre del Curso' },
+  { key: 'nombre', title: 'Nombre de la asignatura' },
   { 
     key: 'nivel', 
     title: 'Nivel',
