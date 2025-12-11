@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { theme } from "../../styles";
 import estudianteService from "../../services/estudianteService";
 import aulaService from "../../services/aulaService";
@@ -16,6 +16,7 @@ import {
   studentsColumns,
   studentsSearchFields,
   getStudentsFormFields,
+  getStudentsFilterOptions,
   studentsValidationRules,
   getInitialStudentFormData,
   formatStudentForForm,
@@ -65,9 +66,6 @@ export default function Students() {
   // Estados para desasignación masiva de aula
   const [showBulkUnassignModal, setShowBulkUnassignModal] = useState(false);
 
-  //estudiantes con aula
-  const estudiantesConAula = estudiantes.filter((e) => e.activo && e.aulaId).length;
-
   const {
     isProcessing,
     setIsProcessing,
@@ -91,7 +89,7 @@ export default function Students() {
 
   const totalEstudiantes = estudiantes.length;
   const estudiantesActivos = estudiantes.filter((e) => e.activo).length;
-  const estudiantesInactivos = totalEstudiantes - estudiantesActivos;
+  const estudiantesConAula = estudiantes.filter((e) => e.activo && e.aulaId).length;
   const totalTutores = estudiantes.filter((e) => !!e.nombreTutor).length;
 
   const stats = [
@@ -108,11 +106,11 @@ export default function Students() {
       icon: <UserCheck size={28} />,
     },
     {
-    label: "Con Aula Asignada",
-    value: estudiantesConAula,
-    color: "#3B82F6",
-    icon: <GraduationCap size={28} />,
-  },
+      label: "Con Aula Asignada",
+      value: estudiantesConAula,
+      color: "#3B82F6",
+      icon: <GraduationCap size={28} />,
+    },
     {
       label: "Con Tutor Registrado",
       value: totalTutores,
@@ -120,6 +118,11 @@ export default function Students() {
       icon: <GraduationCap size={28} />,
     },
   ];
+
+  // ✅ Memoizar filterOptions para evitar recalcular en cada render
+  const filterOptions = useMemo(() => {
+    return getStudentsFilterOptions(estudiantes);
+  }, [estudiantes]);
 
   const getAulasOptions = () => {
     const base = [{ value: "", label: "Sin asignar - Asignar después" }];
@@ -444,92 +447,60 @@ export default function Students() {
   };
 
   const handleBulkAssignToAula = async (aulaId, estudianteIds) => {
-  try {
-    MySwal.fire({
-      title: "Asignando estudiantes...",
-      text: `Procesando ${estudianteIds.length} estudiantes. Esto puede tomar unos momentos.`,
-      didOpen: () => MySwal.showLoading(),
-      allowOutsideClick: false,
-    });
-
-    const results = await estudianteService.bulkAssignToAula(aulaId, estudianteIds);
-
-    MySwal.close();
-
-    // Si todos fueron exitosos
-    if (results.fallidos.length === 0) {
-      await Toast.fire({
-        icon: "success",
-        title: `${results.exitosos.length} estudiantes asignados correctamente`,
-        timer: 3000,
+    try {
+      MySwal.fire({
+        title: "Asignando estudiantes...",
+        text: `Procesando ${estudianteIds.length} estudiantes. Esto puede tomar unos momentos.`,
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
       });
-    } 
-    // Si hubo algunos errores
-    else if (results.exitosos.length > 0) {
-      await MySwal.fire({
-        title: "Asignación completada con errores",
-        html: `
-          <div style="text-align: left; padding: 0 20px;">
-            <p style="color: #10b981; font-weight: 600;">
-              ${results.exitosos.length} estudiantes asignados exitosamente
-            </p>
-            <p style="color: #ef4444; font-weight: 600; margin-top: 16px;">
-            ${results.fallidos.length} estudiantes fallaron:
-            </p>
-            <ul style="max-height: 200px; overflow-y: auto; margin-top: 8px; text-align: left; background: #f9fafb; padding: 16px; border-radius: 8px;">
-              ${results.fallidos
-                .slice(0, 10)
-                .map((f) => `<li style="margin-bottom: 8px;"><strong>ID ${f.id}:</strong> ${f.error}</li>`)
-                .join("")}
-              ${
-                results.fallidos.length > 10
-                  ? `<li style="margin-top: 8px; font-style: italic;">... y ${results.fallidos.length - 10} errores más</li>`
-                  : ""
-              }
-            </ul>
-          </div>
-        `,
-        icon: "warning",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#2563EB",
-      });
-    }
-    // Si todos fallaron
-    else {
-      await MySwal.fire({
-        title: "Error en la asignación",
-        html: `
-          <div style="text-align: left; padding: 0 20px;">
-            <p style="color: #ef4444;">No se pudo asignar ningún estudiante:</p>
-            <ul style="max-height: 200px; overflow-y: auto; margin-top: 8px; text-align: left; background: #f9fafb; padding: 16px; border-radius: 8px;">
-              ${results.fallidos
-                .slice(0, 10)
-                .map((f) => `<li style="margin-bottom: 8px;"><strong>ID ${f.id}:</strong> ${f.error}</li>`)
-                .join("")}
-            </ul>
-          </div>
-        `,
+
+      const results = await estudianteService.bulkAssignToAula(aulaId, estudianteIds);
+
+      MySwal.close();
+
+      if (results.fallidos.length === 0) {
+        Toast.fire({
+          icon: "success",
+          title: `${results.exitosos.length} estudiantes asignados correctamente`,
+        });
+      } else {
+        await MySwal.fire({
+          title: "Asignación completada con errores",
+          html: `
+            <div style="text-align: left;">
+              <p><strong>${results.exitosos.length}</strong> estudiantes asignados exitosamente</p>
+              <p><strong>${results.fallidos.length}</strong> estudiantes fallaron:</p>
+              <ul style="max-height: 200px; overflow-y: auto; text-align: left;">
+                ${results.fallidos
+                  .slice(0, 5)
+                  .map((f) => `<li>ID ${f.id}: ${f.error}</li>`)
+                  .join("")}
+                ${
+                  results.fallidos.length > 5
+                    ? `<li>... y ${results.fallidos.length - 5} más</li>`
+                    : ""
+                }
+              </ul>
+            </div>
+          `,
+          icon: "warning",
+          confirmButtonText: "Entendido",
+        });
+      }
+
+      await fetchAll();
+      setShowBulkAssignModal(false);
+    } catch (error) {
+      console.error("Error en asignación masiva:", error);
+      MySwal.close();
+      Toast.fire({
         icon: "error",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#ef4444",
+        title: "Error en la asignación masiva",
+        text: error.message || "Ocurrió un error inesperado",
       });
     }
-
-    // Recargar datos
-    await fetchAll();
-    setShowBulkAssignModal(false);
-  } catch (error) {
-    console.error("Error en asignación masiva:", error);
-    MySwal.close();
-    
-    await MySwal.fire({
-      icon: "error",
-      title: "Error crítico",
-      text: error.message || "Ocurrió un error inesperado en la asignación masiva",
-      confirmButtonColor: "#ef4444",
-    });
-  }
-};
+  };
 
   // ============================================================
   // DESASIGNACIÓN MASIVA DE AULA - HANDLERS
@@ -540,92 +511,60 @@ export default function Students() {
   };
 
   const handleBulkUnassignFromAula = async (estudianteIds) => {
-  try {
-    MySwal.fire({
-      title: "Desasignando estudiantes...",
-      text: `Procesando ${estudianteIds.length} estudiantes. Esto puede tomar unos momentos.`,
-      didOpen: () => MySwal.showLoading(),
-      allowOutsideClick: false,
-    });
-
-    const results = await estudianteService.bulkUnassignFromAula(estudianteIds);
-
-    MySwal.close();
-
-    // Si todos fueron exitosos
-    if (results.fallidos.length === 0) {
-      await Toast.fire({
-        icon: "success",
-        title: `${results.exitosos.length} estudiantes desasignados correctamente`,
-        timer: 3000,
+    try {
+      MySwal.fire({
+        title: "Desasignando estudiantes...",
+        text: `Procesando ${estudianteIds.length} estudiantes. Esto puede tomar unos momentos.`,
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
       });
-    } 
-    // Si hubo algunos errores
-    else if (results.exitosos.length > 0) {
-      await MySwal.fire({
-        title: "Desasignación completada con errores",
-        html: `
-          <div style="text-align: left; padding: 0 20px;">
-            <p style="color: #10b981; font-weight: 600;">
-              ${results.exitosos.length} estudiantes desasignados exitosamente
-            </p>
-            <p style="color: #ef4444; font-weight: 600; margin-top: 16px;">
-              ${results.fallidos.length} estudiantes fallaron:
-            </p>
-            <ul style="max-height: 200px; overflow-y: auto; margin-top: 8px; text-align: left; background: #f9fafb; padding: 16px; border-radius: 8px;">
-              ${results.fallidos
-                .slice(0, 10)
-                .map((f) => `<li style="margin-bottom: 8px;"><strong>ID ${f.id}:</strong> ${f.error}</li>`)
-                .join("")}
-              ${
-                results.fallidos.length > 10
-                  ? `<li style="margin-top: 8px; font-style: italic;">... y ${results.fallidos.length - 10} errores más</li>`
-                  : ""
-              }
-            </ul>
-          </div>
-        `,
-        icon: "warning",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#2563EB",
-      });
-    }
-    // Si todos fallaron
-    else {
-      await MySwal.fire({
-        title: "Error en la desasignación",
-        html: `
-          <div style="text-align: left; padding: 0 20px;">
-            <p style="color: #ef4444;">No se pudo desasignar ningún estudiante:</p>
-            <ul style="max-height: 200px; overflow-y: auto; margin-top: 8px; text-align: left; background: #f9fafb; padding: 16px; border-radius: 8px;">
-              ${results.fallidos
-                .slice(0, 10)
-                .map((f) => `<li style="margin-bottom: 8px;"><strong>ID ${f.id}:</strong> ${f.error}</li>`)
-                .join("")}
-            </ul>
-          </div>
-        `,
+
+      const results = await estudianteService.bulkUnassignFromAula(estudianteIds);
+
+      MySwal.close();
+
+      if (results.fallidos.length === 0) {
+        Toast.fire({
+          icon: "success",
+          title: `${results.exitosos.length} estudiantes desasignados correctamente`,
+        });
+      } else {
+        await MySwal.fire({
+          title: "Desasignación completada con errores",
+          html: `
+            <div style="text-align: left;">
+              <p><strong>${results.exitosos.length}</strong> estudiantes desasignados exitosamente</p>
+              <p><strong>${results.fallidos.length}</strong> estudiantes fallaron:</p>
+              <ul style="max-height: 200px; overflow-y: auto; text-align: left;">
+                ${results.fallidos
+                  .slice(0, 5)
+                  .map((f) => `<li>ID ${f.id}: ${f.error}</li>`)
+                  .join("")}
+                ${
+                  results.fallidos.length > 5
+                    ? `<li>... y ${results.fallidos.length - 5} más</li>`
+                    : ""
+                }
+              </ul>
+            </div>
+          `,
+          icon: "warning",
+          confirmButtonText: "Entendido",
+        });
+      }
+
+      await fetchAll();
+      setShowBulkUnassignModal(false);
+    } catch (error) {
+      console.error("Error en desasignación masiva:", error);
+      MySwal.close();
+      Toast.fire({
         icon: "error",
-        confirmButtonText: "Entendido",
-        confirmButtonColor: "#ef4444",
+        title: "Error en la desasignación masiva",
+        text: error.message || "Ocurrió un error inesperado",
       });
     }
-
-    // Recargar datos
-    await fetchAll();
-    setShowBulkUnassignModal(false);
-  } catch (error) {
-    console.error("Error en desasignación masiva:", error);
-    MySwal.close();
-    
-    await MySwal.fire({
-      icon: "error",
-      title: "Error crítico",
-      text: error.message || "Ocurrió un error inesperado en la desasignación masiva",
-      confirmButtonColor: "#ef4444",
-    });
-  }
-};
+  };
 
   return (
     <>
@@ -649,6 +588,7 @@ export default function Students() {
         stats={stats}
         columns={studentsColumns}
         searchFields={studentsSearchFields}
+        filterOptions={filterOptions}
         isModalOpen={isModalOpen}
         modalTitle={
           selectedEstudiante ? "Editar Estudiante" : "Nuevo Estudiante"

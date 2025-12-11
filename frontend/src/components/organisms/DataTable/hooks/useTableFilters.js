@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 
-export const useTableFilters = (data) => {
+export const useTableFilters = (data, filterOptions = {}) => {
   const [filters, setFilters] = useState({});
 
   const filteredData = useMemo(() => {
@@ -17,6 +17,10 @@ export const useTableFilters = (data) => {
             return itemMes === value;
           }
           
+          if (filterOptions[key]?.customFilter) {
+            return filterOptions[key].customFilter(item, value);
+          }
+          
           const itemValue = item[key];
           
           // Manejar valores booleanos
@@ -24,14 +28,13 @@ export const useTableFilters = (data) => {
             return itemValue === value;
           }
           
-          // Manejar otros tipos
           return String(itemValue) === String(value);
         });
       }
     });
 
     return filtered;
-  }, [data, filters]);
+  }, [data, filters, filterOptions]);
 
   const handleFilterChange = (filterKey, value) => {
     setFilters(prev => ({

@@ -122,19 +122,21 @@ const StudentCard = styled.div`
   justify-content: space-between;
   padding: ${theme.spacing.md};
   background: ${(props) =>
-    props.$selected ? "rgba(239, 68, 68, 0.1)" : theme.colors.white};
+    props.$selected ? theme.colors.dangerLight : theme.colors.white};
   border: 1px solid
-    ${(props) => (props.$selected ? theme.colors.error : theme.colors.border)};
+    ${(props) =>
+      props.$selected ? theme.colors.danger : theme.colors.border};
   border-radius: ${theme.borderRadius.md};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: ${theme.transition.normal};
 
   &:hover {
     background: ${(props) =>
-      props.$selected ? "rgba(239, 68, 68, 0.15)" : theme.colors.backgroundAlt};
-    border-color: ${theme.colors.error};
+      props.$selected ? theme.colors.dangerLight : theme.colors.backgroundAlt};
+    border-color: ${theme.colors.danger};
   }
 `;
+
 
 const StudentInfo = styled.div`
   display: flex;
@@ -170,14 +172,15 @@ const CheckIcon = styled.div`
   height: 24px;
   border-radius: 50%;
   background: ${(props) =>
-    props.$checked ? theme.colors.error : theme.colors.white};
+    props.$checked ? theme.colors.danger : theme.colors.white};
   border: 2px solid
-    ${(props) => (props.$checked ? theme.colors.error : theme.colors.border)};
+    ${(props) =>
+      props.$checked ? theme.colors.danger : theme.colors.border};
   display: flex;
   align-items: center;
   justify-content: center;
   color: ${theme.colors.white};
-  transition: all 0.2s ease;
+  transition: ${theme.transition.normal};
 `;
 
 const EmptyState = styled.div`
@@ -193,6 +196,7 @@ const ModalFooter = styled.div`
   justify-content: space-between;
   align-items: center;
   gap: ${theme.spacing.md};
+  background: ${theme.colors.backgroundAlt};  
 `;
 
 const SelectionInfo = styled.div`
@@ -214,46 +218,57 @@ const Button = styled.button`
   padding: ${theme.spacing.md} ${theme.spacing.xl};
   border-radius: ${theme.borderRadius.lg};
   font-size: ${theme.fontSize.sm};
-  font-weight: 600;
+  font-weight: ${theme.fontWeight.semibold};
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: ${theme.transition.normal};
   border: none;
   display: flex;
   align-items: center;
   gap: ${theme.spacing.sm};
 
+
   ${(props) =>
     props.$variant === "danger" &&
     `
-    background: ${theme.colors.error};
-    color: ${theme.colors.white};
-    
-    &:hover:not(:disabled) {
-      background: #dc2626;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    }
-  `}
+      background: ${theme.colors.danger};
+      color: ${theme.colors.white};
+      box-shadow: ${theme.shadows.md};
+
+      &:hover:not(:disabled) {
+        background: #dc2626;
+        transform: translateY(-1px);
+        box-shadow: ${theme.shadows.lg};
+      }
+    `}
 
   ${(props) =>
     props.$variant === "secondary" &&
     `
-    background: ${theme.colors.white};
-    color: ${theme.colors.textSecondary};
-    border: 1px solid ${theme.colors.border};
-    
-    &:hover:not(:disabled) {
-      background: ${theme.colors.backgroundAlt};
-      border-color: ${theme.colors.borderDark};
-    }
-  `}
-  
+      background: ${theme.colors.white};
+      color: ${theme.colors.textSecondary};
+      border: 1px solid ${theme.colors.border};
+
+      &:hover:not(:disabled) {
+        background: ${theme.colors.backgroundAlt};
+        border-color: ${theme.colors.borderDark};
+      }
+    `}
+
   &:disabled {
-    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    opacity: 1;
+
+    ${props =>
+      props.$variant === "danger" &&
+      `
+        background: ${theme.colors.dangerLight};
+        color: ${theme.colors.danger};
+        box-shadow: none;
+      `}
   }
 `;
+
 
 export default function BulkUnassignFromAulaModal({
   isOpen,

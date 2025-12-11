@@ -95,6 +95,65 @@ export const studentsSearchFields = [
   'seccionActual'
 ];
 
+// Opciones de filtros dinámicos
+export const getStudentsFilterOptions = (estudiantes = []) => {
+  // Obtener grados únicos
+  const gradosUnicos = [...new Set(estudiantes.map(e => e.gradoActual))]
+    .filter(v => v != null)
+    .map(v => Number(v))
+    .sort((a, b) => a - b);
+
+  // Obtener secciones únicas
+  const seccionesUnicas = [...new Set(estudiantes.map(e => e.seccionActual))]
+    .filter(Boolean)
+    .sort();
+
+  // Obtener estados de aula
+  const estadosAula = [
+    { value: 'conAula', label: 'Con aula asignada', count: estudiantes.filter(e => e.aulaId).length },
+    { value: 'sinAula', label: 'Sin aula asignada', count: estudiantes.filter(e => !e.aulaId).length }
+  ];
+
+  return {
+    gradoActual: {
+      label: 'Grado',
+      options: [
+        { value: '', label: 'Todos los grados' },
+        ...gradosUnicos.map(grado => ({
+          value: grado,
+          label: `${grado}°`
+        }))
+      ]
+    },
+    seccionActual: {
+      label: 'Sección',
+      options: [
+        { value: '', label: 'Todas las secciones' },
+        ...seccionesUnicas.map(seccion => ({
+          value: seccion,
+          label: `Sección ${seccion}`
+        }))
+      ]
+    },
+    // estadoAula: {
+    //   label: 'Estado de Aula',
+    //   options: [
+    //     { value: '', label: 'Todos los estados' },
+    //     ...estadosAula.map(estado => ({
+    //       value: estado.value,
+    //       label: `${estado.label} (${estado.count})`
+    //     }))
+    //   ],
+    //   // Función especial de filtrado para este campo custom
+    //   customFilter: (estudiante, filterValue) => {
+    //     if (filterValue === 'conAula') return !!estudiante.aulaId;
+    //     if (filterValue === 'sinAula') return !estudiante.aulaId;
+    //     return true;
+    //   }
+    // }
+  };
+};
+
 // Campos del formulario
 export const getStudentsFormFields = (isEditing) => [
   {
@@ -379,3 +438,4 @@ export const formatStudentDataForAPI = (formData) => ({
   observacionesMedicas: formData.observacionesMedicas?.trim() || null,
   activo: formData.activo,
 });
+

@@ -422,13 +422,13 @@ export default function BulkAssignToAulaModal({
             </FormGroup>
 
             <FormGroup>
-              <Label>Aula Destino</Label>
+              <Label>Periodo</Label>
               <Select
                 value={selectedAula}
                 onChange={(e) => setSelectedAula(e.target.value)}
                 disabled={!selectedSeccion}
               >
-                <option value="">Selecciona un aula</option>
+                <option value="">Selecciona un periodo</option>
                 {aulasCompatibles.map(aula => (
                   <option key={aula.id} value={aula.id}>
                     {aula.periodo} ({aula.anio}) - {aula.cuposDisponibles} cupos
