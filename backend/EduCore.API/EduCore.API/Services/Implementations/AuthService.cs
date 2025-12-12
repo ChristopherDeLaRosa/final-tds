@@ -146,7 +146,7 @@ namespace EduCore.API.Services.Implementations
             await _context.SaveChangesAsync();
 
             var emailBody = $@"
-                <h2>Bienvenido al Sistema EduCore</h2>
+                <h2>Bienvenido al Sistema Zirak</h2>
                 <p>Hola <strong>{usuario.NombreUsuario}</strong>, tu cuenta ha sido creada.</p>
 
                 <p><strong>Credenciales de acceso:</strong></p>
@@ -161,7 +161,7 @@ namespace EduCore.API.Services.Implementations
 
             await _emailService.SendEmailAsync(
                 usuario.Email,
-                "Credenciales de acceso - EduCore",
+                "Credenciales de acceso - Zirak",
                 emailBody
             );
 
@@ -215,11 +215,11 @@ namespace EduCore.API.Services.Implementations
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            // ✅ Agregar EstudianteId si existe
+            // Agregar EstudianteId si existe
             if (usuario.EstudianteId.HasValue)
                 claims.Add(new Claim("EstudianteId", usuario.EstudianteId.Value.ToString()));
 
-            // ✅ Agregar DocenteId si existe (CRÍTICO para filtrar grupos)
+            // Agregar DocenteId si existe (CRÍTICO para filtrar grupos)
             if (usuario.DocenteId.HasValue)
                 claims.Add(new Claim("DocenteId", usuario.DocenteId.Value.ToString()));
 

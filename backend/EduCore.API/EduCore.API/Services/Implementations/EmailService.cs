@@ -28,7 +28,7 @@ public class EmailService : IEmailService
 
             var mail = new MailMessage
             {
-                From = new MailAddress(_config["EmailSettings:SenderEmail"], "EduCore"),
+                From = new MailAddress(_config["EmailSettings:SenderEmail"], "Zirak"),
                 Subject = subject,
                 Body = htmlContent,
                 IsBodyHtml = true
