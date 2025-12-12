@@ -3,6 +3,7 @@ import { CalendarCheck2, ClockAlert, Layers, BarChart3 } from 'lucide-react';
 import { theme } from '../../styles';
 import sesionService from '../../services/sesionService';
 import grupoCursoService from '../../services/grupoCursoService';
+import authService from '../../services/authService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -50,6 +51,13 @@ export default function Sesiones() {
   const [gruposCursos, setGruposCursos] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
 
+  // Obtener rol del usuario
+  const currentUser = authService.getCurrentUser();
+  const isDocente = currentUser?.rol === 'Docente';
+  const isAdmin = currentUser?.rol === 'Admin';
+  const isCoordinador = currentUser?.rol === 'Coordinador';
+  const canManageSesiones = isAdmin || isCoordinador || isDocente;
+
   useEffect(() => {
     const fetchRelatedData = async () => {
       try {
@@ -70,10 +78,7 @@ export default function Sesiones() {
     fetchRelatedData();
   }, []);
 
-  // =======================
-  //      ESTADÍSTICAS
-  // =======================
-
+  // Estadísticas
   const totalSesiones = sesiones.length;
   const sesionesRealizadas = sesiones.filter(s => s.realizada).length;
   const sesionesPendientes = totalSesiones - sesionesRealizadas;
@@ -84,7 +89,7 @@ export default function Sesiones() {
 
   const stats = [
     {
-      label: 'Total Sesiones',
+      label: isDocente ? 'Mis Sesiones' : 'Total Sesiones',
       value: totalSesiones,
       color: theme.colors.accent,
       icon: <Layers size={28} />,
@@ -112,11 +117,16 @@ export default function Sesiones() {
   // opciones de filtro
   const filterOptions = getSesionesFilterOptions(sesiones);
 
-  // =======================
-  //      HANDLERS
-  // =======================
-
+  // Handlers
   const handleAddSesion = () => {
+    if (!canManageSesiones) {
+      Toast.fire({
+        icon: 'error',
+        title: 'No tienes permisos para crear sesiones',
+      });
+      return;
+    }
+
     if (loadingRelated) {
       Toast.fire({
         icon: 'warning',
@@ -130,6 +140,14 @@ export default function Sesiones() {
   };
 
   const handleEditSesion = (sesion) => {
+    if (!canManageSesiones) {
+      Toast.fire({
+        icon: 'error',
+        title: 'No tienes permisos para editar sesiones',
+      });
+      return;
+    }
+
     if (loadingRelated) {
       Toast.fire({
         icon: 'warning',
@@ -153,6 +171,14 @@ export default function Sesiones() {
   };
 
   const handleSaveSesion = async () => {
+    if (!canManageSesiones) {
+      Toast.fire({
+        icon: 'error',
+        title: 'No tienes permisos para modificar sesiones',
+      });
+      return;
+    }
+
     if (!validate(formData)) return;
     
     setIsSubmitting(true);
@@ -183,6 +209,14 @@ export default function Sesiones() {
   };
 
   const handleDeleteSesion = async (sesion) => {
+    if (!isAdmin) {
+      Toast.fire({
+        icon: 'error',
+        title: 'Solo los administradores pueden eliminar sesiones',
+      });
+      return;
+    }
+
     const fecha = new Date(sesion.fecha).toLocaleDateString('es-DO');
     const nombre = `${sesion.nombreCurso} - ${fecha}`;
     await remove(sesion.id, nombre);
@@ -215,16 +249,12 @@ export default function Sesiones() {
     }
   };
 
-  // =======================
-  //        RENDER
-  // =======================
-
   return (
     <CrudPage
-      title="Gestión de Sesiones"
-      subtitle="Programación de clases - Zirak"
+      title={isDocente ? "Mis Sesiones de Clase" : "Gestión de Sesiones"}
+      subtitle={isDocente ? "Tus clases programadas" : "Programación de clases - Zirak"}
       addButtonText="Agregar Sesión"
-      emptyMessage="No hay sesiones registradas. ¡Agrega la primera!"
+      emptyMessage={isDocente ? "No tienes sesiones programadas" : "No hay sesiones registradas. ¡Agrega la primera!"}
       loadingMessage="Cargando sesiones..."
       
       data={sesiones}
@@ -243,9 +273,9 @@ export default function Sesiones() {
       formErrors={formErrors}
       isSubmitting={isSubmitting || loadingRelated}
 
-      onAdd={handleAddSesion}
-      onEdit={handleEditSesion}
-      onDelete={handleDeleteSesion}
+      onAdd={canManageSesiones ? handleAddSesion : undefined}
+      onEdit={canManageSesiones ? handleEditSesion : undefined}
+      onDelete={isAdmin ? handleDeleteSesion : undefined}
       onSave={handleSaveSesion}
       onCancel={handleCancelModal}
       onInputChange={handleInputChange}
