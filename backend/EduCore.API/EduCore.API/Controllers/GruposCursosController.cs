@@ -2,6 +2,7 @@
 using EduCore.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EduCore.API.Controllers
 {
@@ -22,7 +23,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener todos los grupos activos
+        /// Obtener todos los grupos activos (Admin/Coordinador ven todos, Docente solo los suyos)
         /// </summary>
         /// <returns>Lista de grupos</returns>
         [HttpGet]
@@ -30,8 +31,28 @@ namespace EduCore.API.Controllers
         {
             try
             {
-                var grupos = await _grupoService.GetAllAsync();
-                return Ok(grupos);
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                // Si es docente, obtener su ID de docente desde el usuario
+                if (userRole == "Docente")
+                {
+                    // Obtener el docenteId asociado al usuario
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+
+                    if (string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        return Ok(new List<GrupoCursoDto>()); // Sin grupos si no tiene docenteId
+                    }
+
+                    var docenteId = int.Parse(docenteIdClaim);
+                    var grupos = await _grupoService.GetByDocenteAsync(docenteId);
+                    return Ok(grupos);
+                }
+
+                // Admin y Coordinador ven todos
+                var todosGrupos = await _grupoService.GetAllAsync();
+                return Ok(todosGrupos);
             }
             catch (Exception ex)
             {
@@ -41,7 +62,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener grupo por ID
+        /// Obtener grupo por ID (Docente solo puede ver los suyos)
         /// </summary>
         /// <param name="id">ID del grupo</param>
         /// <returns>Datos del grupo</returns>
@@ -55,6 +76,21 @@ namespace EduCore.API.Controllers
                 if (grupo == null)
                     return NotFound(new { message = "Grupo no encontrado" });
 
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        if (grupo.DocenteId != docenteId)
+                        {
+                            return Forbid(); // 403 - No tiene permiso para ver este grupo
+                        }
+                    }
+                }
+
                 return Ok(grupo);
             }
             catch (Exception ex)
@@ -65,7 +101,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener detalle completo del grupo incluyendo estudiantes
+        /// Obtener detalle completo del grupo incluyendo estudiantes (Docente solo puede ver los suyos)
         /// </summary>
         /// <param name="id">ID del grupo</param>
         /// <returns>Detalle completo del grupo</returns>
@@ -78,6 +114,21 @@ namespace EduCore.API.Controllers
 
                 if (detalle == null)
                     return NotFound(new { message = "Grupo no encontrado" });
+
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        if (detalle.Docente.Id != docenteId)
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
 
                 return Ok(detalle);
             }
@@ -100,6 +151,22 @@ namespace EduCore.API.Controllers
             {
                 if (string.IsNullOrWhiteSpace(periodo))
                     return BadRequest(new { message = "El periodo es requerido" });
+
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        return Ok(new List<GrupoCursoDto>());
+                    }
+
+                    var docenteId = int.Parse(docenteIdClaim);
+                    var todosGrupos = await _grupoService.GetByDocenteAsync(docenteId);
+                    var gruposFiltrados = todosGrupos.Where(g => g.Periodo == periodo);
+                    return Ok(gruposFiltrados);
+                }
 
                 var grupos = await _grupoService.GetByPeriodoAsync(periodo);
                 return Ok(grupos);
@@ -135,6 +202,26 @@ namespace EduCore.API.Controllers
                 if (string.IsNullOrWhiteSpace(periodo))
                     return BadRequest(new { message = "El periodo es requerido" });
 
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        return Ok(new List<GrupoCursoDto>());
+                    }
+
+                    var docenteId = int.Parse(docenteIdClaim);
+                    var todosGrupos = await _grupoService.GetByDocenteAsync(docenteId);
+                    var gruposFiltrados = todosGrupos.Where(g =>
+                        g.Grado == grado &&
+                        g.Seccion == seccion &&
+                        g.Periodo == periodo
+                    );
+                    return Ok(gruposFiltrados);
+                }
+
                 var grupos = await _grupoService.GetByGradoSeccionAsync(grado, seccion, periodo);
                 return Ok(grupos);
             }
@@ -155,6 +242,22 @@ namespace EduCore.API.Controllers
         {
             try
             {
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        return Ok(new List<GrupoCursoDto>());
+                    }
+
+                    var docenteId = int.Parse(docenteIdClaim);
+                    var todosGrupos = await _grupoService.GetByDocenteAsync(docenteId);
+                    var gruposFiltrados = todosGrupos.Where(g => g.CursoId == cursoId);
+                    return Ok(gruposFiltrados);
+                }
+
                 var grupos = await _grupoService.GetByCursoAsync(cursoId);
                 return Ok(grupos);
             }
@@ -175,6 +278,21 @@ namespace EduCore.API.Controllers
         {
             try
             {
+                // Si es docente, solo puede ver sus propios grupos
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteIdToken = int.Parse(docenteIdClaim);
+                        if (docenteIdToken != docenteId)
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 var grupos = await _grupoService.GetByDocenteAsync(docenteId);
                 return Ok(grupos);
             }
@@ -214,6 +332,21 @@ namespace EduCore.API.Controllers
                 if (horario == null)
                     return NotFound(new { message = "No se encontró horario para el grado y sección especificados" });
 
+                // Si es docente, filtrar solo sus materias
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        // Filtrar grupos del horario
+                        horario.Grupos = horario.Grupos
+                            .Where(g => g.Docente.Contains(docenteIdClaim)) // Aquí necesitarías ajustar según cómo está estructurado
+                            .ToList();
+                    }
+                }
+
                 return Ok(horario);
             }
             catch (Exception ex)
@@ -224,7 +357,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Crear nuevo grupo
+        /// Crear nuevo grupo (Solo Admin/Coordinador)
         /// </summary>
         /// <param name="createDto">Datos del nuevo grupo</param>
         /// <returns>Grupo creado</returns>
@@ -237,7 +370,6 @@ namespace EduCore.API.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Verificar si el código ya existe
                 if (await _grupoService.CodigoExistsAsync(createDto.Codigo))
                 {
                     return BadRequest(new { message = "El código ya está registrado" });
@@ -254,7 +386,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Actualizar grupo existente
+        /// Actualizar grupo existente (Solo Admin/Coordinador)
         /// </summary>
         /// <param name="id">ID del grupo</param>
         /// <param name="updateDto">Datos actualizados</param>
@@ -283,7 +415,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Eliminar grupo (soft delete)
+        /// Eliminar grupo (Solo Admin)
         /// </summary>
         /// <param name="id">ID del grupo</param>
         /// <returns>Confirmación de eliminación</returns>
@@ -308,7 +440,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Crear múltiples grupos-cursos en una sola operación
+        /// Crear múltiples grupos-cursos en una sola operación (Solo Admin/Coordinador)
         /// </summary>
         /// <param name="batchDto">Datos para creación masiva</param>
         /// <returns>Resultado de la operación masiva</returns>

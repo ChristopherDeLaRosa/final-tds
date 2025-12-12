@@ -17,12 +17,18 @@ namespace EduCore.API.Services.Implementations
         private readonly EduCoreDbContext _context;
         private readonly JwtSettings _jwtSettings;
         private readonly IEmailService _emailService;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(EduCoreDbContext context, IOptions<JwtSettings> jwtSettings, IEmailService emailService)
+        public AuthService(
+            EduCoreDbContext context,
+            IOptions<JwtSettings> jwtSettings,
+            IEmailService emailService,
+            ILogger<AuthService> logger)
         {
             _context = context;
             _jwtSettings = jwtSettings.Value;
             _emailService = emailService;
+            _logger = logger;
         }
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto loginDto)
@@ -38,6 +44,34 @@ namespace EduCore.API.Services.Implementations
 
             usuario.UltimoAcceso = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // ✅ MEJORA: Si el usuario es docente pero no tiene DocenteId, intentar encontrarlo por email
+            if (usuario.Rol == "Docente" && !usuario.DocenteId.HasValue)
+            {
+                var docente = await _context.Docentes
+                    .FirstOrDefaultAsync(d => d.Email == usuario.Email && d.Activo);
+
+                if (docente != null)
+                {
+                    // Actualizar el DocenteId en el usuario
+                    usuario.DocenteId = docente.Id;
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation(
+                        "DocenteId asignado automáticamente al usuario {Usuario}: DocenteId={DocenteId}",
+                        usuario.NombreUsuario,
+                        docente.Id
+                    );
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Usuario docente {Usuario} sin registro en tabla Docentes (Email: {Email})",
+                        usuario.NombreUsuario,
+                        usuario.Email
+                    );
+                }
+            }
 
             var token = GenerateJwtToken(usuario);
             var expiracion = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
@@ -76,6 +110,24 @@ namespace EduCore.API.Services.Implementations
                     return null;
             }
 
+            // ✅ MEJORA: Si es docente y no se proporcionó DocenteId, buscarlo por email
+            int? docenteId = registerDto.DocenteId;
+            if (registerDto.Rol == "Docente" && !docenteId.HasValue)
+            {
+                var docente = await _context.Docentes
+                    .FirstOrDefaultAsync(d => d.Email == registerDto.Email && d.Activo);
+
+                if (docente != null)
+                {
+                    docenteId = docente.Id;
+                    _logger.LogInformation(
+                        "DocenteId encontrado automáticamente por email para {Usuario}: DocenteId={DocenteId}",
+                        registerDto.NombreUsuario,
+                        docente.Id
+                    );
+                }
+            }
+
             string passwordTemporal = Guid.NewGuid().ToString("N")[..8];
 
             var usuario = new Usuario
@@ -85,7 +137,7 @@ namespace EduCore.API.Services.Implementations
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordTemporal),
                 Rol = registerDto.Rol,
                 EstudianteId = registerDto.EstudianteId,
-                DocenteId = registerDto.DocenteId,
+                DocenteId = docenteId, // ← Usar el valor encontrado o proporcionado
                 Activo = true,
                 FechaCreacion = DateTime.UtcNow
             };
@@ -130,6 +182,9 @@ namespace EduCore.API.Services.Implementations
         {
             var user = await _context.Usuarios.FindAsync(userId);
 
+            if (user == null)
+                return false;
+
             if (!BCrypt.Net.BCrypt.Verify(dto.OldPassword, user.PasswordHash))
                 return false;
 
@@ -160,9 +215,11 @@ namespace EduCore.API.Services.Implementations
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
+            // ✅ Agregar EstudianteId si existe
             if (usuario.EstudianteId.HasValue)
                 claims.Add(new Claim("EstudianteId", usuario.EstudianteId.Value.ToString()));
 
+            // ✅ Agregar DocenteId si existe (CRÍTICO para filtrar grupos)
             if (usuario.DocenteId.HasValue)
                 claims.Add(new Claim("DocenteId", usuario.DocenteId.Value.ToString()));
 

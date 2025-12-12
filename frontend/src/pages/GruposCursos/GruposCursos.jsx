@@ -6,6 +6,7 @@ import cursoService from '../../services/cursoService';
 import docenteService from '../../services/docenteService';
 import aulaService from '../../services/aulaService';
 import periodoService from '../../services/periodoService';
+import authService from '../../services/authService';
 import CrudPage from '../../components/organisms/CrudPage/CrudPage';
 import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
@@ -62,6 +63,13 @@ export default function GruposCursos() {
   const [showFormFields, setShowFormFields] = useState(false);
   const [gradoSeleccionado, setGradoSeleccionado] = useState(null);
 
+  // ← NUEVO: Obtener rol del usuario
+  const currentUser = authService.getCurrentUser();
+  const isDocente = currentUser?.rol === 'Docente';
+  const isAdmin = currentUser?.rol === 'Admin';
+  const isCoordinador = currentUser?.rol === 'Coordinador';
+  const canManageGrupos = isAdmin || isCoordinador;
+
   // Cargar listas relacionadas
   useEffect(() => {
     const fetchRelatedData = async () => {
@@ -103,7 +111,7 @@ export default function GruposCursos() {
 
   const stats = [
     {
-      label: 'Total Grupos',
+      label: isDocente ? 'Mis Grupos' : 'Total Grupos',
       value: totalGrupos,
       color: theme.colors.accent,
       icon: <Layers size={28} />
@@ -127,7 +135,9 @@ export default function GruposCursos() {
       icon: <AlertTriangle size={28} />
     },
   ];
+
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  
   const handleBatchCreate = async (batchData) => {
     try {
       const result = await grupoCursoService.createBatch(batchData);
@@ -141,8 +151,16 @@ export default function GruposCursos() {
   // Opciones de filtro
   const filterOptions = getGruposCursosFilterOptions(gruposCursos);
 
-  // Crear
+  // Crear (Solo Admin/Coordinador)
   const handleAddGrupoCurso = () => {
+    if (!canManageGrupos) {
+      Toast.fire({ 
+        icon: 'error', 
+        title: 'No tienes permisos para crear grupos' 
+      });
+      return;
+    }
+
     if (loadingRelated || loadingPeriodos) {
       Toast.fire({ title: 'Cargando datos...' });
       return;
@@ -163,8 +181,16 @@ export default function GruposCursos() {
     openModal(null);
   };
 
-  // Editar
+  // Editar (Solo Admin/Coordinador)
   const handleEditGrupoCurso = (grupoCurso) => {
+    if (!canManageGrupos) {
+      Toast.fire({ 
+        icon: 'error', 
+        title: 'No tienes permisos para editar grupos' 
+      });
+      return;
+    }
+
     if (loadingRelated || loadingPeriodos) {
       Toast.fire({ title: 'Cargando datos...' });
       return;
@@ -172,7 +198,6 @@ export default function GruposCursos() {
     
     const formattedData = formatGrupoCursoForForm(grupoCurso);
     
-    // FIX: Si viene periodoId, usarlo; si no, buscarlo por nombre
     if (formattedData.periodoId) {
       setFormData(formattedData);
     } else if (grupoCurso.periodo) {
@@ -267,6 +292,14 @@ export default function GruposCursos() {
 
   // Guardar
   const handleSaveGrupoCurso = async () => {
+    if (!canManageGrupos) {
+      Toast.fire({ 
+        icon: 'error', 
+        title: 'No tienes permisos para modificar grupos' 
+      });
+      return;
+    }
+
     if (!formData.periodoId) {
       Toast.fire({ 
         icon: 'error', 
@@ -302,8 +335,16 @@ export default function GruposCursos() {
     }
   };
 
-  // Activar/Desactivar
+  // Activar/Desactivar (Solo Admin)
   const handleToggleStatus = async (grupo) => {
+    if (!isAdmin) {
+      Toast.fire({ 
+        icon: 'error', 
+        title: 'Solo los administradores pueden eliminar grupos' 
+      });
+      return;
+    }
+
     const action = grupo.activo ? 'desactivar' : 'activar';
     const actionPast = grupo.activo ? 'desactivado' : 'activado';
 
@@ -362,65 +403,68 @@ export default function GruposCursos() {
   };
 
   return (
-  <>
-    <CrudPage
-      title="Gestión de Secciones Académicas"
-      subtitle="Asignación de cursos por grado y sección - Zirak"
-      addButtonText="Agregar Sección"
-      emptyMessage="No hay grupos registrados"
-      loadingMessage="Cargando grupos..."
+    <>
+      <CrudPage
+        title={isDocente ? "Mis Secciones Académicas" : "Gestión de Secciones Académicas"}
+        subtitle={isDocente ? "Tus asignaciones de cursos por grado y sección" : "Asignación de cursos por grado y sección - Zirak"}
+        addButtonText="Agregar Sección"
+        emptyMessage={isDocente ? "No tienes grupos asignados" : "No hay grupos registrados"}
+        loadingMessage="Cargando grupos..."
 
-      //para el batch
-      secondaryAction={{
-        text: "Creación Rápida",
-        icon: <Zap size={20} />,
-        onClick: () => setIsBatchModalOpen(true),
-        variant: "accent"
-      }}
+        // Para el batch (solo Admin/Coordinador)
+        secondaryAction={canManageGrupos ? {
+          text: "Creación Rápida",
+          icon: <Zap size={20} />,
+          onClick: () => setIsBatchModalOpen(true),
+          variant: "accent"
+        } : undefined}
 
-      data={gruposCursos}
-      loading={loading}
-      error={error}
-      stats={stats}
+        data={gruposCursos}
+        loading={loading}
+        error={error}
+        stats={stats}
 
-      columns={gruposCursosColumns}
-      searchFields={gruposCursosSearchFields}
-      filterOptions={filterOptions}
+        columns={gruposCursosColumns}
+        searchFields={gruposCursosSearchFields}
+        filterOptions={filterOptions}
 
-      isModalOpen={isModalOpen}
-      modalTitle={selectedGrupoCurso ? 'Editar Grupo-Curso' : 'Nuevo Grupo-Curso'}
-      formFields={getGruposCursosFormFields(
-        !!selectedGrupoCurso,
-        cursos,
-        docentes,
-        aulas,
-        periodos,
-        showFormFields,
-        gradoSeleccionado
+        isModalOpen={isModalOpen}
+        modalTitle={selectedGrupoCurso ? 'Editar Grupo-Curso' : 'Nuevo Grupo-Curso'}
+        formFields={getGruposCursosFormFields(
+          !!selectedGrupoCurso,
+          cursos,
+          docentes,
+          aulas,
+          periodos,
+          showFormFields,
+          gradoSeleccionado
+        )}
+        formData={formData}
+        formErrors={formErrors}
+        isSubmitting={isSubmitting || loadingRelated || loadingPeriodos}
+
+        // Solo Admin/Coordinador pueden crear/editar/eliminar
+        onAdd={canManageGrupos ? handleAddGrupoCurso : undefined}
+        onEdit={canManageGrupos ? handleEditGrupoCurso : undefined}
+        onDelete={isAdmin ? handleToggleStatus : undefined}
+        onSave={handleSaveGrupoCurso}
+        onCancel={handleCancelModal}
+        onInputChange={handleInputChange}
+        onRetry={handleRetry}
+      />
+
+      {/* Modal de creación masiva (solo Admin/Coordinador) */}
+      {canManageGrupos && (
+        <BatchGrupoCursoModal
+          isOpen={isBatchModalOpen}
+          onClose={() => setIsBatchModalOpen(false)}
+          periodos={periodos || []}
+          aulas={aulas || []}
+          docentes={docentes || []}
+          cursos={cursos || []}
+          onSuccess={handleBatchCreate}
+        />
       )}
-      formData={formData}
-      formErrors={formErrors}
-      isSubmitting={isSubmitting || loadingRelated || loadingPeriodos}
-
-      onAdd={handleAddGrupoCurso}
-      onEdit={handleEditGrupoCurso}
-      onDelete={handleToggleStatus}
-      onSave={handleSaveGrupoCurso}
-      onCancel={handleCancelModal}
-      onInputChange={handleInputChange}
-      onRetry={handleRetry}
-    />
-
-    {/* Modal de creación masiva */}
-    <BatchGrupoCursoModal
-      isOpen={isBatchModalOpen}
-      onClose={() => setIsBatchModalOpen(false)}
-      periodos={periodos || []}
-      aulas={aulas || []}
-      docentes={docentes || []}
-      cursos={cursos || []}
-      onSuccess={handleBatchCreate}
-    />
-  </>
-);
+    </>
+  );
 }
