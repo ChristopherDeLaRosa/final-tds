@@ -135,22 +135,6 @@ export const getStudentsFilterOptions = (estudiantes = []) => {
         }))
       ]
     },
-    // estadoAula: {
-    //   label: 'Estado de Aula',
-    //   options: [
-    //     { value: '', label: 'Todos los estados' },
-    //     ...estadosAula.map(estado => ({
-    //       value: estado.value,
-    //       label: `${estado.label} (${estado.count})`
-    //     }))
-    //   ],
-    //   // Función especial de filtrado para este campo custom
-    //   customFilter: (estudiante, filterValue) => {
-    //     if (filterValue === 'conAula') return !!estudiante.aulaId;
-    //     if (filterValue === 'sinAula') return !estudiante.aulaId;
-    //     return true;
-    //   }
-    // }
   };
 };
 

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Layers, CheckCircle, Percent, ClipboardList } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Layers, CheckCircle, Percent, ClipboardList, Upload, FileSpreadsheet } from 'lucide-react';
 import { theme } from '../../styles';
 import rubroService from '../../services/rubroService';
 import grupoCursoService from '../../services/grupoCursoService';
@@ -8,6 +8,8 @@ import { useCrud } from '../../hooks/useCrud';
 import { useFormValidation } from '../../hooks/useFormValidation';
 import { useModal } from '../../hooks/useModal';
 import { MySwal, Toast } from '../../utils/alerts';
+import { useExcelUpload } from '../../hooks/useExcelUpload';
+import BulkUploadResultModal from '../../components/molecules/BulkUploadResultModal/BulkUploadResultModal';
 import {
   rubrosColumns,
   rubrosSearchFields,
@@ -48,6 +50,19 @@ export default function Rubros() {
 
   const [gruposCursos, setGruposCursos] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(true);
+
+  // Estados para carga masiva de Excel
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [uploadResults, setUploadResults] = useState(null);
+  const fileInputRef = useRef(null);
+
+  const {
+    isProcessing,
+    setIsProcessing,
+    readExcelFile,
+    validateAndTransformRubros,
+    generateRubroTemplate,
+  } = useExcelUpload();
 
   // ===========================
   //   FETCH RELATED DATA
@@ -272,40 +287,208 @@ export default function Rubros() {
     }
   };
 
+  // ============================================================
+  // CARGA MASIVA DESDE EXCEL - HANDLERS
+  // ============================================================
+
+  const handleDownloadTemplate = () => {
+    generateRubroTemplate();
+    Toast.fire({
+      icon: 'success',
+      title: 'Plantilla descargada exitosamente',
+    });
+  };
+
+  const handleFileSelect = async (event) => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      Toast.fire({
+        icon: 'error',
+        title: 'Por favor selecciona un archivo Excel válido (.xlsx o .xls)',
+      });
+      return;
+    }
+
+    try {
+      MySwal.fire({
+        title: 'Procesando archivo...',
+        text: 'Por favor espera mientras procesamos el archivo Excel',
+        didOpen: () => MySwal.showLoading(),
+        allowOutsideClick: false,
+      });
+
+      const jsonData = await readExcelFile(file);
+
+      if (jsonData.length === 0) {
+        MySwal.close();
+        Toast.fire({
+          icon: 'error',
+          title: 'El archivo está vacío',
+        });
+        return;
+      }
+
+      const { validData, errors } = validateAndTransformRubros(jsonData);
+
+      if (errors.length > 0) {
+        MySwal.close();
+
+        const result = await MySwal.fire({
+          title: 'Errores de Validación',
+          html: `
+            <div style="text-align: left;">
+              <p>Se encontraron <strong>${errors.length}</strong> filas con errores:</p>
+              <ul style="max-height: 200px; overflow-y: auto; text-align: left;">
+                ${errors
+                  .slice(0, 5)
+                  .map(
+                    (err) =>
+                      `<li>Fila ${err.fila}: ${err.errores.join(', ')}</li>`
+                  )
+                  .join('')}
+                ${
+                  errors.length > 5
+                    ? `<li>... y ${errors.length - 5} errores más</li>`
+                    : ''
+                }
+              </ul>
+              <p>¿Deseas continuar con las <strong>${validData.length}</strong> filas válidas?</p>
+            </div>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, continuar',
+          cancelButtonText: 'Cancelar',
+          confirmButtonColor: '#2563EB',
+          cancelButtonColor: '#6B7280',
+        });
+
+        if (!result.isConfirmed) {
+          if (fileInputRef.current) fileInputRef.current.value = '';
+          return;
+        }
+      }
+
+      if (validData.length === 0) {
+        MySwal.close();
+        Toast.fire({
+          icon: 'error',
+          title: 'No hay datos válidos para procesar',
+        });
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        return;
+      }
+
+      MySwal.update({
+        title: 'Creando rubros...',
+        text: `Procesando ${validData.length} rubros. Esto puede tomar unos momentos.`,
+      });
+
+      setIsProcessing(true);
+      const results = await rubroService.bulkCreate(validData);
+
+      MySwal.close();
+      setUploadResults(results);
+      setShowResultsModal(true);
+
+      if (results.exitosos.length > 0) {
+        await fetchAll();
+      }
+    } catch (error) {
+      console.error('Error procesando archivo:', error);
+      MySwal.close();
+      Toast.fire({
+        icon: 'error',
+        title: 'Error al procesar el archivo',
+        text: error.message || 'Ocurrió un error inesperado',
+      });
+    } finally {
+      setIsProcessing(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleBulkUpload = () => {
+    if (gruposCursos.length === 0) {
+      Toast.fire({
+        icon: 'warning',
+        title: 'No hay grupos-cursos disponibles',
+        text: 'Primero debes crear grupos-cursos antes de cargar rubros',
+      });
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
   // ===========================
   //          RENDER
   // ===========================
   return (
-    <CrudPage
-      title="Gestión de Rubros"
-      subtitle="Componentes de evaluación - Zirak"
-      addButtonText="Agregar Rubro"
-      emptyMessage="No hay rubros registrados. ¡Agrega el primero!"
-      loadingMessage="Cargando rubros..."
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xlsx,.xls"
+        onChange={handleFileSelect}
+        style={{ display: 'none' }}
+      />
 
-      data={rubrosEnriquecidos}
-      loading={loading}
-      error={error}
-      stats={stats}
+      <CrudPage
+        title="Gestión de Rubros"
+        subtitle="Componentes de evaluación - Zirak"
+        addButtonText="Agregar Rubro"
+        emptyMessage="No hay rubros registrados. ¡Agrega el primero!"
+        loadingMessage="Cargando rubros..."
 
-      columns={rubrosColumns}
-      searchFields={rubrosSearchFields}
+        data={rubrosEnriquecidos}
+        loading={loading}
+        error={error}
+        stats={stats}
 
-      isModalOpen={isModalOpen}
-      modalTitle={selectedRubro ? 'Editar Rubro' : 'Nuevo Rubro'}
-      formFields={getRubrosFormFields(!!selectedRubro, gruposCursos)}
-      formData={formData}
-      formErrors={formErrors}
-      isSubmitting={isSubmitting || loadingRelated}
+        columns={rubrosColumns}
+        searchFields={rubrosSearchFields}
 
-      onAdd={handleAddRubro}
-      onEdit={handleEditRubro}
-      onDelete={handleDeleteRubro}
-      onSave={handleSaveRubro}
-      onCancel={handleCancelModal}
-      onInputChange={handleInputChange}
-      onRetry={handleRetry}
-    />
+        isModalOpen={isModalOpen}
+        modalTitle={selectedRubro ? 'Editar Rubro' : 'Nuevo Rubro'}
+        formFields={getRubrosFormFields(!!selectedRubro, gruposCursos)}
+        formData={formData}
+        formErrors={formErrors}
+        isSubmitting={isSubmitting || loadingRelated}
+
+        onAdd={handleAddRubro}
+        onEdit={handleEditRubro}
+        onDelete={handleDeleteRubro}
+        onSave={handleSaveRubro}
+        onCancel={handleCancelModal}
+        onInputChange={handleInputChange}
+        onRetry={handleRetry}
+
+        additionalActions={[
+          {
+            label: 'Descargar Plantilla',
+            icon: <FileSpreadsheet size={20} />,
+            onClick: handleDownloadTemplate,
+          },
+          {
+            label: isProcessing ? 'Procesando...' : 'Carga Masiva',
+            icon: <Upload size={20} />,
+            onClick: handleBulkUpload,
+            disabled: isProcessing || gruposCursos.length === 0,
+          },
+        ]}
+      />
+
+      {showResultsModal && uploadResults && (
+        <BulkUploadResultModal
+          results={uploadResults}
+          onClose={() => setShowResultsModal(false)}
+        />
+      )}
+    </>
   );
 }
 

@@ -3,9 +3,6 @@ import { theme } from '../../../styles';
 import { CheckCircle, XCircle, Download, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-/* ============================================================
-   ESTILOS (NO SE CAMBIAN)
-============================================================ */
 const Overlay = styled.div`
   position: fixed;
   top: 0;
@@ -190,35 +187,145 @@ const EmptyState = styled.div`
 `;
 
 /* ============================================================
-   MODAL INTELIGENTE
+   MODAL INTELIGENTE CON DETECCIÓN AUTOMÁTICA DE TIPO
 ============================================================ */
 
 export default function BulkUploadResultModal({ results, onClose }) {
-  const tipo = results.tipo || 
-    (results.exitosos[0]?.gradoActual !== undefined ? "estudiantes" : "docentes");
+  // ============================================================
+  // DETECTAR TIPO DE DATOS DE MANERA INTELIGENTE
+  // ============================================================
+  const detectarTipo = () => {
+    // 1. Si viene explícito en results.tipo, usarlo
+    if (results.tipo) return results.tipo;
+    
+    // 2. Detectar por campos específicos en items exitosos
+    if (results.exitosos.length > 0) {
+      const item = results.exitosos[0];
+      
+      // Estudiantes: tienen matrícula o gradoActual
+      if (item.matricula !== undefined || item.gradoActual !== undefined) {
+        return "estudiantes";
+      }
+      
+      // Docentes: tienen especialidad o fechaContratacion
+      if (item.especialidad !== undefined || item.fechaContratacion !== undefined) {
+        return "docentes";
+      }
+      
+      // Rubros: tienen porcentaje y grupoCursoId
+      if (item.porcentaje !== undefined || item.grupoCursoId !== undefined) {
+        return "rubros";
+      }
+      
+      // Cursos: tienen codigo, nivel y areaConocimiento
+      if (item.codigo !== undefined && item.nivel !== undefined) {
+        return "cursos";
+      }
+    }
+    
+    // 3. Detectar por campos en items fallidos
+    if (results.fallidos.length > 0) {
+      const datos = results.fallidos[0].datos;
+      
+      if (datos.gradoActual !== undefined || datos.seccionActual !== undefined) {
+        return "estudiantes";
+      }
+      
+      if (datos.especialidad !== undefined || datos.Especialidad !== undefined) {
+        return "docentes";
+      }
+      
+      if (datos.Porcentaje !== undefined || datos.GrupoCursoId !== undefined) {
+        return "rubros";
+      }
+      
+      if (datos.Codigo !== undefined && datos.Nivel !== undefined) {
+        return "cursos";
+      }
+    }
+    
+    // 4. Fallback genérico
+    return "registros";
+  };
 
-  const labelExitosos =
-    tipo === "estudiantes" ? "Estudiantes Creados Exitosamente" : "Docentes Creados Exitosamente";
+  const tipo = detectarTipo();
 
-  const labelFallidos =
-    tipo === "estudiantes" ? "Estudiantes con Errores" : "Docentes con Errores";
+  // ============================================================
+  // LABELS DINÁMICOS SEGÚN TIPO
+  // ============================================================
+  const getLabels = () => {
+    switch(tipo) {
+      case "estudiantes":
+        return {
+          exitosos: "Estudiantes Creados Exitosamente",
+          fallidos: "Estudiantes con Errores"
+        };
+      case "docentes":
+        return {
+          exitosos: "Docentes Creados Exitosamente",
+          fallidos: "Docentes con Errores"
+        };
+      case "rubros":
+        return {
+          exitosos: "Rubros Creados Exitosamente",
+          fallidos: "Rubros con Errores"
+        };
+      case "cursos":
+        return {
+          exitosos: "Cursos Creados Exitosamente",
+          fallidos: "Cursos con Errores"
+        };
+      default:
+        return {
+          exitosos: "Registros Creados Exitosamente",
+          fallidos: "Registros con Errores"
+        };
+    }
+  };
 
+  const labels = getLabels();
+
+  // ============================================================
+  // FORMATEAR NOMBRE DEL ITEM SEGÚN TIPO
+  // ============================================================
   const getNombreItem = (item) => {
+    // Rubros: mostrar nombre y porcentaje
+    if (item.nombre && item.porcentaje !== undefined) {
+      return `${item.nombre} (${item.porcentaje}%)`;
+    }
+    
+    // Cursos: mostrar código y nombre
+    if (item.codigo && item.nombre) {
+      return `${item.codigo} - ${item.nombre}`;
+    }
+    
+    // Estudiantes/Docentes: nombres + apellidos
     if (item.nombres && item.apellidos) {
       return `${item.nombres} ${item.apellidos}`;
     }
+    
+    // Fallback
     return item.nombre || item.nombreCompleto || "Sin nombre";
   };
 
+  // ============================================================
+  // FORMATEAR DETALLES DEL ITEM
+  // ============================================================
   const getDetalleItem = (item) => {
-    // MOSTRAR MATRÍCULA O CÓDIGO SEGÚN TIPO
-    const identificador = tipo === "estudiantes" 
-      ? `Matrícula: ${item.matricula || 'N/A'}` 
-      : `Código: ${item.codigo || 'N/A'}`;
+    let detalles = [`Fila: ${item.fila}`];
     
-    return `Fila: ${item.fila} | ${identificador}`;
+    // Agregar identificadores según disponibilidad
+    if (item.matricula) detalles.push(`Matrícula: ${item.matricula}`);
+    if (item.codigo) detalles.push(`Código: ${item.codigo}`);
+    if (item.grupoCursoId) detalles.push(`Grupo-Curso: ${item.grupoCursoId}`);
+    if (item.id) detalles.push(`ID: ${item.id}`);
+    
+    return detalles.join(" | ");
   };
 
+  // ============================================================
+  // DESCARGAR ERRORES
+  // ============================================================
   const handleDownloadErrors = () => {
     const errorsData = results.fallidos.map(err => ({
       Fila: err.fila,
@@ -233,6 +340,9 @@ export default function BulkUploadResultModal({ results, onClose }) {
     XLSX.writeFile(workbook, `errores_${tipo}_${Date.now()}.xlsx`);
   };
 
+  // ============================================================
+  // RENDER
+  // ============================================================
   return (
     <Overlay onClick={onClose}>
       <Modal onClick={e => e.stopPropagation()}>
@@ -270,14 +380,14 @@ export default function BulkUploadResultModal({ results, onClose }) {
           {results.exitosos.length > 0 && (
             <Section>
               <SectionTitle>
-                <CheckCircle size={20} color={theme.colors.success} /> {labelExitosos}
+                <CheckCircle size={20} color={theme.colors.success} /> {labels.exitosos}
               </SectionTitle>
 
               <List>
                 {results.exitosos.map((item, idx) => (
                   <ListItem key={idx} $borderColor={theme.colors.success}>
                     <ListItemHeader>{getNombreItem(item)}</ListItemHeader>
-                    <ListItemDetail>Fila: {item.fila}</ListItemDetail>
+                    <ListItemDetail>{getDetalleItem(item)}</ListItemDetail>
                   </ListItem>
                 ))}
               </List>
@@ -288,7 +398,7 @@ export default function BulkUploadResultModal({ results, onClose }) {
           {results.fallidos.length > 0 && (
             <Section>
               <SectionTitle>
-                <XCircle size={20} color={theme.colors.error} /> {labelFallidos}
+                <XCircle size={20} color={theme.colors.error} /> {labels.fallidos}
               </SectionTitle>
 
               <List>
