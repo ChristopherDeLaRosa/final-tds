@@ -352,14 +352,14 @@ const menuSections = [
   {
     title: "Gestión Académica",
     items: [
-      { path: "/periodos", label: "Períodos", icon: Calendar },
-      { path: "/aulas", label: "Aulas", icon: Building2 },
-      { path: "/cursos", label: "Asignaturas", icon: BookOpen },
+      { path: "/periodos", label: "Períodos", icon: Calendar, role: "Admin", },
+      { path: "/aulas", label: "Aulas", icon: Building2, },
+      { path: "/cursos", label: "Asignaturas", icon: BookOpen, role: "Admin", },
       { path: "/grupos-cursos", label: "Secciones Académicas", icon: Layers },
-      { path: "/docentes", label: "Docentes", icon: UserCheck },
+      { path: "/docentes", label: "Docentes", icon: UserCheck, role: "Admin", },
       { path: "/estudiantes", label: "Estudiantes", icon: Users },
-      { path: "/inscripciones", label: "Inscripciones", icon: UserPlus },
-      { path: "/rubros", label: "Rubros", icon: BookMarked },
+      { path: "/inscripciones", label: "Inscripciones", icon: UserPlus, role: "Admin", },
+      { path: "/rubros", label: "Rubros", icon: BookMarked, role: "Admin", },
     ],
   },
   {

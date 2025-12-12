@@ -231,18 +231,76 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
   };
 
   // Eliminar clase de celda
-  const eliminarClase = (key) => {
-    setHorario(prev => {
+  // const eliminarClase = (key) => {
+  //   setHorario(prev => {
+  //     const nuevoHorario = { ...prev };
+  //     delete nuevoHorario[key];
+  //     return nuevoHorario;
+  //   });
+    
+  //   Toast.fire({
+  //     icon: 'success',
+  //     title: 'Clase eliminada'
+  //   });
+  // };
+  const eliminarClase = async (key) => {
+  const celda = horario[key];
+  if (!celda) return;
+
+  const { isConfirmed } = await MySwal.fire({
+    title: "Eliminar horario",
+    html: `
+      <div style="text-align: left;">
+        <p>Esta acción eliminará:</p>
+        <ul>
+          <li>El bloque de horario</li>
+          <li>El grupo-curso asociado (si existe)</li>
+          <li>Las sesiones generadas</li>
+        </ul>
+        <p style="color: #ef4444; font-weight: 600; margin-top: 1rem;">
+          Esta acción NO se puede deshacer
+        </p>
+      </div>
+    `,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Sí, eliminar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#ef4444",
+  });
+
+  if (!isConfirmed) return;
+
+  try {
+    if (celda.id) {
+      const resultado = await aulaService.deleteHorarioCascada(celda.id);
+      if (!resultado.exitoso) {
+        throw new Error(resultado.mensaje || "No se pudo eliminar en el servidor");
+      }
+    }
+
+    setHorario((prev) => {
       const nuevoHorario = { ...prev };
       delete nuevoHorario[key];
       return nuevoHorario;
     });
-    
+
     Toast.fire({
-      icon: 'success',
-      title: 'Clase eliminada'
+      icon: "success",
+      title: "Clase eliminada",
     });
-  };
+  } catch (error) {
+    console.error("Error al eliminar horario:", error);
+    MySwal.fire({
+      icon: "error",
+      title: "Error al eliminar",
+      text:
+        error.response?.data?.message ||
+        error.message ||
+        "No se pudo eliminar el horario",
+    });
+  }
+};
 
   // Activar modo copia
   const activarModoCopia = (key) => {

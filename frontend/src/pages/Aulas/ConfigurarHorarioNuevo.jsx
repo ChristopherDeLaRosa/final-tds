@@ -48,6 +48,33 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
     { key: "Friday", label: "Viernes" },
   ];
 
+  // Helpers
+  const DIA_ENUM_TO_KEY = {
+    0: "Sunday",
+    1: "Monday",
+    2: "Tuesday",
+    3: "Wednesday",
+    4: "Thursday",
+    5: "Friday",
+    6: "Saturday",
+  };
+
+  const DIA_KEY_TO_ENUM = {
+    Sunday: 0,
+    Monday: 1,
+    Tuesday: 2,
+    Wednesday: 3,
+    Thursday: 4,
+    Friday: 5,
+    Saturday: 6,
+  };
+
+  const normalizarHora = (hora) => {
+    // "08:00:00" -> "08:00"
+    if (!hora) return "";
+    return hora.slice(0, 5);
+  };
+
   // Celda seleccionada para edición rápida
   const [celdaSeleccionada, setCeldaSeleccionada] = useState(null);
 
@@ -100,11 +127,35 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
     }
   };
 
+  // const cargarHorariosExistentes = (horariosData) => {
+  //   const horarioMap = {};
+
+  //   horariosData.forEach((h) => {
+  //     const key = `${h.diaSemana}-${h.horaInicio}`;
+  //     horarioMap[key] = {
+  //       id: h.id,
+  //       cursoId: h.cursoId,
+  //       nombreCurso: h.nombreCurso,
+  //       codigoCurso: h.codigoCurso,
+  //       docenteId: h.docenteId,
+  //       nombreDocente: h.nombreDocente,
+  //       horaInicio: h.horaInicio,
+  //       horaFin: h.horaFin,
+  //       orden: h.orden,
+  //     };
+  //   });
+
+  //   setHorario(horarioMap);
+  // };
   const cargarHorariosExistentes = (horariosData) => {
     const horarioMap = {};
 
     horariosData.forEach((h) => {
-      const key = `${h.diaSemana}-${h.horaInicio}`;
+      const diaKey = DIA_ENUM_TO_KEY[h.diaSemana] || "Monday";
+      const horaInicio = normalizarHora(h.horaInicio);
+
+      const key = `${diaKey}-${horaInicio}`;
+
       horarioMap[key] = {
         id: h.id,
         cursoId: h.cursoId,
@@ -112,8 +163,8 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
         codigoCurso: h.codigoCurso,
         docenteId: h.docenteId,
         nombreDocente: h.nombreDocente,
-        horaInicio: h.horaInicio,
-        horaFin: h.horaFin,
+        horaInicio: horaInicio, // ya normalizada "08:00"
+        horaFin: normalizarHora(h.horaFin),
         orden: h.orden,
       };
     });
@@ -336,14 +387,26 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
       });
 
       // Convertir el mapa de horario a array de DTOs
+      // const horariosDto = Object.entries(horario).map(([key, h]) => {
+      //   const dia = key.split("-")[0];
+
+      //   return {
+      //     cursoId: h.cursoId,
+      //     docenteId: h.docenteId,
+      //     diaSemana: convertirDiaAEnum(dia),
+      //     horaInicio: h.horaInicio + ":00",
+      //     horaFin: h.horaFin + ":00",
+      //     orden: h.orden,
+      //   };
+      // });
       const horariosDto = Object.entries(horario).map(([key, h]) => {
-        const dia = key.split("-")[0];
+        const [dia, horaInicio] = key.split("-");
 
         return {
           cursoId: h.cursoId,
           docenteId: h.docenteId,
           diaSemana: convertirDiaAEnum(dia),
-          horaInicio: h.horaInicio + ":00",
+          horaInicio: horaInicio + ":00", // "08:00:00"
           horaFin: h.horaFin + ":00",
           orden: h.orden,
         };
@@ -403,32 +466,37 @@ const ConfigurarHorarioNuevo = ({ aulaId, onClose, onSuccess }) => {
       MySwal.close();
       console.error("Error:", error);
       MySwal.fire({
-      icon: "error",
-      title: "Error al guardar",
-      text: error.response?.data?.message || 
-            error.response?.data?.title ||
-            "No se pudo guardar el horario",
-      footer: error.response?.data?.errors ? 
-        `<pre style="text-align: left; font-size: 12px;">${JSON.stringify(error.response.data.errors, null, 2)}</pre>` 
-        : null
-    });
+        icon: "error",
+        title: "Error al guardar",
+        text:
+          error.response?.data?.message ||
+          error.response?.data?.title ||
+          "No se pudo guardar el horario",
+        footer: error.response?.data?.errors
+          ? `<pre style="text-align: left; font-size: 12px;">${JSON.stringify(error.response.data.errors, null, 2)}</pre>`
+          : null,
+      });
+      
     } finally {
       setLoading(false);
     }
   };
-
   const convertirDiaAEnum = (diaKey) => {
-  const dias = {
-    'Sunday': 0,
-    'Monday': 1,
-    'Tuesday': 2,
-    'Wednesday': 3,
-    'Thursday': 4,
-    'Friday': 5,
-    'Saturday': 6
+    return DIA_KEY_TO_ENUM[diaKey] ?? 1; // default Monday
   };
-  return dias[diaKey] || 1; // Default Monday
-};
+
+  //   const convertirDiaAEnum = (diaKey) => {
+  //   const dias = {
+  //     'Sunday': 0,
+  //     'Monday': 1,
+  //     'Tuesday': 2,
+  //     'Wednesday': 3,
+  //     'Thursday': 4,
+  //     'Friday': 5,
+  //     'Saturday': 6
+  //   };
+  //   return dias[diaKey] || 1; // Default Monday
+  // };
 
   // Limpiar todo el horario
   const limpiarHorario = async () => {

@@ -1,9 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import usuariosService from "../../services/usuariosService";
+import docenteService from "../../services/docenteService";
 import { MySwal, Toast } from "../../utils/alerts";
 import styled from "styled-components";
-import { theme } from '../../styles';
-import { UserPlus, Mail, User, Shield, CheckCircle, XCircle, Loader2, AlertCircle } from 'lucide-react';
+import { theme } from "../../styles";
+import Select from "react-select";
+import {
+  UserPlus,
+  Mail,
+  User,
+  Shield,
+  CheckCircle,
+  XCircle,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 
 // Componentes styled (algunos diferentes a CambiarPassword)
 const Card = styled.div`
@@ -55,7 +66,7 @@ const FormLabel = styled.label`
 const FormInput = styled.input`
   width: 100%;
   padding: ${theme.spacing.sm} ${theme.spacing.md};
-  border: 1.5px solid ${props => props.$error ? theme.colors.error : theme.colors.border};
+  border: 1.5px solid ${(props) => (props.$error ? theme.colors.error : theme.colors.border)};
   border-radius: ${theme.borderRadius.md};
   background: ${theme.colors.inputBg};
   color: ${theme.colors.text};
@@ -64,16 +75,21 @@ const FormInput = styled.input`
 
   &:focus {
     outline: none;
-    border-color: ${props => props.$error ? theme.colors.error : theme.colors.primary};
-    box-shadow: 0 0 0 3px ${props => props.$error 
-      ? theme.colors.error + '20' 
-      : theme.colors.primary + '20'};
+    border-color: ${(props) => (props.$error ? theme.colors.error : theme.colors.primary)};
+    box-shadow: 0 0 0 3px
+      ${(props) => (props.$error ? theme.colors.error + "20" : theme.colors.primary + "20")};
   }
 
   &:disabled {
     background: ${theme.colors.inputBgDisabled};
     cursor: not-allowed;
   }
+`;
+
+const HelpText = styled.div`
+  margin-top: ${theme.spacing.xs};
+  font-size: ${theme.fontSize.xs};
+  color: ${theme.colors.textMuted};
 `;
 
 const RoleBadge = styled.div`
@@ -84,30 +100,43 @@ const RoleBadge = styled.div`
   border-radius: ${theme.spacing.xl};
   font-size: ${theme.fontSize.xs};
   font-weight: 500;
-  background: ${props => {
-    switch(props.$role) {
-      case 'Admin': return theme.colors.accent + '15';
-      case 'Docente': return theme.colors.info + '15';
-      case 'Estudiante': return theme.colors.success + '15';
-      default: return theme.colors.border;
+  background: ${(props) => {
+    switch (props.$role) {
+      case "Admin":
+        return theme.colors.accent + "15";
+      case "Docente":
+        return theme.colors.info + "15";
+      case "Estudiante":
+        return theme.colors.success + "15";
+      default:
+        return theme.colors.border;
     }
   }};
-  color: ${props => {
-    switch(props.$role) {
-      case 'Admin': return theme.colors.accent;
-      case 'Docente': return theme.colors.info;
-      case 'Estudiante': return theme.colors.success;
-      default: return theme.colors.text;
+  color: ${(props) => {
+    switch (props.$role) {
+      case "Admin":
+        return theme.colors.accent;
+      case "Docente":
+        return theme.colors.info;
+      case "Estudiante":
+        return theme.colors.success;
+      default:
+        return theme.colors.text;
     }
   }};
-  border: 1px solid ${props => {
-    switch(props.$role) {
-      case 'Admin': return theme.colors.accent + '30';
-      case 'Docente': return theme.colors.info + '30';
-      case 'Estudiante': return theme.colors.success + '30';
-      default: return theme.colors.border;
-    }
-  }};
+  border: 1px solid
+    ${(props) => {
+      switch (props.$role) {
+        case "Admin":
+          return theme.colors.accent + "30";
+        case "Docente":
+          return theme.colors.info + "30";
+        case "Estudiante":
+          return theme.colors.success + "30";
+        default:
+          return theme.colors.border;
+      }
+    }};
 `;
 
 const RoleOption = styled.div`
@@ -125,7 +154,7 @@ const RoleOption = styled.div`
   }
 
   &.selected {
-    background: ${theme.colors.primary + '10'};
+    background: ${theme.colors.primary + "10"};
     border-color: ${theme.colors.primary};
   }
 `;
@@ -142,8 +171,8 @@ const AlertMessage = styled.div`
   align-items: flex-start;
   gap: ${theme.spacing.sm};
   padding: ${theme.spacing.md};
-  background: ${theme.colors.warning + '10'};
-  border: 1px solid ${theme.colors.warning + '30'};
+  background: ${theme.colors.warning + "10"};
+  border: 1px solid ${theme.colors.warning + "30"};
   border-radius: ${theme.borderRadius.md};
   margin-bottom: ${theme.spacing.lg};
   color: ${theme.colors.text};
@@ -161,7 +190,7 @@ const StatusIndicator = styled.div`
   gap: ${theme.spacing.xs};
   font-size: ${theme.fontSize.xs};
   margin-top: ${theme.spacing.xs};
-  color: ${props => {
+  color: ${(props) => {
     if (props.$checking) return theme.colors.info;
     if (props.$available) return theme.colors.success;
     return theme.colors.error;
@@ -176,13 +205,13 @@ const StatusIndicator = styled.div`
 const SubmitButton = styled.button`
   width: 100%;
   padding: ${theme.spacing.md};
-  background: ${props => props.disabled ? theme.colors.primary + '80' : theme.colors.primary};
+  background: ${(props) => (props.disabled ? theme.colors.primary + "80" : theme.colors.primary)};
   color: white;
   border: none;
   border-radius: ${theme.borderRadius.md};
   font-weight: 600;
   font-size: ${theme.fontSize.base};
-  cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
+  cursor: ${(props) => (props.disabled ? "not-allowed" : "pointer")};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -201,23 +230,23 @@ const SubmitButton = styled.button`
 `;
 
 const rolesDisponibles = [
-  { 
-    value: "Admin", 
+  {
+    value: "Admin",
     label: "Administrador",
     description: "Acceso completo al sistema",
-    icon: <Shield size={16} />
+    icon: <Shield size={16} />,
   },
-  { 
-    value: "Docente", 
+  {
+    value: "Docente",
     label: "Docente",
     description: "Gestión de grupos y estudiantes",
-    icon: <User size={16} />
+    icon: <User size={16} />,
   },
-  { 
-    value: "Estudiante", 
+  {
+    value: "Estudiante",
     label: "Estudiante",
     description: "Acceso limitado a contenido",
-    icon: <User size={16} />
+    icon: <User size={16} />,
   },
 ];
 
@@ -226,6 +255,7 @@ export default function CrearUsuario() {
     nombreUsuario: "",
     email: "",
     rol: "Docente",
+    docenteId: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -234,14 +264,21 @@ export default function CrearUsuario() {
   const [usernameExists, setUsernameExists] = useState(false);
   const [emailExists, setEmailExists] = useState(false);
 
+  const [docentes, setDocentes] = useState([]);
+  const [loadingDocentes, setLoadingDocentes] = useState(false);
+  const [docentesError, setDocentesError] = useState("");
+
   // Verificar nombre de usuario
   useEffect(() => {
     const checkUser = async () => {
       if (!form.nombreUsuario) return;
       setCheckingUsername(true);
-      const exists = await usuariosService.verificarUsuario(form.nombreUsuario);
-      setUsernameExists(exists);
-      setCheckingUsername(false);
+      try {
+        const exists = await usuariosService.verificarUsuario(form.nombreUsuario);
+        setUsernameExists(exists);
+      } finally {
+        setCheckingUsername(false);
+      }
     };
 
     const timer = setTimeout(checkUser, 400);
@@ -253,14 +290,127 @@ export default function CrearUsuario() {
     const checkEmail = async () => {
       if (!form.email) return;
       setCheckingEmail(true);
-      const exists = await usuariosService.verificarEmail(form.email);
-      setEmailExists(exists);
-      setCheckingEmail(false);
+      try {
+        const exists = await usuariosService.verificarEmail(form.email);
+        setEmailExists(exists);
+      } finally {
+        setCheckingEmail(false);
+      }
     };
 
     const timer = setTimeout(checkEmail, 400);
     return () => clearTimeout(timer);
   }, [form.email]);
+
+  // Cargar docentes activos cuando el rol es Docente
+  useEffect(() => {
+    const loadDocentes = async () => {
+      if (form.rol !== "Docente") {
+        setDocentes([]);
+        setDocentesError("");
+        return;
+      }
+
+      setLoadingDocentes(true);
+      setDocentesError("");
+
+      try {
+        const data = await docenteService.getAllActivos();
+        setDocentes(Array.isArray(data) ? data : []);
+      } catch (err) {
+        setDocentes([]);
+        setDocentesError(err?.message || "No se pudieron cargar los docentes.");
+      } finally {
+        setLoadingDocentes(false);
+      }
+    };
+
+    loadDocentes();
+  }, [form.rol]);
+
+  // Si cambian el rol, limpia el docenteId cuando no aplica
+  useEffect(() => {
+    if (form.rol !== "Docente" && form.docenteId) {
+      setForm((prev) => ({ ...prev, docenteId: "" }));
+    }
+  }, [form.rol]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const docentesOrdenados = useMemo(() => {
+    return [...docentes].sort((a, b) => {
+      const aa = `${a?.apellidos || ""} ${a?.nombres || ""}`.trim().toLowerCase();
+      const bb = `${b?.apellidos || ""} ${b?.nombres || ""}`.trim().toLowerCase();
+      return aa.localeCompare(bb);
+    });
+  }, [docentes]);
+
+  const opcionesDocentes = useMemo(() => {
+    return docentesOrdenados.map((d) => ({
+      value: d.id,
+      label: `${d.codigo} - ${d.nombres} ${d.apellidos}`,
+    }));
+  }, [docentesOrdenados]);
+
+  const selectedDocenteOption = useMemo(() => {
+    if (!form.docenteId) return null;
+    const id = Number(form.docenteId);
+    return opcionesDocentes.find((o) => o.value === id) || null;
+  }, [form.docenteId, opcionesDocentes]);
+
+  const selectStyles = useMemo(
+    () => ({
+      control: (base, state) => ({
+        ...base,
+        backgroundColor: theme.colors.inputBg,
+        borderColor: state.isFocused ? theme.colors.primary : theme.colors.border,
+        boxShadow: state.isFocused ? `0 0 0 3px ${theme.colors.primary}20` : "none",
+        borderRadius: theme.borderRadius.md,
+        minHeight: "44px",
+        "&:hover": {
+          borderColor: theme.colors.primary,
+        },
+        opacity: (loading || loadingDocentes) ? 0.9 : 1,
+      }),
+      valueContainer: (base) => ({
+        ...base,
+        padding: `0 ${theme.spacing.md}`,
+      }),
+      placeholder: (base) => ({
+        ...base,
+        color: theme.colors.textMuted,
+      }),
+      singleValue: (base) => ({
+        ...base,
+        color: theme.colors.text,
+      }),
+      input: (base) => ({
+        ...base,
+        color: theme.colors.text,
+      }),
+      menu: (base) => ({
+        ...base,
+        zIndex: 50,
+      }),
+      option: (base, state) => ({
+        ...base,
+        backgroundColor: state.isSelected
+          ? theme.colors.primary + "20"
+          : state.isFocused
+          ? theme.colors.surface
+          : "transparent",
+        color: theme.colors.text,
+        cursor: "pointer",
+      }),
+      clearIndicator: (base) => ({
+        ...base,
+        cursor: "pointer",
+      }),
+      dropdownIndicator: (base) => ({
+        ...base,
+        cursor: "pointer",
+      }),
+    }),
+    [loading, loadingDocentes]
+  );
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -268,17 +418,21 @@ export default function CrearUsuario() {
   };
 
   const handleRoleSelect = (role) => {
-    setForm({ ...form, rol: role });
+    setForm((prev) => ({
+      ...prev,
+      rol: role,
+      docenteId: role === "Docente" ? prev.docenteId : "",
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (usernameExists)
-      return MySwal.fire("Error", "El nombre de usuario ya existe", "error");
+    if (usernameExists) return MySwal.fire("Error", "El nombre de usuario ya existe", "error");
+    if (emailExists) return MySwal.fire("Error", "El correo ya está en uso", "error");
 
-    if (emailExists)
-      return MySwal.fire("Error", "El correo ya está en uso", "error");
+    if (form.rol === "Docente" && !form.docenteId)
+      return MySwal.fire("Error", "Debes seleccionar un docente para vincular.", "error");
 
     setLoading(true);
 
@@ -287,6 +441,7 @@ export default function CrearUsuario() {
         nombreUsuario: form.nombreUsuario,
         email: form.email,
         rol: form.rol,
+        docenteId: form.rol === "Docente" ? Number(form.docenteId) : null,
       });
 
       Toast.fire({
@@ -299,21 +454,23 @@ export default function CrearUsuario() {
         nombreUsuario: "",
         email: "",
         rol: "Docente",
+        docenteId: "",
       });
       setUsernameExists(false);
       setEmailExists(false);
     } catch (err) {
-      MySwal.fire(
-        "Error",
-        err?.message || "Error al crear usuario",
-        "error"
-      );
+      MySwal.fire("Error", err?.message || "Error al crear usuario", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormValid = form.nombreUsuario && form.email && !usernameExists && !emailExists;
+  const isFormValid =
+    form.nombreUsuario &&
+    form.email &&
+    !usernameExists &&
+    !emailExists &&
+    (form.rol !== "Docente" || !!form.docenteId);
 
   return (
     <Card>
@@ -328,7 +485,8 @@ export default function CrearUsuario() {
         <AlertMessage>
           <AlertCircle size={20} />
           <div>
-            <strong>Información importante:</strong> Al crear un usuario, se generará una contraseña temporal que será enviada al correo electrónico proporcionado.
+            <strong>Información importante:</strong> Al crear un usuario, se generará una contraseña temporal
+            que será enviada al correo electrónico proporcionado.
           </div>
         </AlertMessage>
 
@@ -347,10 +505,7 @@ export default function CrearUsuario() {
               placeholder="Ingresa un nombre de usuario único"
             />
             {form.nombreUsuario && (
-              <StatusIndicator 
-                $checking={checkingUsername}
-                $available={!usernameExists}
-              >
+              <StatusIndicator $checking={checkingUsername} $available={!usernameExists}>
                 {checkingUsername ? (
                   <>
                     <Loader2 size={14} className="spin" />
@@ -386,10 +541,7 @@ export default function CrearUsuario() {
               placeholder="usuario@ejemplo.com"
             />
             {form.email && (
-              <StatusIndicator 
-                $checking={checkingEmail}
-                $available={!emailExists}
-              >
+              <StatusIndicator $checking={checkingEmail} $available={!emailExists}>
                 {checkingEmail ? (
                   <>
                     <Loader2 size={14} className="spin" />
@@ -423,42 +575,67 @@ export default function CrearUsuario() {
                   {role.icon}
                   <div>
                     <div style={{ fontWeight: 600 }}>{role.label}</div>
-                    <div style={{ 
-                      fontSize: theme.fontSize.xs, 
-                      color: theme.colors.textMuted,
-                      marginTop: '2px'
-                    }}>
+                    <div
+                      style={{
+                        fontSize: theme.fontSize.xs,
+                        color: theme.colors.textMuted,
+                        marginTop: "2px",
+                      }}
+                    >
                       {role.description}
                     </div>
                   </div>
                 </RoleOption>
               ))}
             </RoleGrid>
-            
+
             {/* Rol seleccionado */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: theme.spacing.sm,
-              marginTop: theme.spacing.md 
-            }}>
-              <span style={{ 
-                fontSize: theme.fontSize.sm, 
-                color: theme.colors.textMuted 
-              }}>
-                Rol seleccionado:
-              </span>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: theme.spacing.sm,
+                marginTop: theme.spacing.md,
+              }}
+            >
+              <span style={{ fontSize: theme.fontSize.sm, color: theme.colors.textMuted }}>Rol seleccionado:</span>
               <RoleBadge $role={form.rol}>
-                {rolesDisponibles.find(r => r.value === form.rol)?.icon}
+                {rolesDisponibles.find((r) => r.value === form.rol)?.icon}
                 {form.rol}
               </RoleBadge>
             </div>
           </FormGroup>
 
-          <SubmitButton 
-            type="submit" 
-            disabled={!isFormValid || loading}
-          >
+          {/* Vincular Docente */}
+          {form.rol === "Docente" && (
+            <FormGroup>
+              <FormLabel>Docente a vincular</FormLabel>
+
+              <Select
+                options={opcionesDocentes}
+                value={selectedDocenteOption}
+                onChange={(option) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    docenteId: option ? String(option.value) : "",
+                  }))
+                }
+                isDisabled={loading}
+                isLoading={loadingDocentes}
+                placeholder={loadingDocentes ? "Cargando docentes..." : "Seleccionar docente"}
+                styles={selectStyles}
+                isClearable
+              />
+
+              {docentesError ? (
+                <HelpText style={{ color: theme.colors.error }}>{docentesError}</HelpText>
+              ) : (
+                <HelpText>Este usuario quedará vinculado al docente seleccionado.</HelpText>
+              )}
+            </FormGroup>
+          )}
+
+          <SubmitButton type="submit" disabled={!isFormValid || loading}>
             {loading ? (
               <>
                 <Loader2 size={20} className="spin" />
