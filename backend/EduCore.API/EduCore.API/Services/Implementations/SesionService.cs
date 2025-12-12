@@ -210,7 +210,7 @@ namespace EduCore.API.Services.Implementations
             var sesion = new Sesion
             {
                 GrupoCursoId = createDto.GrupoCursoId,
-                Fecha = createDto.Fecha.Date,
+                Fecha = createDto.Fecha.Date,  // FIX: Usar .Date para evitar problemas de zona horaria
                 HoraInicio = createDto.HoraInicio,
                 HoraFin = createDto.HoraFin,
                 Tema = createDto.Tema,
@@ -269,7 +269,7 @@ namespace EduCore.API.Services.Implementations
                 );
             }
 
-            sesion.Fecha = updateDto.Fecha.Date;
+            sesion.Fecha = updateDto.Fecha.Date;  // FIX: Usar .Date para evitar problemas de zona horaria
             sesion.HoraInicio = updateDto.HoraInicio;
             sesion.HoraFin = updateDto.HoraFin;
             sesion.Tema = updateDto.Tema;
@@ -330,9 +330,9 @@ namespace EduCore.API.Services.Implementations
             }
 
             var sesionesCreadas = new List<Sesion>();
-            var fechaActual = recurrenteDto.FechaInicio.Date;
+            var fechaActual = recurrenteDto.FechaInicio.Date;  // FIX: Usar .Date para evitar problemas de zona horaria
 
-            while (fechaActual <= recurrenteDto.FechaFin.Date)
+            while (fechaActual <= recurrenteDto.FechaFin.Date)  // FIX: Usar .Date para evitar problemas de zona horaria
             {
                 // Si el día de la semana está en la lista
                 if (recurrenteDto.DiasSemana.Contains(fechaActual.DayOfWeek))

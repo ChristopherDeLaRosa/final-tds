@@ -135,11 +135,18 @@ export default function PaseLista() {
   const [loadingEstudiantes, setLoadingEstudiantes] = useState(false);
   const [guardando, setGuardando] = useState(false);
 
+  // NUEVO: Estado para almacenar info del usuario
+  const [usuario, setUsuario] = useState(null);
+
   useEffect(() => {
-    cargarSesionesDelDia();
+    // Cargar información del usuario al montar el componente
+    const usuarioData = JSON.parse(localStorage.getItem('usuario'));
+    setUsuario(usuarioData);
+    cargarSesionesDelDia(usuarioData);
   }, []);
 
-  const cargarSesionesDelDia = async () => {
+  // ACTUALIZADO: Función mejorada con filtro por docente
+  const cargarSesionesDelDia = async (usuarioData = usuario) => {
     try {
       setLoading(true);
       
@@ -149,8 +156,18 @@ export default function PaseLista() {
       const day = String(hoy.getDate()).padStart(2, '0');
       const fechaHoy = `${year}-${month}-${day}`;
       
-      const sesionesData = await sesionService.getByRangoFechas(fechaHoy, fechaHoy);
+      let sesionesData;
       
+      // Verificar si el usuario es docente
+      if (usuarioData?.rol === 'Docente' && usuarioData?.docenteId) {
+        console.log('Cargando sesiones para docente:', usuarioData.docenteId);
+        sesionesData = await sesionService.getByDocente(usuarioData.docenteId, fechaHoy);
+      } else {
+        console.log('Cargando todas las sesiones (Admin)');
+        sesionesData = await sesionService.getByRangoFechas(fechaHoy, fechaHoy);
+      }
+      
+      // Filtrar sesiones para asegurar que sean del día exacto
       const sesionesFiltradas = sesionesData.filter(s => {
         const fechaSesion = new Date(s.fecha);
         const fechaSesionStr = fechaSesion.toISOString().split('T')[0];
@@ -160,13 +177,26 @@ export default function PaseLista() {
       setSesiones(sesionesFiltradas);
       
       if (sesionesFiltradas.length === 0) {
+        const mensaje = usuarioData?.rol === 'Docente' 
+          ? 'No tienes sesiones programadas para hoy'
+          : 'No hay sesiones programadas para hoy';
+        
         Toast.fire({
-          title: 'No hay sesiones programadas para hoy',
+          icon: 'info',
+          title: mensaje,
+        });
+      } else {
+        Toast.fire({
+          icon: 'success',
+          title: `${sesionesFiltradas.length} sesión(es) encontrada(s)`,
+          timer: 2000
         });
       }
       
     } catch (error) {
+      console.error('Error al cargar sesiones:', error);
       Toast.fire({
+        icon: 'error',
         title: 'Error al cargar las sesiones del día',
         text: error.response?.data?.message || error.message,
       });
@@ -174,6 +204,8 @@ export default function PaseLista() {
       setLoading(false);
     }
   };
+
+  // ... resto de funciones sin cambios (handleSeleccionarSesion, handleCambiarEstado, etc.) ...
 
   const handleSeleccionarSesion = async (sesionId) => {
     if (!sesionId) {
@@ -225,11 +257,14 @@ export default function PaseLista() {
       }
 
       Toast.fire({
+        icon: 'success',
         title: `${estudiantesData.length} estudiantes cargados`,
+        timer: 2000
       });
 
     } catch (error) {
       Toast.fire({
+        icon: 'error',
         title: 'Error al cargar la lista de estudiantes',
         text: error.response?.data?.message || error.message,
       });
@@ -269,7 +304,9 @@ export default function PaseLista() {
     setAsistencias(nuevasAsistencias);
     
     Toast.fire({
+      icon: 'success',
       title: `Todos marcados como ${estado}`,
+      timer: 1500
     });
   };
 
@@ -280,6 +317,7 @@ export default function PaseLista() {
 
     if (estudiantesSinRegistro.length > 0) {
       Toast.fire({
+        icon: 'warning',
         title: 'Todos los estudiantes deben tener un estado de asistencia',
       });
       return false;
@@ -291,6 +329,7 @@ export default function PaseLista() {
   const handleGuardarPaseLista = async () => {
     if (!sesionSeleccionada) {
       Toast.fire({
+        icon: 'warning',
         title: 'Debes seleccionar una sesión',
       });
       return;
@@ -310,6 +349,7 @@ export default function PaseLista() {
           <p><strong>Total estudiantes:</strong> ${estudiantes.length}</p>
         </div>
       `,
+      icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sí, guardar',
       cancelButtonText: 'Cancelar',
@@ -342,6 +382,7 @@ export default function PaseLista() {
       await paseListaService.registrarPaseListaCompleto(data);
 
       MySwal.fire({
+        icon: 'success',
         title: '¡Pase de lista guardado!',
         text: `Se registró la asistencia de ${estudiantes.length} estudiantes`,
         timer: 3000,
@@ -355,6 +396,7 @@ export default function PaseLista() {
 
     } catch (error) {
       MySwal.fire({
+        icon: 'error',
         title: 'Error al guardar',
         text: error.response?.data?.message || 'No se pudo guardar el pase de lista',
       });
@@ -430,7 +472,9 @@ export default function PaseLista() {
           <EmptyMessage>
             <p>
               <Calendar size={20} />
-              No hay sesiones programadas para hoy
+              {usuario?.rol === 'Docente' 
+                ? 'No tienes sesiones programadas para hoy'
+                : 'No hay sesiones programadas para hoy'}
             </p>
           </EmptyMessage>
         )}

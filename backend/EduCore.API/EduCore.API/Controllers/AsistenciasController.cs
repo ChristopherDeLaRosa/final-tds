@@ -2,6 +2,7 @@
 using EduCore.API.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace EduCore.API.Controllers
 {
@@ -11,18 +12,21 @@ namespace EduCore.API.Controllers
     public class AsistenciasController : ControllerBase
     {
         private readonly IAsistenciaService _asistenciaService;
+        private readonly ISesionService _sesionService;
         private readonly ILogger<AsistenciasController> _logger;
 
         public AsistenciasController(
             IAsistenciaService asistenciaService,
+            ISesionService sesionService,
             ILogger<AsistenciasController> logger)
         {
             _asistenciaService = asistenciaService;
+            _sesionService = sesionService;
             _logger = logger;
         }
 
         /// <summary>
-        /// Obtener asistencia por ID
+        /// Obtener asistencia por ID (Docentes solo pueden ver asistencias de sus sesiones)
         /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<AsistenciaDto>> GetById(int id)
@@ -34,6 +38,23 @@ namespace EduCore.API.Controllers
                 if (asistencia == null)
                     return NotFound(new { message = "Asistencia no encontrada" });
 
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+
+                        if (!sesionesDocente.Any(s => s.Id == asistencia.SesionId))
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 return Ok(asistencia);
             }
             catch (Exception ex)
@@ -44,13 +65,30 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener asistencias de una sesión
+        /// Obtener asistencias de una sesión (Docentes solo pueden ver sus sesiones)
         /// </summary>
         [HttpGet("sesion/{sesionId}")]
         public async Task<ActionResult<IEnumerable<AsistenciaDto>>> GetBySesion(int sesionId)
         {
             try
             {
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+
+                        if (!sesionesDocente.Any(s => s.Id == sesionId))
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 var asistencias = await _asistenciaService.GetBySesionAsync(sesionId);
                 return Ok(asistencias);
             }
@@ -70,6 +108,22 @@ namespace EduCore.API.Controllers
             try
             {
                 var asistencias = await _asistenciaService.GetByEstudianteAsync(estudianteId);
+
+                // Si es docente, filtrar solo las asistencias de sus sesiones
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+                        var sesionesIds = sesionesDocente.Select(s => s.Id).ToHashSet();
+
+                        asistencias = asistencias.Where(a => sesionesIds.Contains(a.SesionId));
+                    }
+                }
+
                 return Ok(asistencias);
             }
             catch (Exception ex)
@@ -80,7 +134,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener asistencias de un estudiante en un grupo específico
+        /// Obtener asistencias de un estudiante en un grupo específico (Docentes solo pueden ver sus grupos)
         /// </summary>
         [HttpGet("estudiante/{estudianteId}/grupo/{grupoCursoId}")]
         public async Task<ActionResult<IEnumerable<AsistenciaDto>>> GetByEstudianteGrupoCurso(
@@ -89,6 +143,24 @@ namespace EduCore.API.Controllers
         {
             try
             {
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+                        var tieneAcceso = sesionesDocente.Any(s => s.GrupoCursoId == grupoCursoId);
+
+                        if (!tieneAcceso)
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 var asistencias = await _asistenciaService.GetByEstudianteGrupoCursoAsync(
                     estudianteId,
                     grupoCursoId
@@ -103,7 +175,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Registrar asistencia individual
+        /// Registrar asistencia individual (Solo Admin/Coordinador/Docente - el docente solo para sus sesiones)
         /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin,Docente,Coordinador")]
@@ -113,6 +185,23 @@ namespace EduCore.API.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+
+                        if (!sesionesDocente.Any(s => s.Id == createDto.SesionId))
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
 
                 var asistencia = await _asistenciaService.CreateAsync(createDto);
                 return CreatedAtAction(nameof(GetById), new { id = asistencia.Id }, asistencia);
@@ -129,7 +218,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Registrar asistencia para todo un grupo (tomar lista completa)
+        /// Registrar asistencia para todo un grupo (Solo Admin/Coordinador/Docente - el docente solo para sus sesiones)
         /// </summary>
         [HttpPost("grupo")]
         [Authorize(Roles = "Admin,Docente,Coordinador")]
@@ -140,6 +229,23 @@ namespace EduCore.API.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+
+                        if (!sesionesDocente.Any(s => s.Id == registroDto.SesionId))
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
 
                 var asistencias = await _asistenciaService.RegistrarAsistenciaGrupoAsync(registroDto);
                 return Ok(asistencias);
@@ -152,7 +258,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Actualizar asistencia
+        /// Actualizar asistencia (Solo Admin/Coordinador/Docente - el docente solo para sus sesiones)
         /// </summary>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Docente,Coordinador")]
@@ -164,6 +270,27 @@ namespace EduCore.API.Controllers
             {
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
+
+                var asistenciaExistente = await _asistenciaService.GetByIdAsync(id);
+                if (asistenciaExistente == null)
+                    return NotFound(new { message = "Asistencia no encontrada" });
+
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+
+                        if (!sesionesDocente.Any(s => s.Id == asistenciaExistente.SesionId))
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
 
                 var asistencia = await _asistenciaService.UpdateAsync(id, updateDto);
 
@@ -180,7 +307,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Eliminar asistencia
+        /// Eliminar asistencia (Solo Admin)
         /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
@@ -203,7 +330,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener reporte de asistencia de un estudiante
+        /// Obtener reporte de asistencia de un estudiante (Docentes solo pueden ver sus grupos)
         /// </summary>
         [HttpGet("reporte/estudiante/{estudianteId}")]
         public async Task<ActionResult<ReporteAsistenciaEstudianteDto>> GetReporteEstudiante(
@@ -212,6 +339,24 @@ namespace EduCore.API.Controllers
         {
             try
             {
+                // Verificar permisos si es docente y se especifica un grupo
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente" && grupoCursoId.HasValue)
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+                        var tieneAcceso = sesionesDocente.Any(s => s.GrupoCursoId == grupoCursoId.Value);
+
+                        if (!tieneAcceso)
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 var reporte = await _asistenciaService.GetReporteEstudianteAsync(
                     estudianteId,
                     grupoCursoId
@@ -230,7 +375,7 @@ namespace EduCore.API.Controllers
         }
 
         /// <summary>
-        /// Obtener reporte de asistencia de un grupo-curso
+        /// Obtener reporte de asistencia de un grupo-curso (Docentes solo pueden ver sus grupos)
         /// </summary>
         [HttpGet("reporte/grupo/{grupoCursoId}")]
         public async Task<ActionResult<ReporteAsistenciaGrupoCursoDto>> GetReporteGrupoCurso(
@@ -239,6 +384,24 @@ namespace EduCore.API.Controllers
         {
             try
             {
+                // Verificar permisos si es docente
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Docente")
+                {
+                    var docenteIdClaim = User.FindFirst("DocenteId")?.Value;
+                    if (!string.IsNullOrEmpty(docenteIdClaim))
+                    {
+                        var docenteId = int.Parse(docenteIdClaim);
+                        var sesionesDocente = await _sesionService.GetByDocenteAsync(docenteId, null);
+                        var tieneAcceso = sesionesDocente.Any(s => s.GrupoCursoId == grupoCursoId);
+
+                        if (!tieneAcceso)
+                        {
+                            return Forbid();
+                        }
+                    }
+                }
+
                 var reporte = await _asistenciaService.GetReporteGrupoCursoAsync(
                     grupoCursoId,
                     periodo
@@ -257,4 +420,3 @@ namespace EduCore.API.Controllers
         }
     }
 }
-

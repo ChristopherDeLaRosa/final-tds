@@ -57,14 +57,18 @@ const sesionService = {
     return response.data;
   },
 
+  // getByDocente: async (docenteId, fecha = null) => {
+  //   const url = fecha
+  //     ? `${API_URL}/docente/${docenteId}?fecha=${fecha}`
+  //     : `${API_URL}/docente/${docenteId}`;
+  //   const response = await axiosInstance.get(url);
+  //   return response.data;
+  // },
   getByDocente: async (docenteId, fecha = null) => {
-    const url = fecha
-      ? `${API_URL}/docente/${docenteId}?fecha=${fecha}`
-      : `${API_URL}/docente/${docenteId}`;
-    const response = await axiosInstance.get(url);
-    return response.data;
-  },
-
+  const params = fecha ? { fecha } : {};
+  const response = await axiosInstance.get(`${API_URL}/docente/${docenteId}`, { params });
+  return response.data;
+},
   create: async (sesionData) => {
     const response = await axiosInstance.post(API_URL, sesionData);
     return response.data;
