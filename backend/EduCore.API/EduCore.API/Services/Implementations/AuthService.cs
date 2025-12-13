@@ -137,7 +137,7 @@ namespace EduCore.API.Services.Implementations
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(passwordTemporal),
                 Rol = registerDto.Rol,
                 EstudianteId = registerDto.EstudianteId,
-                DocenteId = docenteId, // ← Usar el valor encontrado o proporcionado
+                DocenteId = docenteId, //Usar el valor encontrado o proporcionado
                 Activo = true,
                 FechaCreacion = DateTime.UtcNow
             };

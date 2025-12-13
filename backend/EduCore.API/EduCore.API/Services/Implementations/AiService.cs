@@ -46,27 +46,40 @@ namespace EduCore.API.Services.Implementations
 
         private string? ExtraerMatricula(string prompt)
         {
-            // Soporta ASCII '-' y Unicode '-' (non-breaking hyphen)
-            var match = Regex.Match(prompt, @"\b\d{4}[--]\d{3}\b");
+            // Patrón principal: YYYY-NNN (ej: 2024-001)
+            var match = Regex.Match(prompt, @"\b(\d{4})[-–—]\s*(\d{3})\b");
 
-            if (!match.Success)
-                return null;
+            if (match.Success)
+            {
+                // Reconstruir con guión estándar
+                return $"{match.Groups[1].Value}-{match.Groups[2].Value}";
+            }
 
-            // Normalizar el guión a ASCII por si vino en Unicode
-            var matricula = match.Value.Replace('-', '-');
+            // Patrón alternativo sin guión: YYYYNNN (ej: 2024001)
+            var matchSinGuion = Regex.Match(prompt, @"\b(\d{4})(\d{3})\b");
+            if (matchSinGuion.Success)
+            {
+                return $"{matchSinGuion.Groups[1].Value}-{matchSinGuion.Groups[2].Value}";
+            }
 
-            return matricula;
+            return null;
         }
 
-
-        // Método corregido: detecta nombres de 1 o más palabras
         private string? ExtraerNombre(string prompt)
         {
-            // Casos: "de Nicole", "de Juan", "de Juan Pérez"
-            var match = Regex.Match(prompt, @"de\s+([a-zA-Záéíóúñ]+(?:\s+[a-zA-Záéíóúñ]+)*)");
+            // Patrón más flexible que captura todo después de "de/del/de la"
+            // Ejemplos: "de Juan Pérez", "del estudiante María González", "de la estudiante Ana López"
+            var match = Regex.Match(prompt, @"de(?:\s+la?|\s+el)?\s+(?:estudiante\s+)?([a-zA-Záéíóúñü]+(?:\s+[a-zA-Záéíóúñü]+)+)", RegexOptions.IgnoreCase);
 
             if (match.Success)
                 return match.Groups[1].Value.Trim();
+
+            // Patrón alternativo: buscar nombres después de palabras clave
+            // "asistencia María González", "promedio Juan Pérez López"
+            var matchAlt = Regex.Match(prompt, @"(?:asistencia|promedio|calificaciones|notas|boletin|boletín)\s+(?:de\s+)?([a-zA-Záéíóúñü]+(?:\s+[a-zA-Záéíóúñü]+)+)", RegexOptions.IgnoreCase);
+
+            if (matchAlt.Success)
+                return matchAlt.Groups[1].Value.Trim();
 
             return null;
         }
@@ -74,18 +87,41 @@ namespace EduCore.API.Services.Implementations
         private async Task<EstudianteDto?> BuscarPorNombre(string nombre)
         {
             var lista = await _estudianteService.GetAllAsync();
-            var lower = nombre.ToLower();
+            var lower = nombre.ToLower().Trim();
 
+            // 1. Búsqueda exacta del nombre completo
             var exacto = lista.FirstOrDefault(e =>
-                (e.Nombres + " " + e.Apellidos).ToLower() == lower
+                (e.Nombres + " " + e.Apellidos).ToLower().Trim() == lower
             );
             if (exacto != null) return exacto;
 
-            var parcial = lista.FirstOrDefault(e =>
-                e.Nombres.ToLower().Contains(lower) ||
+            // 2. Búsqueda exacta invertida (apellido nombre)
+            var exactoInvertido = lista.FirstOrDefault(e =>
+                (e.Apellidos + " " + e.Nombres).ToLower().Trim() == lower
+            );
+            if (exactoInvertido != null) return exactoInvertido;
+
+            // 3. Búsqueda que contenga todas las palabras del nombre buscado
+            var palabrasBuscadas = lower.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var contieneTodasPalabras = lista.FirstOrDefault(e =>
+            {
+                var nombreCompleto = (e.Nombres + " " + e.Apellidos).ToLower();
+                return palabrasBuscadas.All(palabra => nombreCompleto.Contains(palabra));
+            });
+            if (contieneTodasPalabras != null) return contieneTodasPalabras;
+
+            // 4. Búsqueda parcial en nombres
+            var parcialNombres = lista.FirstOrDefault(e =>
+                e.Nombres.ToLower().Contains(lower)
+            );
+            if (parcialNombres != null) return parcialNombres;
+
+            // 5. Búsqueda parcial en apellidos
+            var parcialApellidos = lista.FirstOrDefault(e =>
                 e.Apellidos.ToLower().Contains(lower)
             );
-            return parcial;
+
+            return parcialApellidos;
         }
 
         public async Task<string> AskAsync(string prompt)
@@ -93,54 +129,89 @@ namespace EduCore.API.Services.Implementations
             var p = prompt.ToLower();
             EstudianteDto? estudianteDetectado = null;
 
-            var matricula = ExtraerMatricula(p);
+            // Intentar extraer matrícula primero
+            var matricula = ExtraerMatricula(prompt); // Usar prompt original, no lowercase
             if (matricula != null)
             {
+                _logger.LogInformation("Matrícula detectada: {Matricula}", matricula);
                 estudianteDetectado = await _estudianteService.GetByMatriculaAsync(matricula);
-            }
 
-            if (estudianteDetectado == null)
-            {
-                var nombre = ExtraerNombre(p);
-                if (!string.IsNullOrEmpty(nombre))
+                if (estudianteDetectado != null)
                 {
-                    estudianteDetectado = await BuscarPorNombre(nombre);
+                    _logger.LogInformation("Estudiante encontrado por matrícula: {Id} - {Nombre}",
+                        estudianteDetectado.Id,
+                        estudianteDetectado.Nombres + " " + estudianteDetectado.Apellidos);
+                }
+                else
+                {
+                    _logger.LogWarning("No se encontró estudiante con matrícula: {Matricula}", matricula);
                 }
             }
 
+            // Si no se encontró por matrícula, intentar por nombre
+            if (estudianteDetectado == null)
+            {
+                var nombre = ExtraerNombre(prompt); // Usar prompt original
+                if (!string.IsNullOrEmpty(nombre))
+                {
+                    _logger.LogInformation("Nombre detectado: {Nombre}", nombre);
+                    estudianteDetectado = await BuscarPorNombre(nombre);
+
+                    if (estudianteDetectado != null)
+                    {
+                        _logger.LogInformation("Estudiante encontrado por nombre: {Id} - {Nombre}",
+                            estudianteDetectado.Id,
+                            estudianteDetectado.Nombres + " " + estudianteDetectado.Apellidos);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No se encontró estudiante con nombre: {Nombre}", nombre);
+                    }
+                }
+            }
+
+            // Agregar ID del estudiante al prompt si se encontró
             if (estudianteDetectado != null)
             {
                 p += $" {estudianteDetectado.Id}";
+                _logger.LogInformation("ID agregado al prompt: {Id}", estudianteDetectado.Id);
             }
 
-            if (p.Contains("cuántos estudiantes") ||
-                p.Contains("cuantos estudiantes") ||
-                p.Contains("total de estudiantes") ||
-                p.Contains("cantidad de estudiantes"))
+            // 1. PREGUNTA: Total de estudiantes
+            if (ContienePatron(p, new[] {
+                "cuántos estudiantes",
+                "cuantos estudiantes",
+                "total de estudiantes",
+                "cantidad de estudiantes",
+                "número de estudiantes",
+                "numero de estudiantes"
+            }))
             {
                 var total = await _estudianteService.GetTotalAsync();
-                return $"Actualmente hay {total} estudiantes registrados en el sistema.";
+                return $"📊 Actualmente hay **{total}** estudiantes registrados en el sistema.";
             }
 
-            if (p.Contains("asistencia de") || p.Contains("como va la asistencia"))
+            // 2. PREGUNTA: Asistencia de estudiante
+            if (ContienePatron(p, new[] {
+                "asistencia de",
+                "como va la asistencia",
+                "cómo va la asistencia",
+                "asistencias de",
+                "reporte de asistencia"
+            }))
             {
                 var id = ExtraerId(p);
                 if (id == null)
-                    return "No se pudo identificar el estudiante.";
+                    return "❌ No pude identificar al estudiante. Por favor proporciona la matrícula, nombre o ID.";
 
                 var reporte = await _asistenciaService.GetReporteEstudianteAsync(id.Value);
                 if (reporte == null)
-                    return "No encontré datos de asistencia para ese estudiante.";
+                    return "❌ No encontré datos de asistencia para ese estudiante.";
 
-                return
-                    $"Asistencia de {reporte.NombreCompleto}:\n" +
-                    $"- Presentes: {reporte.Presentes}\n" +
-                    $"- Ausentes: {reporte.Ausentes}\n" +
-                    $"- Tardanzas: {reporte.Tardanzas}\n" +
-                    $"- Justificados: {reporte.Justificados}\n" +
-                    $"- Porcentaje general: {reporte.PorcentajeAsistencia}%";
+                return FormatearAsistencia(reporte);
             }
 
+            // 3. PREGUNTA: Promedio/Calificaciones de estudiante
             if (p.Contains("promedio de") || p.Contains("promedio del estudiante"))
             {
                 var id = ExtraerId(p);
@@ -158,59 +229,162 @@ namespace EduCore.API.Services.Implementations
                     $"Asistencia general: {historial.PorcentajeAsistenciaGeneral}%";
             }
 
-            if (p.Contains("estadísticas del grupo") ||
-                p.Contains("estadisticas del grupo") ||
-                p.Contains("rendimiento del grupo"))
+            // 4. PREGUNTA: Estadísticas del grupo
+            if (ContienePatron(p, new[] {
+                "estadísticas del grupo",
+                "estadisticas del grupo",
+                "rendimiento del grupo",
+                "como va el grupo",
+                "cómo va el grupo",
+                "datos del grupo"
+            }))
             {
                 var grupoId = ExtraerId(p);
                 if (grupoId == null)
-                    return "Debes incluir el ID del grupo.";
+                    return "❌ Por favor incluye el ID del grupo. Ejemplo: 'estadísticas del grupo 5'";
 
                 var stats = await _calificacionService.GetEstadisticasGrupoCursoAsync(grupoId.Value);
                 if (stats == null)
-                    return "No se encontraron estadísticas para ese grupo.";
+                    return "❌ No se encontraron estadísticas para ese grupo.";
 
-                return
-                    $"Estadísticas del grupo {stats.NombreCurso}:\n" +
-                    $"- Total estudiantes: {stats.TotalEstudiantes}\n" +
-                    $"- Aprobados: {stats.Aprobados}\n" +
-                    $"- Reprobados: {stats.Reprobados}\n" +
-                    $"- Porcentaje de aprobación: {stats.PorcentajeAprobacion}%\n" +
-                    $"- Promedio general del grupo: {stats.PromedioGrupo}\n" +
-                    $"- Nota más alta: {stats.NotaMaxima}\n" +
-                    $"- Nota más baja: {stats.NotaMinima}";
+                return FormatearEstadisticasGrupo(stats);
             }
 
-            if (p.Contains("boletín de") || p.Contains("boletin de"))
+            // 5. PREGUNTA: Boletín de estudiante
+            if (ContienePatron(p, new[] {
+                "boletín de",
+                "boletin de",
+                "reporte de notas",
+                "calificaciones del periodo",
+                "notas del periodo"
+            }))
             {
                 var id = ExtraerId(p);
                 if (id == null)
-                    return "No se pudo identificar el estudiante.";
+                    return "❌ No pude identificar al estudiante. Por favor proporciona la matrícula, nombre o ID.";
 
                 var periodoMatch = Regex.Match(p, @"periodo\s+([\w-]+)");
                 if (!periodoMatch.Success)
-                    return "Debes especificar el periodo.";
+                    return "❌ Debes especificar el periodo. Ejemplo: 'boletín de Juan periodo 2024-1'";
 
                 string periodo = periodoMatch.Groups[1].Value;
 
                 var boletin = await _calificacionService.GetBoletinEstudianteAsync(id.Value, periodo);
                 if (boletin == null)
-                    return "No se encontró boletín para este periodo.";
+                    return "❌ No se encontró boletín para este periodo.";
 
-                var listaCursos = string.Join("\n", boletin.GruposCursos.Select(g =>
-                    $"{g.NombreCurso}: {g.PromedioFinal} ({g.Estado})"
-                ));
-
-                return
-                    $"Boletín de {boletin.NombreCompleto} - Periodo {periodo}\n" +
-                    $"Promedio general: {boletin.PromedioGeneral}\n" +
-                    $"Aprobadas: {boletin.TotalMateriasAprobadas}\n" +
-                    $"Reprobadas: {boletin.TotalMateriasReprobadas}\n" +
-                    $"Asistencia: {boletin.PorcentajeAsistencia}%\n\n" +
-                    "Materias:\n" + listaCursos;
+                return FormatearBoletin(boletin, periodo);
             }
 
+            // 6. PREGUNTA: Estudiantes con problemas de asistencia
+            if (ContienePatron(p, new[] {
+                "estudiantes con baja asistencia",
+                "problemas de asistencia",
+                "ausencias frecuentes",
+                "quienes faltan más",
+                "quiénes faltan más"
+            }))
+            {
+                return await ObtenerEstudiantesBajaAsistencia();
+            }
+
+            // Si no coincide con ningún patrón, enviar a IA externa
             return await EnviarAIA(prompt);
+        }
+
+        // Helper: Verificar si contiene algún patrón
+        private bool ContienePatron(string texto, string[] patrones)
+        {
+            return patrones.Any(p => texto.Contains(p));
+        }
+
+        // Formatear respuesta de asistencia
+        private string FormatearAsistencia(ReporteAsistenciaEstudianteDto reporte)
+        {
+            var emoji = reporte.PorcentajeAsistencia >= 90 ? "✅" :
+                        reporte.PorcentajeAsistencia >= 75 ? "⚠️" : "❌";
+
+            return $@"📋 **Asistencia de {reporte.NombreCompleto}**
+{emoji} Porcentaje general: **{reporte.PorcentajeAsistencia}%**
+
+📊 Detalle:
+   • Presentes: {reporte.Presentes}
+   • Ausentes: {reporte.Ausentes}
+   • Tardanzas: {reporte.Tardanzas}
+   • Justificados: {reporte.Justificados}
+   • Total sesiones: {reporte.TotalSesiones}";
+        }
+
+        // Formatear estadísticas del grupo
+        private string FormatearEstadisticasGrupo(EstadisticasCalificacionesDto stats)
+        {
+            return $@"📊 **Estadísticas del grupo - {stats.NombreCurso}**
+
+👥 Estudiantes:
+   • Total: {stats.TotalEstudiantes}
+   • Aprobados: {stats.Aprobados} ({stats.PorcentajeAprobacion}%)
+   • Reprobados: {stats.Reprobados}
+
+📈 Calificaciones:
+   • Promedio del grupo: {stats.PromedioGrupo}
+   • Nota más alta: {stats.NotaMaxima}
+   • Nota más baja: {stats.NotaMinima}";
+        }
+
+        // Formatear boletín
+        private string FormatearBoletin(BoletinEstudianteDto boletin, string periodo)
+        {
+            var emoji = boletin.PromedioGeneral >= 90 ? "🌟" :
+                        boletin.PromedioGeneral >= 70 ? "✅" : "⚠️";
+
+            var listaCursos = string.Join("\n", boletin.GruposCursos.Select(g =>
+            {
+                var estadoEmoji = g.Estado == "Aprobado" ? "✅" :
+                                 g.Estado == "Reprobado" ? "❌" : "⏳";
+                return $"   {estadoEmoji} {g.NombreCurso}: {g.PromedioFinal} ({g.Estado})";
+            }));
+
+            return $@"📋 **Boletín de {boletin.NombreCompleto}**
+📅 Periodo: {periodo}
+{emoji} Promedio general: **{boletin.PromedioGeneral}**
+
+📚 Materias:
+{listaCursos}
+
+📊 Resumen:
+   • Aprobadas: {boletin.TotalMateriasAprobadas}
+   • Reprobadas: {boletin.TotalMateriasReprobadas}
+   • Asistencia: {boletin.PorcentajeAsistencia}%";
+        }
+
+        // Nueva funcionalidad: Estudiantes con baja asistencia
+        private async Task<string> ObtenerEstudiantesBajaAsistencia()
+        {
+            var estudiantes = await _estudianteService.GetAllAsync();
+            var problemasAsistencia = new List<(string Nombre, decimal Porcentaje)>();
+
+            foreach (var est in estudiantes.Take(100))
+            {
+                var reporte = await _asistenciaService.GetReporteEstudianteAsync(est.Id);
+                if (reporte != null && reporte.PorcentajeAsistencia < 75)
+                {
+                    problemasAsistencia.Add((reporte.NombreCompleto, reporte.PorcentajeAsistencia));
+                }
+            }
+
+            if (!problemasAsistencia.Any())
+                return "✅ ¡Excelente! No hay estudiantes con problemas de asistencia (menos de 75%).";
+
+            var lista = string.Join("\n", problemasAsistencia
+                .OrderBy(p => p.Porcentaje)
+                .Take(10)
+                .Select((p, i) => $"   {i + 1}. {p.Nombre} - {p.Porcentaje}%")
+            );
+
+            return $@"⚠️ **Estudiantes con baja asistencia** (menos de 75%):
+{lista}
+
+Total: {problemasAsistencia.Count} estudiante(s)";
         }
 
         private async Task<string> EnviarAIA(string prompt)
